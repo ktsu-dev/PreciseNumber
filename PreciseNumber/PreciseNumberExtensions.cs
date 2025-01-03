@@ -1,6 +1,5 @@
 namespace ktsu.PreciseNumber;
 
-using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
 /// <summary>
@@ -19,46 +18,21 @@ public static class PreciseNumberExtensions
 	{
 		// if TInput is already a PreciseNumber then just return it
 		PreciseNumber preciseNumber;
-		bool success = typeof(TInput) == typeof(PreciseNumber);
+		bool success = typeof(TInput) == typeof(PreciseNumberBase) || typeof(TInput).IsSubclassOf(typeof(PreciseNumberBase));
 
 		if (success)
 		{
-			preciseNumber = (PreciseNumber)(object)input;
+			preciseNumber = ((PreciseNumberBase)input).As<PreciseNumber>();
 		}
 		else
 		{
-			success = TryCreate((TInput)input, out preciseNumber!);
+			PreciseNumberBase preciseNumberBase;
+			success = PreciseNumberBase.TryCreate((TInput)input, out preciseNumberBase!);
+			preciseNumber = preciseNumberBase.As<PreciseNumber>();
 		}
 
 		return success
 			? preciseNumber
 			: throw new NotSupportedException();
-	}
-
-	/// <summary>
-	/// Tries to create a <see cref="PreciseNumber"/> from the input.
-	/// </summary>
-	/// <typeparam name="TInput">The type of the input number.</typeparam>
-	/// <param name="input">The input number to create a <see cref="PreciseNumber"/> from.</param>
-	/// <param name="preciseNumber">The created <see cref="PreciseNumber"/> if successful, otherwise null.</param>
-	/// <returns>True if the creation was successful, otherwise false.</returns>
-	internal static bool TryCreate<TInput>([NotNullWhen(true)] TInput input, [MaybeNullWhen(false)] out PreciseNumber preciseNumber)
-		where TInput : INumber<TInput>
-	{
-		var type = typeof(TInput);
-		if (Array.Exists(type.GetInterfaces(), i => i.Name.StartsWith("IBinaryInteger", StringComparison.Ordinal)))
-		{
-			preciseNumber = PreciseNumber.CreateFromInteger(input);
-			return true;
-		}
-
-		if (Array.Exists(type.GetInterfaces(), i => i.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)))
-		{
-			preciseNumber = PreciseNumber.CreateFromFloatingPoint(input);
-			return true;
-		}
-
-		preciseNumber = default;
-		return false;
 	}
 }
