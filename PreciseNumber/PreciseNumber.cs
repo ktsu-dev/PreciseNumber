@@ -1,5 +1,3 @@
-// Ignore Spelling: Commonized
-
 [assembly: CLSCompliant(true)]
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 namespace ktsu.PreciseNumber;
@@ -115,6 +113,9 @@ public record PreciseNumber
 	/// </summary>
 	protected internal int SignificantDigits { get; }
 
+	/// <summary>
+	/// Gets the invariant culture information.
+	/// </summary>
 	protected internal static CultureInfo InvariantCulture { get; } = CultureInfo.InvariantCulture;
 
 	private const int BinaryRadix = 2;
@@ -153,6 +154,8 @@ public record PreciseNumber
 	/// <returns>A string representation of the current instance.</returns>
 	public static string ToString(PreciseNumber number, string? format, IFormatProvider? formatProvider)
 	{
+		ArgumentNullException.ThrowIfNull(number);
+
 		int desiredAlloc = int.Abs(number.Exponent) + number.SignificantDigits + 2; // +2 is for negative symbol and decimal symbol
 		int stackAlloc = Math.Min(desiredAlloc, 128);
 		Span<char> buffer = stackAlloc == desiredAlloc
@@ -208,6 +211,12 @@ public record PreciseNumber
 		var clampedToMax = this > sigMax ? sigMax : this;
 		return this < sigMin ? sigMin : clampedToMax;
 	}
+
+	internal static PreciseNumber CreateFromComponents(int exponent, BigInteger significand) =>
+		new(exponent, significand);
+
+	internal static PreciseNumber CreateFromComponents(int exponent, BigInteger significand, bool sanitize) =>
+		new(exponent, significand, sanitize);
 
 	/// <summary>
 	/// Creates a <see cref="PreciseNumber"/> from a floating point value.
@@ -382,6 +391,9 @@ public record PreciseNumber
 	/// <returns>The lower of the decimal digit counts of the two numbers.</returns>
 	protected internal static int LowestDecimalDigits(PreciseNumber left, PreciseNumber right)
 	{
+		ArgumentNullException.ThrowIfNull(left);
+		ArgumentNullException.ThrowIfNull(right);
+
 		int leftDecimalDigits = left.CountDecimalDigits();
 		int rightDecimalDigits = right.CountDecimalDigits();
 
@@ -401,6 +413,9 @@ public record PreciseNumber
 	/// <returns>The lower of the significant digit counts of the two numbers.</returns>
 	protected internal static int LowestSignificantDigits(PreciseNumber left, PreciseNumber right)
 	{
+		ArgumentNullException.ThrowIfNull(left);
+		ArgumentNullException.ThrowIfNull(right);
+
 		int leftSignificantDigits = left.SignificantDigits;
 		int rightSignificantDigits = right.SignificantDigits;
 
@@ -467,6 +482,9 @@ public record PreciseNumber
 	/// </returns>
 	protected internal static (PreciseNumber, PreciseNumber, int) MakeCommonizedWithExponent(PreciseNumber left, PreciseNumber right)
 	{
+		ArgumentNullException.ThrowIfNull(left);
+		ArgumentNullException.ThrowIfNull(right);
+
 		int smallestExponent = left.Exponent < right.Exponent ? left.Exponent : right.Exponent;
 		int exponentDifferenceLeft = Math.Abs(left.Exponent - smallestExponent);
 		int exponentDifferenceRight = Math.Abs(right.Exponent - smallestExponent);
@@ -513,7 +531,11 @@ public record PreciseNumber
 	}
 
 	/// <inheritdoc/>
-	public static PreciseNumber Abs(PreciseNumber value) => value.Significand < 0 ? -value : value;
+	public static PreciseNumber Abs(PreciseNumber value)
+	{
+		ArgumentNullException.ThrowIfNull(value);
+		return value.Significand < 0 ? -value : value;
+	}
 
 	/// <inheritdoc/>
 	public static bool IsCanonical(PreciseNumber value) => true;
@@ -534,7 +556,11 @@ public record PreciseNumber
 	public static bool IsInfinity(PreciseNumber value) => !IsFinite(value);
 
 	/// <inheritdoc/>
-	public static bool IsInteger(PreciseNumber value) => value.Exponent >= 0;
+	public static bool IsInteger(PreciseNumber value)
+	{
+		ArgumentNullException.ThrowIfNull(value);
+		return value.Exponent >= 0;
+	}
 
 	/// <inheritdoc/>
 	public static bool IsNaN(PreciseNumber value) => false;
@@ -556,7 +582,11 @@ public record PreciseNumber
 	public static bool IsOddInteger(PreciseNumber value) => IsInteger(value) && !value.Significand.IsEven;
 
 	/// <inheritdoc/>
-	public static bool IsPositive(PreciseNumber value) => value.Significand >= 0;
+	public static bool IsPositive(PreciseNumber value)
+	{
+		ArgumentNullException.ThrowIfNull(value);
+		return value.Significand >= 0;
+	}
 
 	/// <inheritdoc/>
 	public static bool IsPositiveInfinity(PreciseNumber value) => IsInfinity(value) && IsPositive(value);
@@ -568,16 +598,32 @@ public record PreciseNumber
 	public static bool IsSubnormal(PreciseNumber value) => !IsNormal(value);
 
 	/// <inheritdoc/>
-	public static bool IsZero(PreciseNumber value) => value.Significand == 0;
+	public static bool IsZero(PreciseNumber value)
+	{
+		ArgumentNullException.ThrowIfNull(value);
+		return value.Significand == 0;
+	}
 
 	/// <inheritdoc/>
-	public static PreciseNumber MaxMagnitude(PreciseNumber x, PreciseNumber y) => x.Abs() >= y.Abs() ? x : y;
+	public static PreciseNumber MaxMagnitude(PreciseNumber x, PreciseNumber y)
+	{
+		ArgumentNullException.ThrowIfNull(x);
+		ArgumentNullException.ThrowIfNull(y);
+
+		return x.Abs() >= y.Abs() ? x : y;
+	}
 
 	/// <inheritdoc/>
 	public static PreciseNumber MaxMagnitudeNumber(PreciseNumber x, PreciseNumber y) => MaxMagnitude(x, y);
 
 	/// <inheritdoc/>
-	public static PreciseNumber MinMagnitude(PreciseNumber x, PreciseNumber y) => x.Abs() <= y.Abs() ? x : y;
+	public static PreciseNumber MinMagnitude(PreciseNumber x, PreciseNumber y)
+	{
+		ArgumentNullException.ThrowIfNull(x);
+		ArgumentNullException.ThrowIfNull(y);
+
+		return x.Abs() <= y.Abs() ? x : y;
+	}
 
 	/// <inheritdoc/>
 	public static PreciseNumber MinMagnitudeNumber(PreciseNumber x, PreciseNumber y) => MinMagnitude(x, y);
@@ -670,7 +716,6 @@ public record PreciseNumber
 			result = default;
 			return false;
 		}
-
 	}
 
 	/// <inheritdoc/>
@@ -753,7 +798,6 @@ public record PreciseNumber
 		return $"{sign}{integralComponent}{numberFormat.NumberDecimalSeparator}{fractionalComponent}";
 	}
 
-
 	/// <inheritdoc/>
 	public static bool TryConvertFromChecked<TOther>(TOther value, out PreciseNumber result)
 		where TOther : INumberBase<TOther>
@@ -789,8 +833,13 @@ public record PreciseNumber
 	/// </summary>
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
-	protected internal static void AssertExponentsMatch(PreciseNumber left, PreciseNumber right) =>
+	protected internal static void AssertExponentsMatch(PreciseNumber left, PreciseNumber right)
+	{
+		ArgumentNullException.ThrowIfNull(left);
+		ArgumentNullException.ThrowIfNull(right);
+
 		Debug.Assert(left.Exponent == right.Exponent, $"{nameof(AssertExponentsMatch)}: {left.Exponent} == {right.Exponent}");
+	}
 
 	/// <summary>
 	/// Negates a number.
@@ -799,6 +848,7 @@ public record PreciseNumber
 	/// <returns>The negated number.</returns>
 	public static PreciseNumber Negate(PreciseNumber value)
 	{
+		ArgumentNullException.ThrowIfNull(value);
 		return value == Zero
 			? value
 			: new(value.Exponent, -value.Significand);
@@ -917,18 +967,28 @@ public record PreciseNumber
 		return new PreciseNumber(commonExponent, remainder);
 	}
 
+	/// <summary>
+	/// Increments the specified <see cref="PreciseNumber"/> by one.
+	/// </summary>
+	/// <param name="value">The <see cref="PreciseNumber"/> to increment.</param>
+	/// <returns>A new <see cref="PreciseNumber"/> that is the result of incrementing the specified value by one.</returns>
 	public static PreciseNumber Increment(PreciseNumber value) =>
-		value + One;
+	value + One;
 
+	/// <summary>
+	/// Decrements the specified <see cref="PreciseNumber"/> by one.
+	/// </summary>
+	/// <param name="value">The <see cref="PreciseNumber"/> to decrement.</param>
+	/// <returns>A new <see cref="PreciseNumber"/> that is the result of decrementing the specified value by one.</returns>
 	public static PreciseNumber Decrement(PreciseNumber value) =>
-		value - One;
+	value - One;
 
 	/// <summary>
 	/// Returns the unary plus of a number.
 	/// </summary>
 	/// <param name="value">The number.</param>
 	/// <returns>The unary plus of the number.</returns>
-	public static PreciseNumber UnaryPlus(PreciseNumber value) =>
+	public static PreciseNumber Plus(PreciseNumber value) =>
 		value;
 
 	/// <summary>
@@ -1032,7 +1092,11 @@ public record PreciseNumber
 	/// <param name="min">The minimum value.</param>
 	/// <param name="max">The maximum value.</param>
 	/// <returns>The clamped number.</returns>
-	public static PreciseNumber Clamp(PreciseNumber value, PreciseNumber min, PreciseNumber max) => value.Clamp(min, max);
+	public static PreciseNumber Clamp(PreciseNumber value, PreciseNumber min, PreciseNumber max)
+	{
+		ArgumentNullException.ThrowIfNull(value);
+		return value.Clamp(min, max);
+	}
 
 	/// <summary>
 	/// Rounds a number to the specified number of decimal digits.
@@ -1040,7 +1104,11 @@ public record PreciseNumber
 	/// <param name="value">The number to round.</param>
 	/// <param name="decimalDigits">The number of decimal digits to round to.</param>
 	/// <returns>The rounded number.</returns>
-	public static PreciseNumber Round(PreciseNumber value, int decimalDigits) => value.Round(decimalDigits);
+	public static PreciseNumber Round(PreciseNumber value, int decimalDigits)
+	{
+		ArgumentNullException.ThrowIfNull(value);
+		return value.Round(decimalDigits);
+	}
 
 	/// <summary>
 	/// Returns the square of the current number.
@@ -1099,6 +1167,8 @@ public record PreciseNumber
 	/// <returns>A new instance of <see cref="PreciseNumber"/> that is the result of raising e to the specified power.</returns>
 	public static PreciseNumber Exp(PreciseNumber power)
 	{
+		ArgumentNullException.ThrowIfNull(power);
+
 		if (power == Zero)
 		{
 			return One;
@@ -1107,6 +1177,7 @@ public record PreciseNumber
 		{
 			return E;
 		}
+
 		return Math.Exp(power.To<double>()).ToPreciseNumber();
 	}
 
@@ -1128,7 +1199,7 @@ public record PreciseNumber
 
 	/// <inheritdoc/>
 	public static PreciseNumber operator +(PreciseNumber value) =>
-		UnaryPlus(value);
+		Plus(value);
 
 	/// <inheritdoc/>
 	public static PreciseNumber operator +(PreciseNumber left, PreciseNumber right) =>

@@ -14,6 +14,7 @@ public static class PreciseNumberExtensions
 	/// <typeparam name="TInput">The type of the input number.</typeparam>
 	/// <param name="input">The input number to convert.</param>
 	/// <returns>The converted <see cref="PreciseNumber"/>.</returns>
+	/// <exception cref="NotSupportedException">Thrown when the conversion cannot be performed because the input type is not supported.</exception>
 	public static PreciseNumber ToPreciseNumber<TInput>(this INumber<TInput> input)
 		where TInput : INumber<TInput>
 	{

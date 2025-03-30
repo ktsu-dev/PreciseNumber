@@ -32,26 +32,26 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestAbs()
 	{
-		var negative = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, new BigInteger(-12345));
+		var negative = PreciseNumber.CreateFromComponents(2, new BigInteger(-12345));
 		var positive = PreciseNumber.Abs(negative);
-		Assert.AreEqual(PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, new BigInteger(12345)), positive);
+		Assert.AreEqual(PreciseNumber.CreateFromComponents(2, new BigInteger(12345)), positive);
 	}
 
 	[TestMethod]
 	public void TestMax()
 	{
-		var left = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, new BigInteger(200));
-		var right = PreciseNumberBase.CreateFromComponents<PreciseNumber>(1, new BigInteger(50));
-		var result = PreciseNumberBase.Max(left, right);
+		var left = PreciseNumber.CreateFromComponents(2, new BigInteger(200));
+		var right = PreciseNumber.CreateFromComponents(1, new BigInteger(50));
+		var result = PreciseNumber.Max(left, right);
 		Assert.AreEqual(left, result);
 	}
 
 	[TestMethod]
 	public void TestMin()
 	{
-		var left = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, new BigInteger(200));
-		var right = PreciseNumberBase.CreateFromComponents<PreciseNumber>(1, new BigInteger(50));
-		var result = PreciseNumberBase.Min(left, right);
+		var left = PreciseNumber.CreateFromComponents(2, new BigInteger(200));
+		var right = PreciseNumber.CreateFromComponents(1, new BigInteger(50));
+		var result = PreciseNumber.Min(left, right);
 		Assert.AreEqual(right, result);
 	}
 
@@ -67,71 +67,71 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestClamp()
 	{
-		var value = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(5));
-		var min = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(3));
-		var max = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(7));
-		var result = PreciseNumberBase.Clamp(value, min, max);
+		var value = PreciseNumber.CreateFromComponents(0, new BigInteger(5));
+		var min = PreciseNumber.CreateFromComponents(0, new BigInteger(3));
+		var max = PreciseNumber.CreateFromComponents(0, new BigInteger(7));
+		var result = PreciseNumber.Clamp(value, min, max);
 		Assert.AreEqual(value, result);
 	}
 
 	[TestMethod]
 	public void TestClampLower()
 	{
-		var value = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(2));
-		var min = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(3));
-		var max = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(7));
-		var result = PreciseNumberBase.Clamp(value, min, max);
+		var value = PreciseNumber.CreateFromComponents(0, new BigInteger(2));
+		var min = PreciseNumber.CreateFromComponents(0, new BigInteger(3));
+		var max = PreciseNumber.CreateFromComponents(0, new BigInteger(7));
+		var result = PreciseNumber.Clamp(value, min, max);
 		Assert.AreEqual(min, result);
 	}
 
 	[TestMethod]
 	public void TestClampUpper()
 	{
-		var value = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(8));
-		var min = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(3));
-		var max = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(7));
-		var result = PreciseNumberBase.Clamp(value, min, max);
+		var value = PreciseNumber.CreateFromComponents(0, new BigInteger(8));
+		var min = PreciseNumber.CreateFromComponents(0, new BigInteger(3));
+		var max = PreciseNumber.CreateFromComponents(0, new BigInteger(7));
+		var result = PreciseNumber.Clamp(value, min, max);
 		Assert.AreEqual(max, result);
 	}
 
 	[TestMethod]
 	public void TestSquared()
 	{
-		var value = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(3));
+		var value = PreciseNumber.CreateFromComponents(0, new BigInteger(3));
 		var result = value.Squared();
-		var expected = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(9));
+		var expected = PreciseNumber.CreateFromComponents(0, new BigInteger(9));
 		Assert.AreEqual(expected, result);
 	}
 
 	[TestMethod]
 	public void TestCubed()
 	{
-		var value = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(2));
+		var value = PreciseNumber.CreateFromComponents(0, new BigInteger(2));
 		var result = value.Cubed();
-		var expected = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(8));
+		var expected = PreciseNumber.CreateFromComponents(0, new BigInteger(8));
 		Assert.AreEqual(expected, result);
 	}
 
 	[TestMethod]
 	public void TestNegate()
 	{
-		var value = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(10));
+		var value = PreciseNumber.CreateFromComponents(0, new BigInteger(10));
 		var result = -value;
-		var expected = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(-10));
+		var expected = PreciseNumber.CreateFromComponents(0, new BigInteger(-10));
 		Assert.AreEqual(expected, result);
 	}
 
 	[TestMethod]
 	public void TestSignificantDigits()
 	{
-		var value = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(12345));
+		var value = PreciseNumber.CreateFromComponents(0, new BigInteger(12345));
 		Assert.AreEqual(5, value.SignificantDigits);
 	}
 
 	[TestMethod]
 	public void TestCountDecimalDigits()
 	{
-		var value = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-3, new BigInteger(123));
+		var value = PreciseNumber.CreateFromComponents(-3, new BigInteger(123));
 		Assert.AreEqual(3, value.CountDecimalDigits());
 	}
 
@@ -173,12 +173,6 @@ public class PreciseNumberTests
 		var result = left / right;
 		var expected = 500.ToPreciseNumber();
 		Assert.AreEqual(expected, result);
-	}
-
-	[TestMethod]
-	public void TestTryCreateWithInvalidType()
-	{
-		Assert.IsFalse(PreciseNumberBase.TryCreate(3.ToPreciseNumber(), out var _));
 	}
 
 	[TestMethod]
@@ -340,6 +334,7 @@ public class PreciseNumberTests
 		{
 			--accumulator;
 		}
+
 		Assert.AreEqual(3.ToPreciseNumber(), accumulator);
 	}
 
@@ -351,6 +346,7 @@ public class PreciseNumberTests
 		{
 			++accumulator;
 		}
+
 		Assert.AreEqual(3.ToPreciseNumber(), accumulator);
 	}
 
@@ -369,7 +365,7 @@ public class PreciseNumberTests
 	{
 		var one = PreciseNumber.One;
 		var zero = PreciseNumber.Zero;
-		var result = PreciseNumberBase.Max(one, zero);
+		var result = PreciseNumber.Max(one, zero);
 		Assert.AreEqual(one, result);
 	}
 
@@ -379,7 +375,7 @@ public class PreciseNumberTests
 	{
 		var one = PreciseNumber.One;
 		var zero = PreciseNumber.Zero;
-		var result = PreciseNumberBase.Min(one, zero);
+		var result = PreciseNumber.Min(one, zero);
 		Assert.AreEqual(zero, result);
 	}
 
@@ -391,13 +387,13 @@ public class PreciseNumberTests
 		var min = 3.ToPreciseNumber();
 		var max = 7.ToPreciseNumber();
 
-		var result = PreciseNumberBase.Clamp(value, min, max);
+		var result = PreciseNumber.Clamp(value, min, max);
 		Assert.AreEqual(value, result);
 
-		result = PreciseNumberBase.Clamp(2.ToPreciseNumber(), min, max);
+		result = PreciseNumber.Clamp(2.ToPreciseNumber(), min, max);
 		Assert.AreEqual(min, result);
 
-		result = PreciseNumberBase.Clamp(8.ToPreciseNumber(), min, max);
+		result = PreciseNumber.Clamp(8.ToPreciseNumber(), min, max);
 		Assert.AreEqual(max, result);
 	}
 
@@ -406,7 +402,7 @@ public class PreciseNumberTests
 	public void TestStaticRound()
 	{
 		var number = 1.2345.ToPreciseNumber();
-		var result = PreciseNumberBase.Round(number, 2);
+		var result = PreciseNumber.Round(number, 2);
 		Assert.AreEqual(1.24.ToPreciseNumber(), result);
 	}
 
@@ -671,7 +667,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestConstructorPositiveNumber()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 123);
+		var number = PreciseNumber.CreateFromComponents(2, 123);
 		Assert.AreEqual(123, number.Significand);
 		Assert.AreEqual(2, number.Exponent);
 		Assert.AreEqual(3, number.SignificantDigits);
@@ -680,7 +676,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestConstructorNegativeNumber()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, -123);
+		var number = PreciseNumber.CreateFromComponents(2, -123);
 		Assert.AreEqual(-123, number.Significand);
 		Assert.AreEqual(2, number.Exponent);
 		Assert.AreEqual(3, number.SignificantDigits);
@@ -689,7 +685,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestConstructorZero()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 0);
+		var number = PreciseNumber.CreateFromComponents(2, 0);
 		Assert.AreEqual(0, number.Significand);
 		Assert.AreEqual(0, number.Exponent);
 		Assert.AreEqual(0, number.SignificantDigits);
@@ -698,7 +694,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestConstructorSanitizeTrue()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 12300, true);
+		var number = PreciseNumber.CreateFromComponents(2, 12300, true);
 		Assert.AreEqual(123, number.Significand);
 		Assert.AreEqual(4, number.Exponent);
 		Assert.AreEqual(3, number.SignificantDigits);
@@ -707,7 +703,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestConstructorSanitizeFalse()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 12300, false);
+		var number = PreciseNumber.CreateFromComponents(2, 12300, false);
 		Assert.AreEqual(12300, number.Significand);
 		Assert.AreEqual(2, number.Exponent);
 		Assert.AreEqual(5, number.SignificantDigits);
@@ -716,13 +712,13 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromFloatingPointPositiveNumber()
 	{
-		var number = PreciseNumberBase.CreateFromFloatingPoint(123000.45);
+		var number = PreciseNumber.CreateFromFloatingPoint(123000.45);
 		Assert.AreEqual(12300045, number.Significand);
 		Assert.AreEqual(-2, number.Exponent);
 		Assert.AreEqual(8, number.SignificantDigits);
 
 		var input = (Half)1000.0;
-		number = PreciseNumberBase.CreateFromFloatingPoint(input);
+		number = PreciseNumber.CreateFromFloatingPoint(input);
 		Assert.AreEqual(1, number.Significand);
 		Assert.AreEqual(3, number.Exponent);
 		Assert.AreEqual(1, number.SignificantDigits);
@@ -731,7 +727,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromFloatingPointNegativeNumber()
 	{
-		var number = PreciseNumberBase.CreateFromFloatingPoint(-123000.45);
+		var number = PreciseNumber.CreateFromFloatingPoint(-123000.45);
 		Assert.AreEqual(-12300045, number.Significand);
 		Assert.AreEqual(-2, number.Exponent);
 		Assert.AreEqual(8, number.SignificantDigits);
@@ -740,7 +736,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromFloatingPointOne()
 	{
-		var number = PreciseNumberBase.CreateFromFloatingPoint(1.0);
+		var number = PreciseNumber.CreateFromFloatingPoint(1.0);
 		Assert.AreEqual(1, number.Significand);
 		Assert.AreEqual(0, number.Exponent);
 		Assert.AreEqual(1, number.SignificantDigits);
@@ -749,7 +745,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromFloatingPointNegativeOne()
 	{
-		var number = PreciseNumberBase.CreateFromFloatingPoint(-1.0);
+		var number = PreciseNumber.CreateFromFloatingPoint(-1.0);
 		Assert.AreEqual(-1, number.Significand);
 		Assert.AreEqual(0, number.Exponent);
 		Assert.AreEqual(1, number.SignificantDigits);
@@ -758,7 +754,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromFloatingPointZero()
 	{
-		var number = PreciseNumberBase.CreateFromFloatingPoint(0000.0);
+		var number = PreciseNumber.CreateFromFloatingPoint(0000.0);
 		Assert.AreEqual(0, number.Significand);
 		Assert.AreEqual(0, number.Exponent);
 		Assert.AreEqual(0, number.SignificantDigits);
@@ -767,7 +763,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromIntegerPositiveNumber()
 	{
-		var number = PreciseNumberBase.CreateFromInteger(123000);
+		var number = PreciseNumber.CreateFromInteger(123000);
 		Assert.AreEqual(123, number.Significand);
 		Assert.AreEqual(3, number.Exponent);
 		Assert.AreEqual(3, number.SignificantDigits);
@@ -776,7 +772,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromIntegerNegativeNumber()
 	{
-		var number = PreciseNumberBase.CreateFromInteger(-123000);
+		var number = PreciseNumber.CreateFromInteger(-123000);
 		Assert.AreEqual(-123, number.Significand);
 		Assert.AreEqual(3, number.Exponent);
 		Assert.AreEqual(3, number.SignificantDigits);
@@ -785,7 +781,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromIntegerOne()
 	{
-		var number = PreciseNumberBase.CreateFromInteger(1);
+		var number = PreciseNumber.CreateFromInteger(1);
 		Assert.AreEqual(1, number.Significand);
 		Assert.AreEqual(0, number.Exponent);
 		Assert.AreEqual(1, number.SignificantDigits);
@@ -794,7 +790,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromIntegerNegativeOne()
 	{
-		var number = PreciseNumberBase.CreateFromInteger(-1);
+		var number = PreciseNumber.CreateFromInteger(-1);
 		Assert.AreEqual(-1, number.Significand);
 		Assert.AreEqual(0, number.Exponent);
 		Assert.AreEqual(1, number.SignificantDigits);
@@ -803,7 +799,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromIntegerZero()
 	{
-		var number = PreciseNumberBase.CreateFromInteger(0000);
+		var number = PreciseNumber.CreateFromInteger(0000);
 		Assert.AreEqual(0, number.Significand);
 		Assert.AreEqual(0, number.Exponent);
 		Assert.AreEqual(0, number.SignificantDigits);
@@ -813,7 +809,7 @@ public class PreciseNumberTests
 	public void TestMaximumBigInteger()
 	{
 		var maxBigInt = BigInteger.Parse("79228162514264337593543950335"); // Decimal.MaxValue
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, maxBigInt);
+		var number = PreciseNumber.CreateFromComponents(0, maxBigInt);
 		Assert.AreEqual(maxBigInt, number.Significand);
 	}
 
@@ -821,14 +817,14 @@ public class PreciseNumberTests
 	public void TestMinimumBigInteger()
 	{
 		var minBigInt = BigInteger.Parse("-79228162514264337593543950335"); // Decimal.MinValue
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, minBigInt);
+		var number = PreciseNumber.CreateFromComponents(0, minBigInt);
 		Assert.AreEqual(minBigInt, number.Significand);
 	}
 
 	[TestMethod]
 	public void TestNegativeExponent()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-5, 12345);
+		var number = PreciseNumber.CreateFromComponents(-5, 12345);
 		Assert.AreEqual(12345, number.Significand);
 		Assert.AreEqual(-5, number.Exponent);
 	}
@@ -836,7 +832,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestTrailingZerosBoundary()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 123000, true);
+		var number = PreciseNumber.CreateFromComponents(2, 123000, true);
 		Assert.AreEqual(123, number.Significand);
 		Assert.AreEqual(5, number.Exponent);
 	}
@@ -844,24 +840,31 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestToStringWithFormat()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 12345);
+		var number = PreciseNumber.CreateFromComponents(2, 12345);
 		string str = number.ToString("G");
 		Assert.AreEqual("1234500", str);
 	}
 
 	[TestMethod]
-	public void TestToStringWithDifferentCulture()
+	public void TestToStringWithDifferentCultureThrows()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
-		string str = number.ToString(CultureInfo.GetCultureInfo("fr-FR"));
-		Assert.AreEqual("123,45", str);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
+		Assert.ThrowsExactly<CultureNotFoundException>(() => number.ToString(CultureInfo.GetCultureInfo("fr-FR")));
+	}
+
+	[TestMethod]
+	public void TestToStringWithInvariantCulture()
+	{
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
+		string str = number.ToString(CultureInfo.InvariantCulture);
+		Assert.AreEqual("123.45", str);
 	}
 
 	[TestMethod]
 	public void TestAdditionWithLargeNumbers()
 	{
-		var largeNum1 = PreciseNumberBase.CreateFromInteger(BigInteger.Parse("79228162514264337593543950335"));
-		var largeNum2 = PreciseNumberBase.CreateFromInteger(BigInteger.Parse("79228162514264337593543950335"));
+		var largeNum1 = PreciseNumber.CreateFromInteger(BigInteger.Parse("79228162514264337593543950335"));
+		var largeNum2 = PreciseNumber.CreateFromInteger(BigInteger.Parse("79228162514264337593543950335"));
 		var result = largeNum1 + largeNum2;
 		Assert.AreEqual(BigInteger.Parse("15845632502852867518708790067"), result.Significand);
 		Assert.AreEqual(1, result.Exponent);
@@ -870,8 +873,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestSubtractionWithLargeNumbers()
 	{
-		var largeNum1 = PreciseNumberBase.CreateFromInteger(BigInteger.Parse("79228162514264337593543950335"));
-		var largeNum2 = PreciseNumberBase.CreateFromInteger(BigInteger.Parse("39228162514264337593543950335"));
+		var largeNum1 = PreciseNumber.CreateFromInteger(BigInteger.Parse("79228162514264337593543950335"));
+		var largeNum2 = PreciseNumber.CreateFromInteger(BigInteger.Parse("39228162514264337593543950335"));
 		var result = largeNum1 - largeNum2;
 		Assert.AreEqual(4, result.Significand);
 		Assert.AreEqual(28, result.Exponent);
@@ -880,8 +883,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestMultiplicationWithSmallNumbers()
 	{
-		var smallNum1 = PreciseNumberBase.CreateFromFloatingPoint(0.00001);
-		var smallNum2 = PreciseNumberBase.CreateFromFloatingPoint(0.00002);
+		var smallNum1 = PreciseNumber.CreateFromFloatingPoint(0.00001);
+		var smallNum2 = PreciseNumber.CreateFromFloatingPoint(0.00002);
 		var result = smallNum1 * smallNum2;
 		Assert.AreEqual(2, result.Significand);
 		Assert.AreEqual(-10, result.Exponent);
@@ -890,8 +893,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestDivisionWithSmallNumbers()
 	{
-		var smallNum1 = PreciseNumberBase.CreateFromFloatingPoint(0.00002);
-		var smallNum2 = PreciseNumberBase.CreateFromFloatingPoint(0.00001);
+		var smallNum1 = PreciseNumber.CreateFromFloatingPoint(0.00002);
+		var smallNum2 = PreciseNumber.CreateFromFloatingPoint(0.00001);
 		var result = smallNum1 / smallNum2;
 		Assert.AreEqual(2, result.Significand);
 		Assert.AreEqual(0, result.Exponent);
@@ -920,10 +923,10 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateRepeatingDigits()
 	{
-		var result = PreciseNumberBase.CreateRepeatingDigits(5, 3);
+		var result = PreciseNumber.CreateRepeatingDigits(5, 3);
 		Assert.AreEqual(new BigInteger(555), result);
 
-		result = PreciseNumberBase.CreateRepeatingDigits(7, 0);
+		result = PreciseNumber.CreateRepeatingDigits(7, 0);
 		Assert.AreEqual(new BigInteger(0), result);
 	}
 
@@ -933,32 +936,32 @@ public class PreciseNumberTests
 		var number = PreciseNumber.One;
 		Assert.IsTrue(number.HasInfinitePrecision);
 
-		number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, new BigInteger(2));
+		number = PreciseNumber.CreateFromComponents(0, new BigInteger(2));
 		Assert.IsFalse(number.HasInfinitePrecision);
 	}
 
 	[TestMethod]
 	public void TestLowestDecimalDigits()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-3, 678);
-		int result = PreciseNumberBase.LowestDecimalDigits(number1, number2);
+		var number1 = PreciseNumber.CreateFromComponents(-2, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(-3, 678);
+		int result = PreciseNumber.LowestDecimalDigits(number1, number2);
 		Assert.AreEqual(2, result);
 	}
 
 	[TestMethod]
 	public void TestLowestSignificantDigits()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 678);
-		int result = PreciseNumberBase.LowestSignificantDigits(number1, number2);
+		var number1 = PreciseNumber.CreateFromComponents(0, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(0, 678);
+		int result = PreciseNumber.LowestSignificantDigits(number1, number2);
 		Assert.AreEqual(3, result);
 	}
 
 	[TestMethod]
 	public void TestReduceSignificance()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 12345);
+		var number = PreciseNumber.CreateFromComponents(0, 12345);
 		var result = number.ReduceSignificance(3);
 		Assert.AreEqual(124, result.Significand);
 		Assert.AreEqual(2, result.Exponent);
@@ -968,9 +971,9 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestMakeCommonizedAndGetExponent()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(1, 123);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(3, 456);
-		var (common1, common2, result) = PreciseNumberBase.MakeCommonizedWithExponent(number1, number2);
+		var number1 = PreciseNumber.CreateFromComponents(1, 123);
+		var number2 = PreciseNumber.CreateFromComponents(3, 456);
+		var (common1, common2, result) = PreciseNumber.MakeCommonizedWithExponent(number1, number2);
 		Assert.AreEqual(1, result);
 		Assert.AreEqual(123, common1.Significand);
 		Assert.AreEqual(45600, common2.Significand);
@@ -995,8 +998,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestOperatorAdd()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-3, 678);
+		var number1 = PreciseNumber.CreateFromComponents(-2, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(-3, 678);
 		var result = number1 + number2;
 		Assert.AreEqual(124128, result.Significand);
 		Assert.AreEqual(-3, result.Exponent);
@@ -1005,8 +1008,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestOperatorSubtract()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-3, 678);
+		var number1 = PreciseNumber.CreateFromComponents(-2, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(-3, 678);
 		var result = number1 - number2;
 		Assert.AreEqual(122772, result.Significand);
 		Assert.AreEqual(-3, result.Exponent);
@@ -1015,8 +1018,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestOperatorMultiply()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-3, 678);
+		var number1 = PreciseNumber.CreateFromComponents(-2, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(-3, 678);
 		var result = number1 * number2;
 		Assert.AreEqual(836991, result.Significand);
 		Assert.AreEqual(-4, result.Exponent);
@@ -1025,8 +1028,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestOperatorDivide()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-3, 678);
+		var number1 = PreciseNumber.CreateFromComponents(-2, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(-3, 678);
 		var result = number1 / number2;
 		Assert.AreEqual(BigInteger.Parse("18207964601769911504"), result.Significand);
 		Assert.AreEqual(-17, result.Exponent);
@@ -1035,57 +1038,57 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestOperatorGreaterThan()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 678);
+		var number1 = PreciseNumber.CreateFromComponents(0, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(0, 678);
 		Assert.IsTrue(number1 > number2);
 	}
 
 	[TestMethod]
 	public void TestOperatorLessThan()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 123);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 678);
+		var number1 = PreciseNumber.CreateFromComponents(0, 123);
+		var number2 = PreciseNumber.CreateFromComponents(0, 678);
 		Assert.IsTrue(number1 < number2);
 	}
 
 	[TestMethod]
 	public void TestOperatorGreaterThanOrEqual()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 12345);
+		var number1 = PreciseNumber.CreateFromComponents(0, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(0, 12345);
 		Assert.IsTrue(number1 >= number2);
 	}
 
 	[TestMethod]
 	public void TestOperatorLessThanOrEqual()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 123);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 678);
+		var number1 = PreciseNumber.CreateFromComponents(0, 123);
+		var number2 = PreciseNumber.CreateFromComponents(0, 678);
 		Assert.IsTrue(number1 <= number2);
 	}
 
 	[TestMethod]
 	public void TestOperatorEqual()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 12345);
+		var number1 = PreciseNumber.CreateFromComponents(0, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(0, 12345);
 		Assert.AreEqual(number2, number1);
 	}
 
 	[TestMethod]
 	public void TestOperatorNotEqual()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 678);
+		var number1 = PreciseNumber.CreateFromComponents(0, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(0, 678);
 		Assert.AreNotEqual(number2, number1);
 	}
 
 	[TestMethod]
 	public void TestGetHashCode()
 	{
-		var number1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 12345);
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 12345);
-		var number3 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(3, 12345);
+		var number1 = PreciseNumber.CreateFromComponents(2, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(2, 12345);
+		var number3 = PreciseNumber.CreateFromComponents(3, 12345);
 
 		// Test if the same values produce the same hash code
 		Assert.AreEqual(number1.GetHashCode(), number2.GetHashCode());
@@ -1114,7 +1117,7 @@ public class PreciseNumberTests
 	public void TestEqualsObjectEquivalentInstance()
 	{
 		var number1 = PreciseNumber.One;
-		var number2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 1);
+		var number2 = PreciseNumber.CreateFromComponents(0, 1);
 		Assert.IsTrue(number1.Equals((object)number2));
 	}
 
@@ -1144,55 +1147,52 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestToStringWithFormatAndInvariantCulture()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		string result = number.ToString("G", CultureInfo.InvariantCulture);
 		Assert.AreEqual("123.45", result);
 	}
 
 	[TestMethod]
-	public void TestToStringWithFormatAndSpecificCulture()
+	public void TestToStringWithFormatAndSpecificCultureThrows()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
-		string result = number.ToString("G", CultureInfo.GetCultureInfo("fr-FR"));
-		Assert.AreEqual("123,45", result);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
+		Assert.ThrowsExactly<CultureNotFoundException>(() => number.ToString("G", CultureInfo.GetCultureInfo("fr-FR")));
 	}
 
 	[TestMethod]
 	public void TestToStringWithNullFormatAndInvariantCulture()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(3, 12345);
+		var number = PreciseNumber.CreateFromComponents(3, 12345);
 		string result = number.ToString(null, CultureInfo.InvariantCulture);
 		Assert.AreEqual("12345000", result);
 	}
 
 	[TestMethod]
-	public void TestToStringWithNullFormatAndSpecificCulture()
+	public void TestToStringWithNullFormatAndSpecificCultureThrows()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(3, 12345);
-		string result = number.ToString(null, CultureInfo.GetCultureInfo("fr-FR"));
-		Assert.AreEqual("12345000", result);
+		var number = PreciseNumber.CreateFromComponents(3, 12345);
+		Assert.ThrowsExactly<CultureNotFoundException>(() => number.ToString(null, CultureInfo.GetCultureInfo("fr-FR")));
 	}
 
 	[TestMethod]
 	public void TestToStringWithEmptyFormatAndInvariantCulture()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		string result = number.ToString("", CultureInfo.InvariantCulture);
 		Assert.AreEqual("123.45", result);
 	}
 
 	[TestMethod]
-	public void TestToStringWithEmptyFormatAndSpecificCulture()
+	public void TestToStringWithEmptyFormatAndSpecificCultureThrows()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
-		string result = number.ToString("", CultureInfo.GetCultureInfo("fr-FR"));
-		Assert.AreEqual("123,45", result);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
+		Assert.ThrowsExactly<CultureNotFoundException>(() => number.ToString("", CultureInfo.GetCultureInfo("fr-FR")));
 	}
 
 	[TestMethod]
 	public void TestTryFormatSufficientBuffer()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Span<char> buffer = stackalloc char[50];
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
@@ -1204,7 +1204,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestTryFormatInsufficientBuffer()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Span<char> buffer = stackalloc char[4];
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
@@ -1216,7 +1216,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestTryFormatEmptyFormat()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Span<char> buffer = stackalloc char[50];
 		string format = string.Empty;
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
@@ -1228,14 +1228,14 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestTryFormatInvalidFormat()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "e", CultureInfo.InvariantCulture));
 	}
 
 	[TestMethod]
 	public void TestTryFormatNullFormatProvider()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Span<char> buffer = stackalloc char[50];
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), null);
@@ -1245,15 +1245,10 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
-	public void TestTryFormatSpecificCulture()
+	public void TestTryFormatSpecificCultureThrows()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
-		Span<char> buffer = stackalloc char[50];
-		string format = "G";
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.GetCultureInfo("fr-FR"));
-
-		Assert.IsTrue(result);
-		Assert.AreEqual("123,45", buffer[..charsWritten].ToString());
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
+		Assert.ThrowsException<CultureNotFoundException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "G", CultureInfo.GetCultureInfo("fr-FR")));
 	}
 
 	[TestMethod]
@@ -1319,8 +1314,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestAddLargeNumbers()
 	{
-		var largeNumber1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(100, BigInteger.Parse("79228162514264337593543950335"));
-		var largeNumber2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(100, BigInteger.Parse("79228162514264337593543950335"));
+		var largeNumber1 = PreciseNumber.CreateFromComponents(100, BigInteger.Parse("79228162514264337593543950335"));
+		var largeNumber2 = PreciseNumber.CreateFromComponents(100, BigInteger.Parse("79228162514264337593543950335"));
 		var result = largeNumber1 + largeNumber2;
 		Assert.AreEqual(BigInteger.Parse("15845632502852867518708790067"), result.Significand);
 		Assert.AreEqual(101, result.Exponent);
@@ -1329,8 +1324,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestSubtractLargeNumbers()
 	{
-		var largeNumber1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(100, BigInteger.Parse("79228162514264337593543950335"));
-		var largeNumber2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(100, BigInteger.Parse("39228162514264337593543950335"));
+		var largeNumber1 = PreciseNumber.CreateFromComponents(100, BigInteger.Parse("79228162514264337593543950335"));
+		var largeNumber2 = PreciseNumber.CreateFromComponents(100, BigInteger.Parse("39228162514264337593543950335"));
 		var result = largeNumber1 - largeNumber2;
 		Assert.AreEqual(BigInteger.Parse("4"), result.Significand);
 		Assert.AreEqual(128, result.Exponent);
@@ -1339,8 +1334,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestMultiplyLargeNumbers()
 	{
-		var largeNumber1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(50, BigInteger.Parse("79228162514264337593543950335"));
-		var largeNumber2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(50, BigInteger.Parse("2"));
+		var largeNumber1 = PreciseNumber.CreateFromComponents(50, BigInteger.Parse("79228162514264337593543950335"));
+		var largeNumber2 = PreciseNumber.CreateFromComponents(50, BigInteger.Parse("2"));
 		var result = largeNumber1 * largeNumber2;
 		Assert.AreEqual(BigInteger.Parse("15845632502852867518708790067"), result.Significand);
 		Assert.AreEqual(101, result.Exponent);
@@ -1349,8 +1344,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestDivideLargeNumbers()
 	{
-		var largeNumber1 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(100, BigInteger.Parse("79228162514264337593543950335"));
-		var largeNumber2 = PreciseNumberBase.CreateFromComponents<PreciseNumber>(1, BigInteger.Parse("2"));
+		var largeNumber1 = PreciseNumber.CreateFromComponents(100, BigInteger.Parse("79228162514264337593543950335"));
+		var largeNumber2 = PreciseNumber.CreateFromComponents(1, BigInteger.Parse("2"));
 		var result = largeNumber1 / largeNumber2;
 		Assert.AreEqual(BigInteger.Parse("396140812571321687967719751675"), result.Significand);
 		Assert.AreEqual(98, result.Exponent);
@@ -1393,31 +1388,31 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestCreateFromFloatingPointSpecialValues()
 	{
-		Assert.ThrowsException<ArgumentOutOfRangeException>(() => PreciseNumberBase.CreateFromFloatingPoint(double.NaN));
-		Assert.ThrowsException<ArgumentOutOfRangeException>(() => PreciseNumberBase.CreateFromFloatingPoint(double.PositiveInfinity));
-		Assert.ThrowsException<ArgumentOutOfRangeException>(() => PreciseNumberBase.CreateFromFloatingPoint(double.NegativeInfinity));
+		Assert.ThrowsException<ArgumentOutOfRangeException>(() => PreciseNumber.CreateFromFloatingPoint(double.NaN));
+		Assert.ThrowsException<ArgumentOutOfRangeException>(() => PreciseNumber.CreateFromFloatingPoint(double.PositiveInfinity));
+		Assert.ThrowsException<ArgumentOutOfRangeException>(() => PreciseNumber.CreateFromFloatingPoint(double.NegativeInfinity));
 	}
 
 	[TestMethod]
 	public void TestCreateFromIntegerBoundaryValues()
 	{
-		var intMax = PreciseNumberBase.CreateFromInteger(int.MaxValue);
+		var intMax = PreciseNumber.CreateFromInteger(int.MaxValue);
 		Assert.AreEqual(BigInteger.Parse(int.MaxValue.ToString()), intMax.Significand);
 
-		var intMin = PreciseNumberBase.CreateFromInteger(int.MinValue);
+		var intMin = PreciseNumber.CreateFromInteger(int.MinValue);
 		Assert.AreEqual(BigInteger.Parse(int.MinValue.ToString()), intMin.Significand);
 
-		var longMax = PreciseNumberBase.CreateFromInteger(long.MaxValue);
+		var longMax = PreciseNumber.CreateFromInteger(long.MaxValue);
 		Assert.AreEqual(BigInteger.Parse(long.MaxValue.ToString()), longMax.Significand);
 
-		var longMin = PreciseNumberBase.CreateFromInteger(long.MinValue);
+		var longMin = PreciseNumber.CreateFromInteger(long.MinValue);
 		Assert.AreEqual(BigInteger.Parse(long.MinValue.ToString()), longMin.Significand);
 	}
 
 	[TestMethod]
 	public void TestNegativeExponentHandling()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-3, 12345);
+		var number = PreciseNumber.CreateFromComponents(-3, 12345);
 		Assert.AreEqual(12345, number.Significand);
 		Assert.AreEqual(-3, number.Exponent);
 
@@ -1429,11 +1424,11 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestHandlingTrailingZeros()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 123000, true);
+		var number = PreciseNumber.CreateFromComponents(2, 123000, true);
 		Assert.AreEqual(123, number.Significand);
 		Assert.AreEqual(5, number.Exponent); // Ensure trailing zeros are removed and exponent is adjusted correctly
 
-		number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 123000, true);
+		number = PreciseNumber.CreateFromComponents(-2, 123000, true);
 		Assert.AreEqual(123, number.Significand);
 		Assert.AreEqual(1, number.Exponent);
 	}
@@ -1441,7 +1436,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestToStringVariousFormats()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Assert.ThrowsException<FormatException>(() => number.ToString("E2", CultureInfo.InvariantCulture));
 		Assert.ThrowsException<FormatException>(() => number.ToString("F2", CultureInfo.InvariantCulture));
 		Assert.ThrowsException<FormatException>(() => number.ToString("N2", CultureInfo.InvariantCulture));
@@ -1450,7 +1445,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestTryFormatVariousFormats()
 	{
-		var number = PreciseNumberBase.CreateFromComponents<PreciseNumber>(-2, 12345);
+		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "E2".AsSpan(), CultureInfo.InvariantCulture));
 		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "F2".AsSpan(), CultureInfo.InvariantCulture));
 		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "N2".AsSpan(), CultureInfo.InvariantCulture));
@@ -1459,7 +1454,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void ToDouble()
 	{
-		var preciseNumber = PreciseNumberBase.CreateFromComponents<PreciseNumber>(3, 12345); // 12345e3
+		var preciseNumber = PreciseNumber.CreateFromComponents(3, 12345); // 12345e3
 		double result = preciseNumber.To<double>();
 		Assert.AreEqual(12345e3, result);
 	}
@@ -1467,7 +1462,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void ToFloat()
 	{
-		var preciseNumber = PreciseNumberBase.CreateFromComponents<PreciseNumber>(2, 12345); // 12345e2
+		var preciseNumber = PreciseNumber.CreateFromComponents(2, 12345); // 12345e2
 		float result = preciseNumber.To<float>();
 		Assert.AreEqual(12345e2f, result);
 	}
@@ -1475,7 +1470,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void ToDecimal()
 	{
-		var preciseNumber = PreciseNumberBase.CreateFromComponents<PreciseNumber>(1, 12345); // 12345e1
+		var preciseNumber = PreciseNumber.CreateFromComponents(1, 12345); // 12345e1
 		decimal result = preciseNumber.To<decimal>();
 		Assert.AreEqual(12345e1m, result);
 	}
@@ -1483,7 +1478,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void ToInt()
 	{
-		var preciseNumber = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 12345); // 12345e0
+		var preciseNumber = PreciseNumber.CreateFromComponents(0, 12345); // 12345e0
 		int result = preciseNumber.To<int>();
 		Assert.AreEqual(12345, result);
 	}
@@ -1491,7 +1486,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void ToLong()
 	{
-		var preciseNumber = PreciseNumberBase.CreateFromComponents<PreciseNumber>(0, 123456789012345); // 123456789012345e0
+		var preciseNumber = PreciseNumber.CreateFromComponents(0, 123456789012345); // 123456789012345e0
 		long result = preciseNumber.To<long>();
 		Assert.AreEqual(123456789012345L, result);
 	}
@@ -1499,7 +1494,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void ToBigInteger()
 	{
-		var preciseNumber = PreciseNumberBase.CreateFromComponents<PreciseNumber>(5, 12345); // 12345e5
+		var preciseNumber = PreciseNumber.CreateFromComponents(5, 12345); // 12345e5
 		var result = preciseNumber.To<BigInteger>();
 		Assert.AreEqual(BigInteger.Parse("1234500000"), result);
 	}
@@ -1507,7 +1502,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void ToOverflow()
 	{
-		var preciseNumber = PreciseNumberBase.CreateFromComponents<PreciseNumber>(1000, 12345); // This is a very large number
+		var preciseNumber = PreciseNumber.CreateFromComponents(1000, 12345); // This is a very large number
 		Assert.ThrowsException<OverflowException>(() => preciseNumber.To<int>()); // This should throw an exception
 	}
 
@@ -1591,7 +1586,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestExpWithZeroPower()
 	{
-		var result = PreciseNumberBase.Exp(0.ToPreciseNumber());
+		var result = PreciseNumber.Exp(0.ToPreciseNumber());
 		var expected = PreciseNumber.One; // e^0 = 1
 		Assert.AreEqual(expected, result);
 	}
@@ -1599,7 +1594,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestExpWithPositivePower()
 	{
-		var result = PreciseNumberBase.Exp(1.ToPreciseNumber());
+		var result = PreciseNumber.Exp(1.ToPreciseNumber());
 		var expected = PreciseNumber.E; // e^1 = e
 		Assert.AreEqual(expected, result);
 	}
@@ -1607,7 +1602,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestExpWithNegativePower()
 	{
-		var result = PreciseNumberBase.Exp(-1.ToPreciseNumber());
+		var result = PreciseNumber.Exp(-1.ToPreciseNumber());
 		var expected = PreciseNumber.One / PreciseNumber.E; // e^-1 = 1/e
 		Assert.AreEqual(expected, result);
 	}
@@ -1615,7 +1610,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestExpWithLargePositivePower()
 	{
-		var result = PreciseNumberBase.Exp(5.ToPreciseNumber());
+		var result = PreciseNumber.Exp(5.ToPreciseNumber());
 		var expected = 148.4131591025766m.ToPreciseNumber();
 		Assert.AreEqual(expected, result);
 	}
@@ -1623,7 +1618,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestExpWithLargeNegativePower()
 	{
-		var result = PreciseNumberBase.Exp(-5.ToPreciseNumber());
+		var result = PreciseNumber.Exp(-5.ToPreciseNumber());
 		var expected = 0.006737946999085467m.ToPreciseNumber();
 		Assert.AreEqual(expected, result);
 	}
@@ -1673,10 +1668,10 @@ public class PreciseNumberTests
 	{
 		var input = "1.23E4".AsSpan();
 		var expected = 1.23e4.ToPreciseNumber();
-		var result = PreciseNumberBase.Parse(input, NumberStyles.Any, null);
+		var result = PreciseNumber.Parse(input, NumberStyles.Any, null);
 		Assert.AreEqual(expected, result);
 
-		result = PreciseNumberBase.Parse(input, null);
+		result = PreciseNumber.Parse(input, null);
 		Assert.AreEqual(expected, result);
 	}
 
@@ -1684,7 +1679,7 @@ public class PreciseNumberTests
 	public void TestParseWithZero()
 	{
 		var input = "0".AsSpan();
-		var result = PreciseNumberBase.Parse(input, NumberStyles.Any, null);
+		var result = PreciseNumber.Parse(input, NumberStyles.Any, null);
 		Assert.AreEqual(PreciseNumber.Zero, result);
 	}
 
@@ -1693,16 +1688,16 @@ public class PreciseNumberTests
 	{
 		var input = "-5.67E-2".AsSpan();
 		var expected = -5.67e-2.ToPreciseNumber();
-		var result = PreciseNumberBase.Parse(input, NumberStyles.Any, null);
+		var result = PreciseNumber.Parse(input, NumberStyles.Any, null);
 		Assert.AreEqual(expected, result);
 	}
 
 	[TestMethod]
 	public void TestParseWithInvalidInput()
 	{
-		Assert.ThrowsException<FormatException>(() => PreciseNumberBase.Parse("1.2.3E4".AsSpan(), NumberStyles.Any, null));
-		Assert.ThrowsException<FormatException>(() => PreciseNumberBase.Parse("invalid".AsSpan(), NumberStyles.Any, null));
-		Assert.ThrowsException<FormatException>(() => PreciseNumberBase.Parse(string.Empty.AsSpan(), NumberStyles.Any, null));
+		Assert.ThrowsException<FormatException>(() => PreciseNumber.Parse("1.2.3E4".AsSpan(), NumberStyles.Any, null));
+		Assert.ThrowsException<FormatException>(() => PreciseNumber.Parse("invalid".AsSpan(), NumberStyles.Any, null));
+		Assert.ThrowsException<FormatException>(() => PreciseNumber.Parse(string.Empty.AsSpan(), NumberStyles.Any, null));
 	}
 
 	[TestMethod]
@@ -1710,10 +1705,10 @@ public class PreciseNumberTests
 	{
 		string input = "1.23E4";
 		var expected = 1.23e4.ToPreciseNumber();
-		var result = PreciseNumberBase.Parse(input, NumberStyles.Any, null);
+		var result = PreciseNumber.Parse(input, NumberStyles.Any, null);
 		Assert.AreEqual(expected, result);
 
-		result = PreciseNumberBase.Parse(input, null);
+		result = PreciseNumber.Parse(input, null);
 		Assert.AreEqual(expected, result);
 	}
 
@@ -1722,7 +1717,7 @@ public class PreciseNumberTests
 	{
 		string input = "-5.67E-2";
 		var expected = -5.67e-2.ToPreciseNumber();
-		var result = PreciseNumberBase.Parse(input, NumberStyles.Any, null);
+		var result = PreciseNumber.Parse(input, NumberStyles.Any, null);
 		Assert.AreEqual(expected, result);
 	}
 
@@ -1730,7 +1725,7 @@ public class PreciseNumberTests
 	public void TestParseStringWithInvalidInput()
 	{
 		string input = "invalid";
-		Assert.ThrowsException<FormatException>(() => PreciseNumberBase.Parse(input, NumberStyles.Any, null));
+		Assert.ThrowsException<FormatException>(() => PreciseNumber.Parse(input, NumberStyles.Any, null));
 	}
 
 	[TestMethod]
@@ -1797,5 +1792,48 @@ public class PreciseNumberTests
 		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
 		Assert.IsFalse(success);
 		Assert.AreEqual(default, result);
+	}
+
+	[TestMethod]
+	public void TestEValue()
+	{
+		var expectedSignificand = BigInteger.Parse("27182818284590452353602874713526624977572", CultureInfo.InvariantCulture);
+		int expectedExponent = -40;
+		var eValue = PreciseNumber.E;
+
+		Assert.AreEqual(expectedSignificand, eValue.Significand);
+		Assert.AreEqual(expectedExponent, eValue.Exponent);
+	}
+
+	[TestMethod]
+	public void TestTauValue()
+	{
+		var expectedSignificand = BigInteger.Parse("6283185307179586476925287", CultureInfo.InvariantCulture);
+		int expectedExponent = -24;
+		var tauValue = PreciseNumber.Tau;
+
+		Assert.AreEqual(expectedSignificand, tauValue.Significand);
+		Assert.AreEqual(expectedExponent, tauValue.Exponent);
+	}
+
+	[TestMethod]
+	public void TestPiValue()
+	{
+		var expectedSignificand = BigInteger.Parse("31415926535897932384626433", CultureInfo.InvariantCulture);
+		int expectedExponent = -25;
+		var piValue = PreciseNumber.Pi;
+		Assert.AreEqual(expectedSignificand, piValue.Significand);
+		Assert.AreEqual(expectedExponent, piValue.Exponent);
+	}
+
+	[TestMethod]
+	public void TestNotEqual()
+	{
+		var number1 = PreciseNumber.CreateFromComponents(0, 12345);
+		var number2 = PreciseNumber.CreateFromComponents(0, 678);
+		var number3 = PreciseNumber.CreateFromComponents(0, 12345);
+
+		Assert.IsTrue(PreciseNumber.NotEqual(number1, number2));
+		Assert.IsFalse(PreciseNumber.NotEqual(number1, number3));
 	}
 }
