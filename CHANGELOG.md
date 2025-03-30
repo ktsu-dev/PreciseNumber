@@ -6,6 +6,7 @@ Changes since v1.0.0-alpha.4:
 - Add LICENSE template ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add PreciseNumber.Test project and update solution structure ([@matt-edmondson](https://github.com/matt-edmondson))
 - Change ReduceSignificance to public ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix code style violations and add more test coverage ([@matt-edmondson](https://github.com/matt-edmondson))
 - Rename Tests dir to PreciseNumber.Test ([@matt-edmondson](https://github.com/matt-edmondson))
 - Renamed metadata files ([@matt-edmondson](https://github.com/matt-edmondson))
 - Replace LICENSE file with LICENSE.md and update copyright information ([@matt-edmondson](https://github.com/matt-edmondson))
