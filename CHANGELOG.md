@@ -1,3 +1,10 @@
+## v1.2.0 (minor)
+
+Changes since v1.1.0:
+
+- Added documentation in README.md ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update PreciseNumber properties to public access ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.1.1 (patch)
 
 Changes since v1.1.0:
