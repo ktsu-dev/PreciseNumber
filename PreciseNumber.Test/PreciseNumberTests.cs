@@ -1955,4 +1955,39 @@ public class PreciseNumberTests
 		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(PreciseNumber.CreateFromFloatingPoint(input), preciseNumber);
 	}
+
+	[TestMethod]
+	public void As_WithSameInputAndOutputType_ReturnsInput()
+	{
+		// Arrange
+		var input = new PreciseNumber(2, new BigInteger(123));
+
+		// Act
+		var result = input.As<PreciseNumber>();
+
+		// Assert
+		Assert.AreSame(input, result);
+	}
+
+	[TestMethod]
+	public void As_WithConvertibleInputAndOutputType_ReturnsConvertedInstance()
+	{
+		// Arrange
+		PreciseNumber input = new(2, new BigInteger(123));
+
+		// Act
+		var result = input.As<DerivedPreciseNumber>();
+
+		// Assert
+		Assert.IsNotNull(result);
+		Assert.AreEqual(input.Exponent, result.Exponent);
+		Assert.AreEqual(input.Significand, result.Significand);
+	}
+
+	public record DerivedPreciseNumber : PreciseNumber
+	{
+		public DerivedPreciseNumber(PreciseNumber original) : base(original)
+		{
+		}
+	}
 }

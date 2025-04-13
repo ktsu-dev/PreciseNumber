@@ -18,6 +18,19 @@ public record PreciseNumber
 	private const int Base10 = 10;
 
 	/// <summary>
+	/// Initializes a new instance of the <see cref="PreciseNumber"/> record by copying the values from an existing instance.
+	/// </summary>
+	/// <param name="original">The <see cref="PreciseNumber"/> instance to copy.</param>
+	/// <exception cref="ArgumentNullException">Thrown when the <paramref name="original"/> is <c>null</c>.</exception>
+	public PreciseNumber(PreciseNumber original)
+	{
+		ArgumentNullException.ThrowIfNull(original);
+		Exponent = original.Exponent;
+		Significand = original.Significand;
+		SignificantDigits = original.SignificantDigits;
+	}
+
+	/// <summary>
 	/// Initializes a new instance of the <see cref="PreciseNumber"/> record.
 	/// </summary>
 	/// <param name="exponent">The exponent of the number.</param>
@@ -1310,7 +1323,31 @@ public record PreciseNumber
 	/// </exception>
 	public TOutput To<TOutput>()
 		where TOutput : INumber<TOutput> =>
-		typeof(TOutput) == typeof(PreciseNumber) || typeof(TOutput).IsSubclassOf(typeof(PreciseNumber))
+		typeof(TOutput) == typeof(PreciseNumber)
 		? (TOutput)(object)this
 		: TOutput.CreateChecked(Significand) * TOutput.CreateChecked(Math.Pow(Base10, Exponent));
+
+	/// <summary>
+	/// Converts the current instance to the specified derived type of <see cref="PreciseNumber"/>.
+	/// </summary>
+	/// <typeparam name="TOutput">The type to convert to. Must derive from <see cref="PreciseNumber"/>.</typeparam>
+	/// <returns>
+	/// An instance of type <typeparamref name="TOutput"/> representing the current instance.
+	/// </returns>
+	/// <exception cref="NotSupportedException">
+	/// Thrown if the conversion cannot be performed. This may occur if the target type does not have a constructor
+	/// that accepts a <see cref="PreciseNumber"/> as a parameter.
+	/// </exception>
+	public TOutput As<TOutput>()
+	where TOutput : PreciseNumber
+	{
+		if (typeof(TOutput) == typeof(PreciseNumber))
+		{
+			return (TOutput)(object)this;
+		}
+
+		var constructor = typeof(TOutput).GetConstructor([typeof(PreciseNumber)]);
+		return (TOutput)(constructor?.Invoke([this]) ??
+		throw new NotSupportedException($"Cannot convert {GetType()} to {typeof(TOutput)}"));
+	}
 }
