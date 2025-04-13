@@ -43,10 +43,17 @@ public static class PreciseNumberExtensions
 	/// <param name="input">The input number to create a <see cref="PreciseNumber"/> from.</param>
 	/// <param name="preciseNumber">The created <see cref="PreciseNumber"/> if successful, otherwise null.</param>
 	/// <returns>True if the creation was successful, otherwise false.</returns>
-	internal static bool TryCreate<TInput>([NotNullWhen(true)] TInput input, [MaybeNullWhen(false)] out PreciseNumber preciseNumber)
+	internal static bool TryCreate<TInput>([NotNullWhen(true)] TInput input, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber? preciseNumber)
 		where TInput : INumber<TInput>
 	{
 		var type = typeof(TInput);
+
+		if (type == typeof(PreciseNumber))
+		{
+			preciseNumber = (PreciseNumber)(object)input;
+			return true;
+		}
+
 		if (Array.Exists(type.GetInterfaces(), i => i.Name.StartsWith("IBinaryInteger", StringComparison.Ordinal)))
 		{
 			preciseNumber = PreciseNumber.CreateFromInteger(input);
@@ -59,7 +66,7 @@ public static class PreciseNumberExtensions
 			return true;
 		}
 
-		preciseNumber = default;
+		preciseNumber = null;
 		return false;
 	}
 }

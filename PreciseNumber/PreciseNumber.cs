@@ -508,6 +508,42 @@ public record PreciseNumber
 		return this < other ? -1 : greaterOrEqual;
 	}
 
+	/// <summary>
+	/// Compares the current instance with another number of a specified type.
+	/// </summary>
+	/// <typeparam name="TNumber">The type of the number to compare with. Must implement <see cref="INumber{TNumber}"/>.</typeparam>
+	/// <param name="obj">The number to compare with the current instance.</param>
+	/// <returns>
+	/// A value that indicates the relative order of the objects being compared.
+	/// The return value has these meanings:
+	/// <list type="table">
+	/// <item>
+	/// <term>Less than zero</term>
+	/// <description>The current instance is less than <paramref name="obj"/>.</description>
+	/// </item>
+	/// <item>
+	/// <term>Zero</term>
+	/// <description>The current instance is equal to <paramref name="obj"/>.</description>
+	/// </item>
+	/// <item>
+	/// <term>Greater than zero</term>
+	/// <description>The current instance is greater than <paramref name="obj"/>.</description>
+	/// </item>
+	/// </list>
+	/// </returns>
+	/// <exception cref="ArgumentNullException">Thrown if <paramref name="obj"/> is <c>null</c>.</exception>
+	public int CompareTo<TNumber>(INumber<TNumber>? obj)
+		where TNumber : INumber<TNumber>
+	{
+		if (obj is null)
+		{
+			return 1;
+		}
+
+		var other = obj.ToPreciseNumber();
+		return CompareTo(other);
+	}
+
 	/// <inheritdoc/>
 	public int CompareTo(object? obj)
 	{
@@ -525,6 +561,11 @@ public record PreciseNumber
 	public int CompareTo<TInput>(TInput other)
 		where TInput : INumber<TInput>
 	{
+		if (other is null)
+		{
+			return 1;
+		}
+
 		var significantOther = other.ToPreciseNumber();
 		int greaterOrEqual = this > significantOther ? 1 : 0;
 		return this < significantOther ? -1 : greaterOrEqual;
@@ -704,7 +745,7 @@ public record PreciseNumber
 		Parse(s, NumberStyles.Any, provider);
 
 	/// <inheritdoc/>
-	public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider, [MaybeNullWhen(false)] out PreciseNumber result)
+	public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber result)
 	{
 		try
 		{
@@ -719,15 +760,15 @@ public record PreciseNumber
 	}
 
 	/// <inheritdoc/>
-	public static bool TryParse([NotNullWhen(true)] string? s, NumberStyles style, IFormatProvider? provider, [MaybeNullWhen(false)] out PreciseNumber result) =>
+	public static bool TryParse([NotNullWhen(true)] string? s, NumberStyles style, IFormatProvider? provider, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber result) =>
 		TryParse(s.AsSpan(), style, provider, out result);
 
 	/// <inheritdoc/>
-	public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)] out PreciseNumber result) =>
+	public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber result) =>
 		TryParse(s.AsSpan(), NumberStyles.Any, provider, out result);
 
 	/// <inheritdoc/>
-	public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)] out PreciseNumber result) =>
+	public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber result) =>
 		TryParse(s, NumberStyles.Any, provider, out result);
 
 	/// <inheritdoc/>

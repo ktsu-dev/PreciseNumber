@@ -1836,4 +1836,123 @@ public class PreciseNumberTests
 		Assert.IsTrue(PreciseNumber.NotEqual(number1, number2));
 		Assert.IsFalse(PreciseNumber.NotEqual(number1, number3));
 	}
+	[TestMethod]
+	public void TestCompareToINumberWithNull()
+	{
+		var one = PreciseNumber.One;
+		Assert.AreEqual(1, one.CompareTo<PreciseNumber>(null!));
+	}
+
+	[TestMethod]
+	public void TestCompareToINumberWithSmallerValue()
+	{
+		var one = PreciseNumber.One;
+		var zero = PreciseNumber.Zero;
+		Assert.IsTrue(one.CompareTo<PreciseNumber>(zero) > 0);
+	}
+
+	[TestMethod]
+	public void TestCompareToINumberWithLargerValue()
+	{
+		var one = PreciseNumber.One;
+		var two = 2.ToPreciseNumber();
+		Assert.IsTrue(one.CompareTo<PreciseNumber>(two) < 0);
+	}
+
+	[TestMethod]
+	public void TestCompareToINumberWithEqualValue()
+	{
+		var one = PreciseNumber.One;
+		var anotherOne = 1.ToPreciseNumber();
+		Assert.AreEqual(0, one.CompareTo<PreciseNumber>(anotherOne));
+	}
+
+	[TestMethod]
+	public void TryCreate_WithIntegerInput_ReturnsTrueAndCreatesPreciseNumber()
+	{
+		// Arrange  
+		int input = 42;
+
+		// Act  
+		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+
+		// Assert  
+		Assert.IsTrue(result);
+		Assert.IsNotNull(preciseNumber);
+		Assert.AreEqual(input, preciseNumber.To<int>());
+	}
+
+	[TestMethod]
+	public void TryCreate_WithFloatingPointInput_ReturnsTrueAndCreatesPreciseNumber()
+	{
+		// Arrange  
+		double input = 42.42;
+
+		// Act  
+		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+
+		// Assert  
+		Assert.IsTrue(result);
+		Assert.IsNotNull(preciseNumber);
+		Assert.AreEqual(input, preciseNumber.To<double>());
+	}
+
+	[TestMethod]
+	public void TryCreate_InputIsPreciseNumber_ReturnsTrue()
+	{
+		// Arrange
+		var input = new PreciseNumber(2, new BigInteger(12345));
+
+		// Act
+		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+
+		// Assert
+		Assert.IsTrue(result);
+		Assert.IsNotNull(preciseNumber);
+		Assert.AreEqual(input, preciseNumber);
+	}
+
+	[TestMethod]
+	public void TryCreate_WithPreciseNumber_ReturnsTrue()
+	{
+		// Arrange  
+		var input = PreciseNumber.One;
+
+		// Act  
+		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+
+		// Assert  
+		Assert.IsTrue(result);
+		Assert.AreEqual(input, preciseNumber);
+	}
+
+	[TestMethod]
+	public void TryCreate_WithBinaryInteger_ReturnsTrue()
+	{
+		// Arrange  
+		int input = 42;
+
+		// Act  
+		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+
+		// Assert  
+		Assert.IsTrue(result);
+		Assert.IsNotNull(preciseNumber);
+		Assert.AreEqual(PreciseNumber.CreateFromInteger(input), preciseNumber);
+	}
+
+	[TestMethod]
+	public void TryCreate_WithFloatingPoint_ReturnsTrue()
+	{
+		// Arrange  
+		double input = 3.14;
+
+		// Act  
+		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+
+		// Assert  
+		Assert.IsTrue(result);
+		Assert.IsNotNull(preciseNumber);
+		Assert.AreEqual(PreciseNumber.CreateFromFloatingPoint(input), preciseNumber);
+	}
 }
