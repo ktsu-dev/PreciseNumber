@@ -760,15 +760,15 @@ public record PreciseNumber
 	}
 
 	/// <inheritdoc/>
-	public static bool TryParse([NotNullWhen(true)] string? s, NumberStyles style, IFormatProvider? provider, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber result) =>
+	public static bool TryParse([NotNullWhen(true)] string? s, NumberStyles style, IFormatProvider? provider, [NotNullWhen(true)] out PreciseNumber? result) =>
 		TryParse(s.AsSpan(), style, provider, out result);
 
 	/// <inheritdoc/>
-	public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber result) =>
+	public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [NotNullWhen(true)] out PreciseNumber? result) =>
 		TryParse(s.AsSpan(), NumberStyles.Any, provider, out result);
 
 	/// <inheritdoc/>
-	public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber result) =>
+	public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [NotNullWhen(true)] out PreciseNumber? result) =>
 		TryParse(s, NumberStyles.Any, provider, out result);
 
 	/// <inheritdoc/>
