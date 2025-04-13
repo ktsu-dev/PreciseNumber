@@ -1310,7 +1310,7 @@ public record PreciseNumber
 	/// </exception>
 	public TOutput To<TOutput>()
 		where TOutput : INumber<TOutput> =>
-		typeof(TOutput) == typeof(PreciseNumber)
+		typeof(TOutput) == typeof(PreciseNumber) || typeof(TOutput).IsSubclassOf(typeof(PreciseNumber))
 		? (TOutput)(object)this
 		: TOutput.CreateChecked(Significand) * TOutput.CreateChecked(Math.Pow(Base10, Exponent));
 }
