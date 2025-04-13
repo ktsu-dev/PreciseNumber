@@ -101,17 +101,17 @@ public record PreciseNumber
 	/// <summary>
 	/// Gets the exponent of the number.
 	/// </summary>
-	protected internal int Exponent { get; }
+	public int Exponent { get; }
 
 	/// <summary>
 	/// Gets the significand of the number.
 	/// </summary>
-	protected internal BigInteger Significand { get; }
+	public BigInteger Significand { get; }
 
 	/// <summary>
 	/// Gets the number of significant digits in the number.
 	/// </summary>
-	protected internal int SignificantDigits { get; }
+	public int SignificantDigits { get; }
 
 	/// <summary>
 	/// Gets the invariant culture information.
