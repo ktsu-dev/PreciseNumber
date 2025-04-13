@@ -18,18 +18,21 @@ public static class PreciseNumberExtensions
 	public static PreciseNumber ToPreciseNumber<TInput>(this INumber<TInput> input)
 		where TInput : INumber<TInput>
 	{
+		ArgumentNullException.ThrowIfNull(input);
+
 		// if TInput is already a PreciseNumber then just return it
 		PreciseNumber preciseNumber;
-		bool success = typeof(TInput) == typeof(PreciseNumber);
 
-		if (success)
+		var inputType = input.GetType();
+		var preciseNumberType = typeof(PreciseNumber);
+		bool isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
+
+		if (isPreciseNumber)
 		{
-			preciseNumber = (PreciseNumber)(object)input;
+			return (PreciseNumber)(object)input;
 		}
-		else
-		{
-			success = TryCreate((TInput)input, out preciseNumber!);
-		}
+
+		bool success = TryCreate((TInput)input, out preciseNumber!);
 
 		return success
 			? preciseNumber
@@ -46,21 +49,23 @@ public static class PreciseNumberExtensions
 	internal static bool TryCreate<TInput>([NotNullWhen(true)] TInput input, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber? preciseNumber)
 		where TInput : INumber<TInput>
 	{
-		var type = typeof(TInput);
+		var inputType = input.GetType();
+		var preciseNumberType = typeof(PreciseNumber);
+		bool isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
 
-		if (type == typeof(PreciseNumber))
+		if (isPreciseNumber)
 		{
 			preciseNumber = (PreciseNumber)(object)input;
 			return true;
 		}
 
-		if (Array.Exists(type.GetInterfaces(), i => i.Name.StartsWith("IBinaryInteger", StringComparison.Ordinal)))
+		if (Array.Exists(inputType.GetInterfaces(), i => i.Name.StartsWith("IBinaryInteger", StringComparison.Ordinal)))
 		{
 			preciseNumber = PreciseNumber.CreateFromInteger(input);
 			return true;
 		}
 
-		if (Array.Exists(type.GetInterfaces(), i => i.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)))
+		if (Array.Exists(inputType.GetInterfaces(), i => i.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)))
 		{
 			preciseNumber = PreciseNumber.CreateFromFloatingPoint(input);
 			return true;
