@@ -1,3 +1,9 @@
+## v1.7.0 (minor)
+
+Changes since v1.6.0:
+
+- Enhance PreciseNumber derived classes ([@matt-edmondson](https://github.com/matt-edmondson))
+
 ## v1.6.0 (minor)
 
 Changes since v1.5.0:
