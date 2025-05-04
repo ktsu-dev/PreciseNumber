@@ -1,3 +1,7 @@
+// Copyright (c) ktsu.dev
+// All rights reserved.
+// Licensed under the MIT license.
+
 namespace ktsu.PreciseNumber;
 
 using System.Diagnostics.CodeAnalysis;
@@ -25,14 +29,14 @@ public static class PreciseNumberExtensions
 
 		var inputType = input.GetType();
 		var preciseNumberType = typeof(PreciseNumber);
-		bool isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
+		var isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
 
 		if (isPreciseNumber)
 		{
 			return (PreciseNumber)(object)input;
 		}
 
-		bool success = TryCreate((TInput)input, out preciseNumber!);
+		var success = TryCreate((TInput)input, out preciseNumber!);
 
 		return success
 			? preciseNumber
@@ -51,7 +55,7 @@ public static class PreciseNumberExtensions
 	{
 		var inputType = input.GetType();
 		var preciseNumberType = typeof(PreciseNumber);
-		bool isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
+		var isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
 
 		if (isPreciseNumber)
 		{

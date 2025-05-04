@@ -1,4 +1,6 @@
-// Ignore Spelling: Commonized
+// Copyright (c) ktsu.dev
+// All rights reserved.
+// Licensed under the MIT license.
 
 namespace ktsu.PreciseNumber.Test;
 
@@ -235,7 +237,7 @@ public class PreciseNumberTests
 	public void TestToString()
 	{
 		var number = 0.0123.ToPreciseNumber();
-		string str = number.ToString();
+		var str = number.ToString();
 		Assert.AreEqual("0.0123", str);
 	}
 
@@ -330,7 +332,7 @@ public class PreciseNumberTests
 	public void TestDecrement()
 	{
 		var accumulator = 6.ToPreciseNumber();
-		for (int i = 0; i < 3; ++i)
+		for (var i = 0; i < 3; ++i)
 		{
 			--accumulator;
 		}
@@ -342,7 +344,7 @@ public class PreciseNumberTests
 	public void TestIncrement()
 	{
 		var accumulator = PreciseNumber.Zero;
-		for (int i = 0; i < 3; ++i)
+		for (var i = 0; i < 3; ++i)
 		{
 			++accumulator;
 		}
@@ -841,7 +843,7 @@ public class PreciseNumberTests
 	public void TestToStringWithFormat()
 	{
 		var number = PreciseNumber.CreateFromComponents(2, 12345);
-		string str = number.ToString("G");
+		var str = number.ToString("G");
 		Assert.AreEqual("1234500", str);
 	}
 
@@ -856,7 +858,7 @@ public class PreciseNumberTests
 	public void TestToStringWithInvariantCulture()
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
-		string str = number.ToString(CultureInfo.InvariantCulture);
+		var str = number.ToString(CultureInfo.InvariantCulture);
 		Assert.AreEqual("123.45", str);
 	}
 
@@ -945,7 +947,7 @@ public class PreciseNumberTests
 	{
 		var number1 = PreciseNumber.CreateFromComponents(-2, 12345);
 		var number2 = PreciseNumber.CreateFromComponents(-3, 678);
-		int result = PreciseNumber.LowestDecimalDigits(number1, number2);
+		var result = PreciseNumber.LowestDecimalDigits(number1, number2);
 		Assert.AreEqual(2, result);
 	}
 
@@ -954,7 +956,7 @@ public class PreciseNumberTests
 	{
 		var number1 = PreciseNumber.CreateFromComponents(0, 12345);
 		var number2 = PreciseNumber.CreateFromComponents(0, 678);
-		int result = PreciseNumber.LowestSignificantDigits(number1, number2);
+		var result = PreciseNumber.LowestSignificantDigits(number1, number2);
 		Assert.AreEqual(3, result);
 	}
 
@@ -1140,7 +1142,7 @@ public class PreciseNumberTests
 	public void TestEqualsObjectDifferentType()
 	{
 		var number = PreciseNumber.One;
-		string differentType = "1";
+		var differentType = "1";
 		Assert.IsFalse(number.Equals(differentType));
 	}
 
@@ -1148,7 +1150,7 @@ public class PreciseNumberTests
 	public void TestToStringWithFormatAndInvariantCulture()
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
-		string result = number.ToString("G", CultureInfo.InvariantCulture);
+		var result = number.ToString("G", CultureInfo.InvariantCulture);
 		Assert.AreEqual("123.45", result);
 	}
 
@@ -1163,7 +1165,7 @@ public class PreciseNumberTests
 	public void TestToStringWithNullFormatAndInvariantCulture()
 	{
 		var number = PreciseNumber.CreateFromComponents(3, 12345);
-		string result = number.ToString(null, CultureInfo.InvariantCulture);
+		var result = number.ToString(null, CultureInfo.InvariantCulture);
 		Assert.AreEqual("12345000", result);
 	}
 
@@ -1178,7 +1180,7 @@ public class PreciseNumberTests
 	public void TestToStringWithEmptyFormatAndInvariantCulture()
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
-		string result = number.ToString("", CultureInfo.InvariantCulture);
+		var result = number.ToString("", CultureInfo.InvariantCulture);
 		Assert.AreEqual("123.45", result);
 	}
 
@@ -1194,8 +1196,8 @@ public class PreciseNumberTests
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Span<char> buffer = stackalloc char[50];
-		string format = "G";
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
+		var format = "G";
+		var result = number.TryFormat(buffer, out var charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
 		Assert.IsTrue(result);
 		Assert.AreEqual("123.45", buffer[..charsWritten].ToString());
@@ -1206,8 +1208,8 @@ public class PreciseNumberTests
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Span<char> buffer = stackalloc char[4];
-		string format = "G";
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
+		var format = "G";
+		var result = number.TryFormat(buffer, out var charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
 		Assert.IsFalse(result);
 		Assert.AreEqual(0, charsWritten);
@@ -1218,8 +1220,8 @@ public class PreciseNumberTests
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Span<char> buffer = stackalloc char[50];
-		string format = string.Empty;
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
+		var format = string.Empty;
+		var result = number.TryFormat(buffer, out var charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
 		Assert.IsTrue(result);
 		Assert.AreEqual("123.45", buffer[..charsWritten].ToString());
@@ -1229,7 +1231,7 @@ public class PreciseNumberTests
 	public void TestTryFormatInvalidFormat()
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
-		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "e", CultureInfo.InvariantCulture));
+		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out var charsWritten, "e", CultureInfo.InvariantCulture));
 	}
 
 	[TestMethod]
@@ -1237,8 +1239,8 @@ public class PreciseNumberTests
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
 		Span<char> buffer = stackalloc char[50];
-		string format = "G";
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), null);
+		var format = "G";
+		var result = number.TryFormat(buffer, out var charsWritten, format.AsSpan(), null);
 
 		Assert.IsTrue(result);
 		Assert.AreEqual("123.45", buffer[..charsWritten].ToString());
@@ -1248,7 +1250,7 @@ public class PreciseNumberTests
 	public void TestTryFormatSpecificCultureThrows()
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
-		Assert.ThrowsException<CultureNotFoundException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "G", CultureInfo.GetCultureInfo("fr-FR")));
+		Assert.ThrowsException<CultureNotFoundException>(() => number.TryFormat(stackalloc char[50], out var charsWritten, "G", CultureInfo.GetCultureInfo("fr-FR")));
 	}
 
 	[TestMethod]
@@ -1256,8 +1258,8 @@ public class PreciseNumberTests
 	{
 		var number = PreciseNumber.Zero;
 		Span<char> buffer = stackalloc char[50];
-		string format = "G";
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
+		var format = "G";
+		var result = number.TryFormat(buffer, out var charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
 		Assert.IsTrue(result);
 		Assert.AreEqual("0", buffer[..charsWritten].ToString());
@@ -1268,8 +1270,8 @@ public class PreciseNumberTests
 	{
 		var number = PreciseNumber.One;
 		Span<char> buffer = stackalloc char[50];
-		string format = "G";
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
+		var format = "G";
+		var result = number.TryFormat(buffer, out var charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
 		Assert.IsTrue(result);
 		Assert.AreEqual("1", buffer[..charsWritten].ToString());
@@ -1280,8 +1282,8 @@ public class PreciseNumberTests
 	{
 		var number = PreciseNumber.NegativeOne;
 		Span<char> buffer = stackalloc char[50];
-		string format = "G";
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
+		var format = "G";
+		var result = number.TryFormat(buffer, out var charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
 		Assert.IsTrue(result);
 		Assert.AreEqual("-1", buffer[..charsWritten].ToString());
@@ -1292,8 +1294,8 @@ public class PreciseNumberTests
 	{
 		var number = 3.ToPreciseNumber();
 		Span<char> buffer = stackalloc char[50];
-		string format = "G";
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
+		var format = "G";
+		var result = number.TryFormat(buffer, out var charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
 		Assert.IsTrue(result);
 		Assert.AreEqual("3", buffer[..charsWritten].ToString());
@@ -1304,8 +1306,8 @@ public class PreciseNumberTests
 	{
 		var number = 3.0.ToPreciseNumber();
 		Span<char> buffer = stackalloc char[50];
-		string format = "G";
-		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
+		var format = "G";
+		var result = number.TryFormat(buffer, out var charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
 		Assert.IsTrue(result);
 		Assert.AreEqual("3", buffer[..charsWritten].ToString());
@@ -1446,16 +1448,16 @@ public class PreciseNumberTests
 	public void TestTryFormatVariousFormats()
 	{
 		var number = PreciseNumber.CreateFromComponents(-2, 12345);
-		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "E2".AsSpan(), CultureInfo.InvariantCulture));
-		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "F2".AsSpan(), CultureInfo.InvariantCulture));
-		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "N2".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out var charsWritten, "E2".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out var charsWritten, "F2".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.ThrowsException<FormatException>(() => number.TryFormat(stackalloc char[50], out var charsWritten, "N2".AsSpan(), CultureInfo.InvariantCulture));
 	}
 
 	[TestMethod]
 	public void ToDouble()
 	{
 		var preciseNumber = PreciseNumber.CreateFromComponents(3, 12345); // 12345e3
-		double result = preciseNumber.To<double>();
+		var result = preciseNumber.To<double>();
 		Assert.AreEqual(12345e3, result);
 	}
 
@@ -1463,7 +1465,7 @@ public class PreciseNumberTests
 	public void ToFloat()
 	{
 		var preciseNumber = PreciseNumber.CreateFromComponents(2, 12345); // 12345e2
-		float result = preciseNumber.To<float>();
+		var result = preciseNumber.To<float>();
 		Assert.AreEqual(12345e2f, result);
 	}
 
@@ -1471,7 +1473,7 @@ public class PreciseNumberTests
 	public void ToDecimal()
 	{
 		var preciseNumber = PreciseNumber.CreateFromComponents(1, 12345); // 12345e1
-		decimal result = preciseNumber.To<decimal>();
+		var result = preciseNumber.To<decimal>();
 		Assert.AreEqual(12345e1m, result);
 	}
 
@@ -1479,7 +1481,7 @@ public class PreciseNumberTests
 	public void ToInt()
 	{
 		var preciseNumber = PreciseNumber.CreateFromComponents(0, 12345); // 12345e0
-		int result = preciseNumber.To<int>();
+		var result = preciseNumber.To<int>();
 		Assert.AreEqual(12345, result);
 	}
 
@@ -1487,7 +1489,7 @@ public class PreciseNumberTests
 	public void ToLong()
 	{
 		var preciseNumber = PreciseNumber.CreateFromComponents(0, 123456789012345); // 123456789012345e0
-		long result = preciseNumber.To<long>();
+		var result = preciseNumber.To<long>();
 		Assert.AreEqual(123456789012345L, result);
 	}
 
@@ -1703,7 +1705,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestParseStringWithValidInput()
 	{
-		string input = "1.23E4";
+		var input = "1.23E4";
 		var expected = 1.23e4.ToPreciseNumber();
 		var result = PreciseNumber.Parse(input, NumberStyles.Any, null);
 		Assert.AreEqual(expected, result);
@@ -1715,7 +1717,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestParseStringWithNegativeInput()
 	{
-		string input = "-5.67E-2";
+		var input = "-5.67E-2";
 		var expected = -5.67e-2.ToPreciseNumber();
 		var result = PreciseNumber.Parse(input, NumberStyles.Any, null);
 		Assert.AreEqual(expected, result);
@@ -1724,7 +1726,7 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestParseStringWithInvalidInput()
 	{
-		string input = "invalid";
+		var input = "invalid";
 		Assert.ThrowsException<FormatException>(() => PreciseNumber.Parse(input, NumberStyles.Any, null));
 	}
 
@@ -1733,7 +1735,7 @@ public class PreciseNumberTests
 	{
 		var input = "1.23E4".AsSpan();
 		var expected = 1.23e4.ToPreciseNumber();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
+		var success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
 		Assert.IsTrue(success);
 		Assert.AreEqual(expected, result);
 
@@ -1747,7 +1749,7 @@ public class PreciseNumberTests
 	{
 		var input = "-5.67E-2".AsSpan();
 		var expected = -5.67e-2.ToPreciseNumber();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
+		var success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
 		Assert.IsTrue(success);
 		Assert.AreEqual(expected, result);
 	}
@@ -1756,7 +1758,7 @@ public class PreciseNumberTests
 	public void TestTryParseWithInvalidInput()
 	{
 		var input = "invalid".AsSpan();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
+		var success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
 		Assert.IsFalse(success);
 		Assert.AreEqual(default, result);
 	}
@@ -1764,9 +1766,9 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestTryParseStringWithValidInput()
 	{
-		string input = "1.23E4";
+		var input = "1.23E4";
 		var expected = 1.23e4.ToPreciseNumber();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
+		var success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
 		Assert.IsTrue(success);
 		Assert.AreEqual(expected, result);
 
@@ -1778,9 +1780,9 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestTryParseStringWithNegativeInput()
 	{
-		string input = "-5.67E-2";
+		var input = "-5.67E-2";
 		var expected = -5.67e-2.ToPreciseNumber();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
+		var success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
 		Assert.IsTrue(success);
 		Assert.AreEqual(expected, result);
 	}
@@ -1788,8 +1790,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestTryParseStringWithInvalidInput()
 	{
-		string input = "invalid";
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
+		var input = "invalid";
+		var success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out var result);
 		Assert.IsFalse(success);
 		Assert.AreEqual(default, result);
 	}
@@ -1798,7 +1800,7 @@ public class PreciseNumberTests
 	public void TestEValue()
 	{
 		var expectedSignificand = BigInteger.Parse("27182818284590452353602874713526624977572", CultureInfo.InvariantCulture);
-		int expectedExponent = -40;
+		var expectedExponent = -40;
 		var eValue = PreciseNumber.E;
 
 		Assert.AreEqual(expectedSignificand, eValue.Significand);
@@ -1809,7 +1811,7 @@ public class PreciseNumberTests
 	public void TestTauValue()
 	{
 		var expectedSignificand = BigInteger.Parse("6283185307179586476925287", CultureInfo.InvariantCulture);
-		int expectedExponent = -24;
+		var expectedExponent = -24;
 		var tauValue = PreciseNumber.Tau;
 
 		Assert.AreEqual(expectedSignificand, tauValue.Significand);
@@ -1820,7 +1822,7 @@ public class PreciseNumberTests
 	public void TestPiValue()
 	{
 		var expectedSignificand = BigInteger.Parse("31415926535897932384626433", CultureInfo.InvariantCulture);
-		int expectedExponent = -25;
+		var expectedExponent = -25;
 		var piValue = PreciseNumber.Pi;
 		Assert.AreEqual(expectedSignificand, piValue.Significand);
 		Assert.AreEqual(expectedExponent, piValue.Exponent);
@@ -1871,10 +1873,10 @@ public class PreciseNumberTests
 	public void TryCreate_WithIntegerInput_ReturnsTrueAndCreatesPreciseNumber()
 	{
 		// Arrange  
-		int input = 42;
+		var input = 42;
 
 		// Act  
-		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+		var result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
 
 		// Assert  
 		Assert.IsTrue(result);
@@ -1886,10 +1888,10 @@ public class PreciseNumberTests
 	public void TryCreate_WithFloatingPointInput_ReturnsTrueAndCreatesPreciseNumber()
 	{
 		// Arrange  
-		double input = 42.42;
+		var input = 42.42;
 
 		// Act  
-		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+		var result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
 
 		// Assert  
 		Assert.IsTrue(result);
@@ -1904,7 +1906,7 @@ public class PreciseNumberTests
 		var input = new PreciseNumber(2, new BigInteger(12345));
 
 		// Act
-		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+		var result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
 
 		// Assert
 		Assert.IsTrue(result);
@@ -1919,7 +1921,7 @@ public class PreciseNumberTests
 		var input = PreciseNumber.One;
 
 		// Act  
-		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+		var result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
 
 		// Assert  
 		Assert.IsTrue(result);
@@ -1930,10 +1932,10 @@ public class PreciseNumberTests
 	public void TryCreate_WithBinaryInteger_ReturnsTrue()
 	{
 		// Arrange  
-		int input = 42;
+		var input = 42;
 
 		// Act  
-		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+		var result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
 
 		// Assert  
 		Assert.IsTrue(result);
@@ -1945,10 +1947,10 @@ public class PreciseNumberTests
 	public void TryCreate_WithFloatingPoint_ReturnsTrue()
 	{
 		// Arrange  
-		double input = 3.14;
+		var input = 3.14;
 
 		// Act  
-		bool result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
+		var result = PreciseNumberExtensions.TryCreate(input, out var preciseNumber);
 
 		// Assert  
 		Assert.IsTrue(result);
