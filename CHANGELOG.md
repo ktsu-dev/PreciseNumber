@@ -1,3 +1,8 @@
+## v1.7.2-pre.1 (prerelease)
+
+Changes since v1.7.1:
+
+- Sync scripts\PSBuild.psm1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
 ## v1.7.1 (patch)
 
 Changes since v1.7.0:
@@ -6,11 +11,7 @@ Changes since v1.7.0:
 - Update README and project files ([@matt-edmondson](https://github.com/matt-edmondson))
 ## v1.7.1-pre.1 (prerelease)
 
-Changes since v1.7.0:
-
-- Sync .runsettings ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync .editorconfig ([@ktsu[bot]](https://github.com/ktsu[bot]))
+Incremental prerelease update.
 ## v1.7.0 (minor)
 
 Changes since v1.6.0:
