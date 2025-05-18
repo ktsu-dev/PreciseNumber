@@ -1,6 +1,6 @@
 MIT License
 
-https://github.com/ktsu-dev/ktsu-dev/PreciseNumber
+https://github.com/ktsu-dev/PreciseNumber
 
 Copyright (c) 2023-2025 ktsu-dev
 
