@@ -28,7 +28,7 @@ public record PreciseNumber
 	/// <exception cref="ArgumentNullException">Thrown when the <paramref name="original"/> is <c>null</c>.</exception>
 	public PreciseNumber(PreciseNumber original)
 	{
-		ArgumentNullException.ThrowIfNull(original);
+		Guard.NotNull(original);
 		Exponent = original.Exponent;
 		Significand = original.Significand;
 		SignificantDigits = original.SignificantDigits;
@@ -70,8 +70,8 @@ public record PreciseNumber
 		}
 
 		// count digits
-		var significantDigits = 0;
-		var number = significand;
+		int significantDigits = 0;
+		BigInteger number = significand;
 		while (number != 0)
 		{
 			significantDigits++;
@@ -171,15 +171,15 @@ public record PreciseNumber
 	/// <returns>A string representation of the current instance.</returns>
 	public static string ToString(PreciseNumber number, string? format, IFormatProvider? formatProvider)
 	{
-		ArgumentNullException.ThrowIfNull(number);
+		Guard.NotNull(number);
 
-		var desiredAlloc = int.Abs(number.Exponent) + number.SignificantDigits + 2; // +2 is for negative symbol and decimal symbol
-		var stackAlloc = Math.Min(desiredAlloc, 128);
+		int desiredAlloc = int.Abs(number.Exponent) + number.SignificantDigits + 2; // +2 is for negative symbol and decimal symbol
+		int stackAlloc = Math.Min(desiredAlloc, 128);
 		Span<char> buffer = stackAlloc == desiredAlloc
 			? stackalloc char[stackAlloc]
 			: new char[desiredAlloc];
 
-		return number.TryFormat(buffer, out var charsWritten, format.AsSpan(), formatProvider)
+		return number.TryFormat(buffer, out int charsWritten, format.AsSpan(), formatProvider)
 			? buffer[..charsWritten].ToString()
 			: string.Empty;
 	}
@@ -200,13 +200,13 @@ public record PreciseNumber
 	/// <returns>A new instance of <see cref="PreciseNumber"/> rounded to the specified number of decimal digits.</returns>
 	public PreciseNumber Round(int decimalDigits)
 	{
-		var currentDecimalDigits = CountDecimalDigits();
-		var decimalDifference = int.Abs(decimalDigits - currentDecimalDigits);
+		int currentDecimalDigits = CountDecimalDigits();
+		int decimalDifference = int.Abs(decimalDigits - currentDecimalDigits);
 		if (currentDecimalDigits > decimalDigits && decimalDifference > 0)
 		{
-			var roundingFactor = BigInteger.CopySign(CreateRepeatingDigits(5, decimalDifference), Significand);
-			var newSignificand = (Significand + roundingFactor) / BigInteger.Pow(Base10, decimalDifference);
-			var newExponent = Exponent - int.CopySign(decimalDifference, Exponent);
+			BigInteger roundingFactor = BigInteger.CopySign(CreateRepeatingDigits(5, decimalDifference), Significand);
+			BigInteger newSignificand = (Significand + roundingFactor) / BigInteger.Pow(Base10, decimalDifference);
+			int newExponent = Exponent - int.CopySign(decimalDifference, Exponent);
 			return new PreciseNumber(newExponent, newSignificand);
 		}
 
@@ -223,9 +223,9 @@ public record PreciseNumber
 	public PreciseNumber Clamp<TNumber>(TNumber min, TNumber max)
 		where TNumber : INumber<TNumber>
 	{
-		var sigMin = min.ToPreciseNumber();
-		var sigMax = max.ToPreciseNumber();
-		var clampedToMax = this > sigMax ? sigMax : this;
+		PreciseNumber sigMin = min.ToPreciseNumber();
+		PreciseNumber sigMax = max.ToPreciseNumber();
+		PreciseNumber clampedToMax = this > sigMax ? sigMax : this;
 		return this < sigMin ? sigMin : clampedToMax;
 	}
 
@@ -278,20 +278,20 @@ public record PreciseNumber
 	private static PreciseNumber CreatePreciseNumberFromNonSpecialFloat<TFloat>(TFloat input)
 		where TFloat : INumber<TFloat>
 	{
-		var format = GetStringFormatForFloatType<TFloat>();
-		var significandString = input.ToString(format, InvariantCulture).ToUpperInvariant();
-		var significandSpan = significandString.AsSpan();
+		string format = GetStringFormatForFloatType<TFloat>();
+		string significandString = input.ToString(format, InvariantCulture).ToUpperInvariant();
+		ReadOnlySpan<char> significandSpan = significandString.AsSpan();
 
-		var exponentValue = 0;
+		int exponentValue = 0;
 		if (significandString.Contains('E', StringComparison.OrdinalIgnoreCase))
 		{
-			var expComponents = significandString.Split('E');
+			string[] expComponents = significandString.Split('E');
 			Debug.Assert(expComponents.Length == 2, $"Unexpected format: {significandString}");
 			significandSpan = expComponents[0].AsSpan();
 			exponentValue = int.Parse(expComponents[1], InvariantCulture);
 		}
 
-		var isInteger = !significandSpan.Contains('.');
+		bool isInteger = !significandSpan.Contains('.');
 
 		while (significandSpan.Length > 2 && significandSpan[^1] == '0')
 		{
@@ -302,18 +302,18 @@ public record PreciseNumber
 			}
 		}
 
-		var components = significandSpan.ToString().Split('.');
+		string[] components = significandSpan.ToString().Split('.');
 		Debug.Assert(components.Length <= 2, $"Invalid format: {significandSpan}");
 
-		var integerComponent = components[0].AsSpan();
-		var fractionalComponent = components.Length == 2 ? components[1].AsSpan() : "0".AsSpan();
-		var fractionalLength = fractionalComponent.Length;
+		ReadOnlySpan<char> integerComponent = components[0].AsSpan();
+		ReadOnlySpan<char> fractionalComponent = components.Length == 2 ? components[1].AsSpan() : "0".AsSpan();
+		int fractionalLength = fractionalComponent.Length;
 		exponentValue -= fractionalLength;
 
 		Debug.Assert(fractionalLength != 0 || integerComponent.TrimStart("-").Length == 1, $"Unexpected format: {integerComponent}.{fractionalComponent}");
 
-		var significandStrWithoutDecimal = $"{integerComponent}{fractionalComponent}";
-		var significandValue = BigInteger.Parse(significandStrWithoutDecimal, InvariantCulture);
+		string significandStrWithoutDecimal = $"{integerComponent}{fractionalComponent}";
+		BigInteger significandValue = BigInteger.Parse(significandStrWithoutDecimal, InvariantCulture);
 
 		return new(exponentValue, significandValue);
 	}
@@ -341,9 +341,9 @@ public record PreciseNumber
 		ArgumentNullException.ThrowIfNull(input);
 		AssertDoesImplementGenericInterface(typeof(TInteger), typeof(IBinaryInteger<>));
 
-		var isOne = input == TInteger.One;
-		var isNegativeOne = TInteger.IsNegative(input) && input == -TInteger.One;
-		var isZero = TInteger.IsZero(input);
+		bool isOne = input == TInteger.One;
+		bool isNegativeOne = TInteger.IsNegative(input) && input == -TInteger.One;
+		bool isZero = TInteger.IsZero(input);
 
 		if (isZero)
 		{
@@ -360,8 +360,8 @@ public record PreciseNumber
 			return NegativeOne;
 		}
 
-		var exponentValue = 0;
-		var significandValue = BigInteger.CreateChecked(input);
+		int exponentValue = 0;
+		BigInteger significandValue = BigInteger.CreateChecked(input);
 		while (significandValue != 0 && significandValue % Base10 == 0)
 		{
 			significandValue /= Base10;
@@ -385,7 +385,7 @@ public record PreciseNumber
 		}
 
 		BigInteger repeatingDigit = digit;
-		for (var i = 1; i < numberOfRepeats; i++)
+		for (int i = 1; i < numberOfRepeats; i++)
 		{
 			repeatingDigit = (repeatingDigit * Base10) + digit;
 		}
@@ -408,11 +408,11 @@ public record PreciseNumber
 	/// <returns>The lower of the decimal digit counts of the two numbers.</returns>
 	protected internal static int LowestDecimalDigits(PreciseNumber left, PreciseNumber right)
 	{
-		ArgumentNullException.ThrowIfNull(left);
-		ArgumentNullException.ThrowIfNull(right);
+		Guard.NotNull(left);
+		Guard.NotNull(right);
 
-		var leftDecimalDigits = left.CountDecimalDigits();
-		var rightDecimalDigits = right.CountDecimalDigits();
+		int leftDecimalDigits = left.CountDecimalDigits();
+		int rightDecimalDigits = right.CountDecimalDigits();
 
 		leftDecimalDigits = left.HasInfinitePrecision ? rightDecimalDigits : leftDecimalDigits;
 		rightDecimalDigits = right.HasInfinitePrecision ? leftDecimalDigits : rightDecimalDigits;
@@ -430,11 +430,11 @@ public record PreciseNumber
 	/// <returns>The lower of the significant digit counts of the two numbers.</returns>
 	protected internal static int LowestSignificantDigits(PreciseNumber left, PreciseNumber right)
 	{
-		ArgumentNullException.ThrowIfNull(left);
-		ArgumentNullException.ThrowIfNull(right);
+		Guard.NotNull(left);
+		Guard.NotNull(right);
 
-		var leftSignificantDigits = left.SignificantDigits;
-		var rightSignificantDigits = right.SignificantDigits;
+		int leftSignificantDigits = left.SignificantDigits;
+		int rightSignificantDigits = right.SignificantDigits;
 
 		leftSignificantDigits = left.HasInfinitePrecision ? rightSignificantDigits : leftSignificantDigits;
 		rightSignificantDigits = right.HasInfinitePrecision ? leftSignificantDigits : rightSignificantDigits;
@@ -460,7 +460,7 @@ public record PreciseNumber
 	/// <returns>A new instance of <see cref="PreciseNumber"/> reduced to the specified number of significant digits.</returns>
 	public PreciseNumber ReduceSignificance(int significantDigits)
 	{
-		var significantDifference = significantDigits < SignificantDigits
+		int significantDifference = significantDigits < SignificantDigits
 			? SignificantDigits - significantDigits
 			: 0;
 
@@ -469,11 +469,11 @@ public record PreciseNumber
 			return this;
 		}
 
-		var newExponent = Exponent == 0
+		int newExponent = Exponent == 0
 			? significantDifference
 			: Exponent + significantDifference;
-		var roundingFactor = BigInteger.CopySign(CreateRepeatingDigits(5, significantDifference), Significand);
-		var newSignificand = (Significand + roundingFactor) / BigInteger.Pow(Base10, significantDifference);
+		BigInteger roundingFactor = BigInteger.CopySign(CreateRepeatingDigits(5, significantDifference), Significand);
+		BigInteger newSignificand = (Significand + roundingFactor) / BigInteger.Pow(Base10, significantDifference);
 		return new(newExponent, newSignificand);
 	}
 
@@ -485,7 +485,7 @@ public record PreciseNumber
 	/// <returns>A tuple containing the commonized <see cref="PreciseNumber"/> instances.</returns>
 	protected internal static (PreciseNumber, PreciseNumber) MakeCommonized(PreciseNumber left, PreciseNumber right)
 	{
-		var (commonLeft, commonRight, _) = MakeCommonizedWithExponent(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight, int _) = MakeCommonizedWithExponent(left, right);
 		return (commonLeft, commonRight);
 	}
 
@@ -499,14 +499,14 @@ public record PreciseNumber
 	/// </returns>
 	protected internal static (PreciseNumber, PreciseNumber, int) MakeCommonizedWithExponent(PreciseNumber left, PreciseNumber right)
 	{
-		ArgumentNullException.ThrowIfNull(left);
-		ArgumentNullException.ThrowIfNull(right);
+		Guard.NotNull(left);
+		Guard.NotNull(right);
 
-		var smallestExponent = left.Exponent < right.Exponent ? left.Exponent : right.Exponent;
-		var exponentDifferenceLeft = Math.Abs(left.Exponent - smallestExponent);
-		var exponentDifferenceRight = Math.Abs(right.Exponent - smallestExponent);
-		var newSignificandLeft = left.Significand * BigInteger.Pow(Base10, exponentDifferenceLeft);
-		var newSignificandRight = right.Significand * BigInteger.Pow(Base10, exponentDifferenceRight);
+		int smallestExponent = left.Exponent < right.Exponent ? left.Exponent : right.Exponent;
+		int exponentDifferenceLeft = Math.Abs(left.Exponent - smallestExponent);
+		int exponentDifferenceRight = Math.Abs(right.Exponent - smallestExponent);
+		BigInteger newSignificandLeft = left.Significand * BigInteger.Pow(Base10, exponentDifferenceLeft);
+		BigInteger newSignificandRight = right.Significand * BigInteger.Pow(Base10, exponentDifferenceRight);
 
 		return (new(smallestExponent, newSignificandLeft, sanitize: false),
 			new(smallestExponent, newSignificandRight, sanitize: false),
@@ -521,7 +521,7 @@ public record PreciseNumber
 			return 1;
 		}
 
-		var greaterOrEqual = this > other ? 1 : 0;
+		int greaterOrEqual = this > other ? 1 : 0;
 		return this < other ? -1 : greaterOrEqual;
 	}
 
@@ -557,7 +557,7 @@ public record PreciseNumber
 			return 1;
 		}
 
-		var other = obj.ToPreciseNumber();
+		PreciseNumber other = obj.ToPreciseNumber();
 		return CompareTo(other);
 	}
 
@@ -583,15 +583,15 @@ public record PreciseNumber
 			return 1;
 		}
 
-		var significantOther = other.ToPreciseNumber();
-		var greaterOrEqual = this > significantOther ? 1 : 0;
+		PreciseNumber significantOther = other.ToPreciseNumber();
+		int greaterOrEqual = this > significantOther ? 1 : 0;
 		return this < significantOther ? -1 : greaterOrEqual;
 	}
 
 	/// <inheritdoc/>
 	public static PreciseNumber Abs(PreciseNumber value)
 	{
-		ArgumentNullException.ThrowIfNull(value);
+		Guard.NotNull(value);
 		return value.Significand < 0 ? -value : value;
 	}
 
@@ -616,7 +616,7 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public static bool IsInteger(PreciseNumber value)
 	{
-		ArgumentNullException.ThrowIfNull(value);
+		Guard.NotNull(value);
 		return value.Exponent >= 0;
 	}
 
@@ -642,7 +642,7 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public static bool IsPositive(PreciseNumber value)
 	{
-		ArgumentNullException.ThrowIfNull(value);
+		Guard.NotNull(value);
 		return value.Significand >= 0;
 	}
 
@@ -658,15 +658,15 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public static bool IsZero(PreciseNumber value)
 	{
-		ArgumentNullException.ThrowIfNull(value);
+		Guard.NotNull(value);
 		return value.Significand == 0;
 	}
 
 	/// <inheritdoc/>
 	public static PreciseNumber MaxMagnitude(PreciseNumber x, PreciseNumber y)
 	{
-		ArgumentNullException.ThrowIfNull(x);
-		ArgumentNullException.ThrowIfNull(y);
+		Guard.NotNull(x);
+		Guard.NotNull(y);
 
 		return x.Abs() >= y.Abs() ? x : y;
 	}
@@ -677,8 +677,8 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public static PreciseNumber MinMagnitude(PreciseNumber x, PreciseNumber y)
 	{
-		ArgumentNullException.ThrowIfNull(x);
-		ArgumentNullException.ThrowIfNull(y);
+		Guard.NotNull(x);
+		Guard.NotNull(y);
 
 		return x.Abs() <= y.Abs() ? x : y;
 	}
@@ -699,16 +699,16 @@ public record PreciseNumber
 			return Zero;
 		}
 
-		var isNegative = s[0] == '-';
-		var startIndex = isNegative ? 1 : 0;
-		var exponent = 0;
+		bool isNegative = s[0] == '-';
+		int startIndex = isNegative ? 1 : 0;
+		int exponent = 0;
 		BigInteger significand = 0;
-		var hasDecimal = false;
-		var decimalDigits = 0;
+		bool hasDecimal = false;
+		int decimalDigits = 0;
 
-		for (var i = startIndex; i < s.Length; i++)
+		for (int i = startIndex; i < s.Length; i++)
 		{
-			var c = s[i];
+			char c = s[i];
 			if (c == '.')
 			{
 				if (hasDecimal)
@@ -791,7 +791,7 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 	{
-		var requiredLength = SignificantDigits + Exponent + 2;
+		int requiredLength = SignificantDigits + Exponent + 2;
 
 		if (destination.Length < requiredLength)
 		{
@@ -806,9 +806,9 @@ public record PreciseNumber
 
 		destination.Clear();
 
-		var output = FormatOutput(provider);
+		string output = FormatOutput(provider);
 
-		var success = output.TryCopyTo(destination);
+		bool success = output.TryCopyTo(destination);
 		charsWritten = success ? output.Length : 0;
 		return success;
 	}
@@ -829,9 +829,9 @@ public record PreciseNumber
 		}
 
 		provider ??= InvariantCulture;
-		var numberFormat = NumberFormatInfo.GetInstance(provider);
-		var sign = Significand < 0 ? numberFormat.NegativeSign : string.Empty;
-		var significandStr = BigInteger.Abs(Significand).ToString(InvariantCulture);
+		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider);
+		string sign = Significand < 0 ? numberFormat.NegativeSign : string.Empty;
+		string significandStr = BigInteger.Abs(Significand).ToString(InvariantCulture);
 
 		if (Exponent == 0)
 		{
@@ -847,9 +847,9 @@ public record PreciseNumber
 
 	private string FormatNegativeExponent(string sign, string significandStr, NumberFormatInfo numberFormat)
 	{
-		var absExponent = -Exponent;
-		var integralComponent = absExponent >= significandStr.Length ? "0" : significandStr[..^absExponent];
-		var fractionalComponent = absExponent >= significandStr.Length
+		int absExponent = -Exponent;
+		string integralComponent = absExponent >= significandStr.Length ? "0" : significandStr[..^absExponent];
+		string fractionalComponent = absExponent >= significandStr.Length
 			? $"{new string('0', absExponent - significandStr.Length)}{BigInteger.Abs(Significand)}"
 			: significandStr[^absExponent..];
 
@@ -893,8 +893,8 @@ public record PreciseNumber
 	/// <param name="right">The second number.</param>
 	protected internal static void AssertExponentsMatch(PreciseNumber left, PreciseNumber right)
 	{
-		ArgumentNullException.ThrowIfNull(left);
-		ArgumentNullException.ThrowIfNull(right);
+		Guard.NotNull(left);
+		Guard.NotNull(right);
 
 		Debug.Assert(left.Exponent == right.Exponent, $"{nameof(AssertExponentsMatch)}: {left.Exponent} == {right.Exponent}");
 	}
@@ -906,7 +906,7 @@ public record PreciseNumber
 	/// <returns>The negated number.</returns>
 	public static PreciseNumber Negate(PreciseNumber value)
 	{
-		ArgumentNullException.ThrowIfNull(value);
+		Guard.NotNull(value);
 		return value == Zero
 			? value
 			: new(value.Exponent, -value.Significand);
@@ -920,10 +920,10 @@ public record PreciseNumber
 	/// <returns>The result of the subtraction.</returns>
 	public static PreciseNumber Subtract(PreciseNumber left, PreciseNumber right)
 	{
-		var (commonLeft, commonRight, commonExponent) = MakeCommonizedWithExponent(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 
-		var newSignificand = commonLeft.Significand - commonRight.Significand;
+		BigInteger newSignificand = commonLeft.Significand - commonRight.Significand;
 		return new PreciseNumber(commonExponent, newSignificand);
 	}
 
@@ -935,10 +935,10 @@ public record PreciseNumber
 	/// <returns>The result of the addition.</returns>
 	public static PreciseNumber Add(PreciseNumber left, PreciseNumber right)
 	{
-		var (commonLeft, commonRight, commonExponent) = MakeCommonizedWithExponent(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 
-		var newSignificand = commonLeft.Significand + commonRight.Significand;
+		BigInteger newSignificand = commonLeft.Significand + commonRight.Significand;
 		return new PreciseNumber(commonExponent, newSignificand);
 	}
 
@@ -963,10 +963,10 @@ public record PreciseNumber
 			return left;
 		}
 
-		var (commonLeft, commonRight, commonExponent) = MakeCommonizedWithExponent(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 
-		var newSignificand = commonLeft.Significand * commonRight.Significand;
+		BigInteger newSignificand = commonLeft.Significand * commonRight.Significand;
 		return new PreciseNumber(commonExponent + commonExponent, newSignificand);
 	}
 
@@ -988,12 +988,12 @@ public record PreciseNumber
 			return One;
 		}
 
-		var (commonLeft, commonRight, commonExponent) = MakeCommonizedWithExponent(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 
-		var integerComponent = commonLeft.Significand / commonRight.Significand;
-		var remainder = double.CreateTruncating(commonLeft.Significand - (integerComponent * commonRight.Significand)) * double.Pow(Base10, commonExponent);
-		var fractionalComponent = remainder / (double.CreateTruncating(commonRight.Significand) * double.Pow(Base10, commonExponent));
+		BigInteger integerComponent = commonLeft.Significand / commonRight.Significand;
+		double remainder = double.CreateTruncating(commonLeft.Significand - (integerComponent * commonRight.Significand)) * double.Pow(Base10, commonExponent);
+		double fractionalComponent = remainder / (double.CreateTruncating(commonRight.Significand) * double.Pow(Base10, commonExponent));
 
 		return new PreciseNumber(0, integerComponent) + fractionalComponent.ToPreciseNumber();
 	}
@@ -1016,11 +1016,11 @@ public record PreciseNumber
 			return Zero;
 		}
 
-		var (commonLeft, commonRight, commonExponent) = MakeCommonizedWithExponent(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 
-		var integerComponent = commonLeft.Significand / commonRight.Significand;
-		var remainder = commonLeft.Significand - (integerComponent * commonRight.Significand);
+		BigInteger integerComponent = commonLeft.Significand / commonRight.Significand;
+		BigInteger remainder = commonLeft.Significand - (integerComponent * commonRight.Significand);
 
 		return new PreciseNumber(commonExponent, remainder);
 	}
@@ -1057,7 +1057,7 @@ public record PreciseNumber
 	/// <returns><c>true</c> if the first number is greater than the second; otherwise, <c>false</c>.</returns>
 	public static bool GreaterThan(PreciseNumber left, PreciseNumber right)
 	{
-		var (commonLeft, commonRight) = MakeCommonized(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 		return commonLeft.Significand > commonRight.Significand;
 	}
@@ -1070,7 +1070,7 @@ public record PreciseNumber
 	/// <returns><c>true</c> if the first number is greater than or equal to the second; otherwise, <c>false</c>.</returns>
 	public static bool GreaterThanOrEqual(PreciseNumber left, PreciseNumber right)
 	{
-		var (commonLeft, commonRight) = MakeCommonized(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 		return commonLeft.Significand >= commonRight.Significand;
 	}
@@ -1083,7 +1083,7 @@ public record PreciseNumber
 	/// <returns><c>true</c> if the first number is less than the second; otherwise, <c>false</c>.</returns>
 	public static bool LessThan(PreciseNumber left, PreciseNumber right)
 	{
-		var (commonLeft, commonRight) = MakeCommonized(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 		return commonLeft.Significand < commonRight.Significand;
 	}
@@ -1096,7 +1096,7 @@ public record PreciseNumber
 	/// <returns><c>true</c> if the first number is less than or equal to the second; otherwise, <c>false</c>.</returns>
 	public static bool LessThanOrEqual(PreciseNumber left, PreciseNumber right)
 	{
-		var (commonLeft, commonRight) = MakeCommonized(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 		return commonLeft.Significand <= commonRight.Significand;
 	}
@@ -1109,7 +1109,7 @@ public record PreciseNumber
 	/// <returns><c>true</c> if the two numbers are equal; otherwise, <c>false</c>.</returns>
 	public static bool Equal(PreciseNumber left, PreciseNumber right)
 	{
-		var (commonLeft, commonRight) = MakeCommonized(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 		return commonLeft.Significand == commonRight.Significand;
 	}
@@ -1122,7 +1122,7 @@ public record PreciseNumber
 	/// <returns><c>true</c> if the two numbers are not equal; otherwise, <c>false</c>.</returns>
 	public static bool NotEqual(PreciseNumber left, PreciseNumber right)
 	{
-		var (commonLeft, commonRight) = MakeCommonized(left, right);
+		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
 		AssertExponentsMatch(commonLeft, commonRight);
 		return commonLeft.Significand != commonRight.Significand;
 	}
@@ -1152,7 +1152,7 @@ public record PreciseNumber
 	/// <returns>The clamped number.</returns>
 	public static PreciseNumber Clamp(PreciseNumber value, PreciseNumber min, PreciseNumber max)
 	{
-		ArgumentNullException.ThrowIfNull(value);
+		Guard.NotNull(value);
 		return value.Clamp(min, max);
 	}
 
@@ -1164,7 +1164,7 @@ public record PreciseNumber
 	/// <returns>The rounded number.</returns>
 	public static PreciseNumber Round(PreciseNumber value, int decimalDigits)
 	{
-		ArgumentNullException.ThrowIfNull(value);
+		Guard.NotNull(value);
 		return value.Round(decimalDigits);
 	}
 
@@ -1202,10 +1202,10 @@ public record PreciseNumber
 
 		if (IsInteger(power))
 		{
-			var result = this;
-			var absPower = power.Abs().To<int>();
+			PreciseNumber result = this;
+			int absPower = power.Abs().To<int>();
 
-			for (var i = 1; i < absPower; i++)
+			for (int i = 1; i < absPower; i++)
 			{
 				result *= this;
 			}
@@ -1214,7 +1214,7 @@ public record PreciseNumber
 		}
 
 		// Use logarithm and exponential to support decimal powers
-		var logValue = Math.Log(To<double>());
+		double logValue = Math.Log(To<double>());
 		return Math.Exp(logValue * power.To<double>()).ToPreciseNumber();
 	}
 
@@ -1225,7 +1225,7 @@ public record PreciseNumber
 	/// <returns>A new instance of <see cref="PreciseNumber"/> that is the result of raising e to the specified power.</returns>
 	public static PreciseNumber Exp(PreciseNumber power)
 	{
-		ArgumentNullException.ThrowIfNull(power);
+		Guard.NotNull(power);
 
 		if (power == Zero)
 		{
@@ -1309,7 +1309,7 @@ public record PreciseNumber
 	/// <exception cref="ArgumentException">Thrown when the specified type is not a valid generic interface.</exception>
 	internal static bool DoesImplementGenericInterface(Type type, Type genericInterface)
 	{
-		var genericInterfaceIsValid = genericInterface.IsInterface && genericInterface.IsGenericType;
+		bool genericInterfaceIsValid = genericInterface.IsInterface && genericInterface.IsGenericType;
 
 		return genericInterfaceIsValid
 			? Array.Exists(type.GetInterfaces(), x => x.IsGenericType && x.GetGenericTypeDefinition() == genericInterface)
@@ -1350,7 +1350,7 @@ public record PreciseNumber
 			return (TOutput)(object)this;
 		}
 
-		var constructor = typeof(TOutput).GetConstructor([typeof(PreciseNumber)]);
+		System.Reflection.ConstructorInfo? constructor = typeof(TOutput).GetConstructor([typeof(PreciseNumber)]);
 		return (TOutput)(constructor?.Invoke([this]) ??
 		throw new NotSupportedException($"Cannot convert {GetType()} to {typeof(TOutput)}"));
 	}

@@ -27,16 +27,16 @@ public static class PreciseNumberExtensions
 		// if TInput is already a PreciseNumber then just return it
 		PreciseNumber preciseNumber;
 
-		var inputType = input.GetType();
-		var preciseNumberType = typeof(PreciseNumber);
-		var isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
+		Type inputType = input.GetType();
+		Type preciseNumberType = typeof(PreciseNumber);
+		bool isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
 
 		if (isPreciseNumber)
 		{
 			return (PreciseNumber)(object)input;
 		}
 
-		var success = TryCreate((TInput)input, out preciseNumber!);
+		bool success = TryCreate((TInput)input, out preciseNumber!);
 
 		return success
 			? preciseNumber
@@ -53,9 +53,9 @@ public static class PreciseNumberExtensions
 	internal static bool TryCreate<TInput>([NotNullWhen(true)] TInput input, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber? preciseNumber)
 		where TInput : INumber<TInput>
 	{
-		var inputType = input.GetType();
-		var preciseNumberType = typeof(PreciseNumber);
-		var isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
+		Type inputType = input.GetType();
+		Type preciseNumberType = typeof(PreciseNumber);
+		bool isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
 
 		if (isPreciseNumber)
 		{
