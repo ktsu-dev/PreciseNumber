@@ -3,6 +3,12 @@
   <Sdk Name="ktsu.Sdk" />
 
   <PropertyGroup>
-    <TargetFrameworks>net9.0;net8.0;net7.0;</TargetFrameworks>
+    <TargetFrameworks>net10.0;net9.0;net8.0;net7.0;</TargetFrameworks>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" />
+    <PackageReference Include="Microsoft.SourceLink.AzureRepos.Git" />
+    <PackageReference Include="Polyfill" />
+  </ItemGroup>
 </Project>

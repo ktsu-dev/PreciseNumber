@@ -2,8 +2,6 @@
 // All rights reserved.
 // Licensed under the MIT license.
 
-[assembly: CLSCompliant(true)]
-[assembly: System.Runtime.InteropServices.ComVisible(false)]
 namespace ktsu.PreciseNumber;
 
 using System;
@@ -28,7 +26,7 @@ public record PreciseNumber
 	/// <exception cref="ArgumentNullException">Thrown when the <paramref name="original"/> is <c>null</c>.</exception>
 	public PreciseNumber(PreciseNumber original)
 	{
-		Guard.NotNull(original);
+		Ensure.NotNull(original);
 		Exponent = original.Exponent;
 		Significand = original.Significand;
 		SignificantDigits = original.SignificantDigits;
@@ -171,7 +169,7 @@ public record PreciseNumber
 	/// <returns>A string representation of the current instance.</returns>
 	public static string ToString(PreciseNumber number, string? format, IFormatProvider? formatProvider)
 	{
-		Guard.NotNull(number);
+		Ensure.NotNull(number);
 
 		int desiredAlloc = int.Abs(number.Exponent) + number.SignificantDigits + 2; // +2 is for negative symbol and decimal symbol
 		int stackAlloc = Math.Min(desiredAlloc, 128);
@@ -408,8 +406,8 @@ public record PreciseNumber
 	/// <returns>The lower of the decimal digit counts of the two numbers.</returns>
 	protected internal static int LowestDecimalDigits(PreciseNumber left, PreciseNumber right)
 	{
-		Guard.NotNull(left);
-		Guard.NotNull(right);
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
 
 		int leftDecimalDigits = left.CountDecimalDigits();
 		int rightDecimalDigits = right.CountDecimalDigits();
@@ -430,8 +428,8 @@ public record PreciseNumber
 	/// <returns>The lower of the significant digit counts of the two numbers.</returns>
 	protected internal static int LowestSignificantDigits(PreciseNumber left, PreciseNumber right)
 	{
-		Guard.NotNull(left);
-		Guard.NotNull(right);
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
 
 		int leftSignificantDigits = left.SignificantDigits;
 		int rightSignificantDigits = right.SignificantDigits;
@@ -499,8 +497,8 @@ public record PreciseNumber
 	/// </returns>
 	protected internal static (PreciseNumber, PreciseNumber, int) MakeCommonizedWithExponent(PreciseNumber left, PreciseNumber right)
 	{
-		Guard.NotNull(left);
-		Guard.NotNull(right);
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
 
 		int smallestExponent = left.Exponent < right.Exponent ? left.Exponent : right.Exponent;
 		int exponentDifferenceLeft = Math.Abs(left.Exponent - smallestExponent);
@@ -591,7 +589,7 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public static PreciseNumber Abs(PreciseNumber value)
 	{
-		Guard.NotNull(value);
+		Ensure.NotNull(value);
 		return value.Significand < 0 ? -value : value;
 	}
 
@@ -616,7 +614,7 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public static bool IsInteger(PreciseNumber value)
 	{
-		Guard.NotNull(value);
+		Ensure.NotNull(value);
 		return value.Exponent >= 0;
 	}
 
@@ -642,7 +640,7 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public static bool IsPositive(PreciseNumber value)
 	{
-		Guard.NotNull(value);
+		Ensure.NotNull(value);
 		return value.Significand >= 0;
 	}
 
@@ -658,15 +656,15 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public static bool IsZero(PreciseNumber value)
 	{
-		Guard.NotNull(value);
+		Ensure.NotNull(value);
 		return value.Significand == 0;
 	}
 
 	/// <inheritdoc/>
 	public static PreciseNumber MaxMagnitude(PreciseNumber x, PreciseNumber y)
 	{
-		Guard.NotNull(x);
-		Guard.NotNull(y);
+		Ensure.NotNull(x);
+		Ensure.NotNull(y);
 
 		return x.Abs() >= y.Abs() ? x : y;
 	}
@@ -677,8 +675,8 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public static PreciseNumber MinMagnitude(PreciseNumber x, PreciseNumber y)
 	{
-		Guard.NotNull(x);
-		Guard.NotNull(y);
+		Ensure.NotNull(x);
+		Ensure.NotNull(y);
 
 		return x.Abs() <= y.Abs() ? x : y;
 	}
@@ -893,8 +891,8 @@ public record PreciseNumber
 	/// <param name="right">The second number.</param>
 	protected internal static void AssertExponentsMatch(PreciseNumber left, PreciseNumber right)
 	{
-		Guard.NotNull(left);
-		Guard.NotNull(right);
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
 
 		Debug.Assert(left.Exponent == right.Exponent, $"{nameof(AssertExponentsMatch)}: {left.Exponent} == {right.Exponent}");
 	}
@@ -906,7 +904,7 @@ public record PreciseNumber
 	/// <returns>The negated number.</returns>
 	public static PreciseNumber Negate(PreciseNumber value)
 	{
-		Guard.NotNull(value);
+		Ensure.NotNull(value);
 		return value == Zero
 			? value
 			: new(value.Exponent, -value.Significand);
@@ -1152,7 +1150,7 @@ public record PreciseNumber
 	/// <returns>The clamped number.</returns>
 	public static PreciseNumber Clamp(PreciseNumber value, PreciseNumber min, PreciseNumber max)
 	{
-		Guard.NotNull(value);
+		Ensure.NotNull(value);
 		return value.Clamp(min, max);
 	}
 
@@ -1164,7 +1162,7 @@ public record PreciseNumber
 	/// <returns>The rounded number.</returns>
 	public static PreciseNumber Round(PreciseNumber value, int decimalDigits)
 	{
-		Guard.NotNull(value);
+		Ensure.NotNull(value);
 		return value.Round(decimalDigits);
 	}
 
@@ -1225,7 +1223,7 @@ public record PreciseNumber
 	/// <returns>A new instance of <see cref="PreciseNumber"/> that is the result of raising e to the specified power.</returns>
 	public static PreciseNumber Exp(PreciseNumber power)
 	{
-		Guard.NotNull(power);
+		Ensure.NotNull(power);
 
 		if (power == Zero)
 		{

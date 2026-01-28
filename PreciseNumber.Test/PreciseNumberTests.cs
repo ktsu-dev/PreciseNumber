@@ -14,7 +14,7 @@ public class PreciseNumberTests
 	public void TestZeroCheck()
 	{
 		PreciseNumber zero = 0.ToPreciseNumber();
-		Assert.IsTrue(PreciseNumber.IsZero(zero));
+		Assert.IsTrue(PreciseNumber.IsZero(zero), "Zero should be identified as zero");
 	}
 
 	[TestMethod]
@@ -245,8 +245,8 @@ public class PreciseNumberTests
 	public void TestEquals()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsTrue(one.Equals(PreciseNumber.One));
-		Assert.IsFalse(one.Equals(PreciseNumber.Zero));
+		Assert.IsTrue(one.Equals(PreciseNumber.One), "One should equal PreciseNumber.One");
+		Assert.IsFalse(one.Equals(PreciseNumber.Zero), "One should not equal PreciseNumber.Zero");
 	}
 
 	[TestMethod]
@@ -254,10 +254,10 @@ public class PreciseNumberTests
 	{
 		PreciseNumber one = PreciseNumber.One;
 		PreciseNumber zero = PreciseNumber.Zero;
-		Assert.IsTrue(one.CompareTo(zero) > 0);
-		Assert.IsTrue(zero.CompareTo(one) < 0);
+		Assert.IsGreaterThan(0, one.CompareTo(zero), "One should compare greater than zero");
+		Assert.IsLessThan(0, zero.CompareTo(one), "Zero should compare less than one");
 		Assert.AreEqual(0, one.CompareTo(PreciseNumber.One));
-		Assert.IsTrue(one.CompareTo(null) > 0);
+		Assert.IsGreaterThan(0, one.CompareTo(null), "One should compare greater than null");
 	}
 
 	// Tests for comparison operators
@@ -266,8 +266,8 @@ public class PreciseNumberTests
 	{
 		PreciseNumber one = PreciseNumber.One;
 		PreciseNumber zero = PreciseNumber.Zero;
-		Assert.IsTrue(one > zero);
-		Assert.IsFalse(zero > one);
+		Assert.IsTrue(one > zero, "One should be greater than zero");
+		Assert.IsFalse(zero > one, "Zero should not be greater than one");
 	}
 
 	[TestMethod]
@@ -275,9 +275,9 @@ public class PreciseNumberTests
 	{
 		PreciseNumber one = PreciseNumber.One;
 		PreciseNumber zero = PreciseNumber.Zero;
-		Assert.IsTrue(one >= zero);
-		Assert.IsTrue(one >= PreciseNumber.One);
-		Assert.IsFalse(zero >= one);
+		Assert.IsTrue(one >= zero, "One should be greater than or equal to zero");
+		Assert.IsTrue(one >= PreciseNumber.One, "One should be greater than or equal to one");
+		Assert.IsFalse(zero >= one, "Zero should not be greater than or equal to one");
 	}
 
 	[TestMethod]
@@ -285,8 +285,8 @@ public class PreciseNumberTests
 	{
 		PreciseNumber one = PreciseNumber.One;
 		PreciseNumber zero = PreciseNumber.Zero;
-		Assert.IsTrue(zero < one);
-		Assert.IsFalse(one < zero);
+		Assert.IsTrue(zero < one, "Zero should be less than one");
+		Assert.IsFalse(one < zero, "One should not be less than zero");
 	}
 
 	[TestMethod]
@@ -294,9 +294,9 @@ public class PreciseNumberTests
 	{
 		PreciseNumber one = PreciseNumber.One;
 		PreciseNumber zero = PreciseNumber.Zero;
-		Assert.IsTrue(zero <= one);
-		Assert.IsTrue(one <= PreciseNumber.One);
-		Assert.IsFalse(one <= zero);
+		Assert.IsTrue(zero <= one, "Zero should be less than or equal to one");
+		Assert.IsTrue(one <= PreciseNumber.One, "One should be less than or equal to one");
+		Assert.IsFalse(one <= zero, "One should not be less than or equal to zero");
 	}
 
 	[TestMethod]
@@ -454,134 +454,134 @@ public class PreciseNumberTests
 	public void TestIsCanonical()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsTrue(PreciseNumber.IsCanonical(one));
+		Assert.IsTrue(PreciseNumber.IsCanonical(one), "One should be canonical");
 	}
 
 	[TestMethod]
 	public void TestIsComplexNumber()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsFalse(PreciseNumber.IsComplexNumber(one));
+		Assert.IsFalse(PreciseNumber.IsComplexNumber(one), "One should not be a complex number");
 	}
 
 	[TestMethod]
 	public void TestIsEvenInteger()
 	{
 		PreciseNumber two = 2.ToPreciseNumber();
-		Assert.IsTrue(PreciseNumber.IsEvenInteger(two));
+		Assert.IsTrue(PreciseNumber.IsEvenInteger(two), "Two should be an even integer");
 
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsFalse(PreciseNumber.IsEvenInteger(one));
+		Assert.IsFalse(PreciseNumber.IsEvenInteger(one), "One should not be an even integer");
 	}
 
 	[TestMethod]
 	public void TestIsFinite()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsTrue(PreciseNumber.IsFinite(one));
+		Assert.IsTrue(PreciseNumber.IsFinite(one), "One should be finite");
 	}
 
 	[TestMethod]
 	public void TestIsImaginaryNumber()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsFalse(PreciseNumber.IsImaginaryNumber(one));
+		Assert.IsFalse(PreciseNumber.IsImaginaryNumber(one), "One should not be an imaginary number");
 	}
 
 	[TestMethod]
 	public void TestIsInfinity()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsFalse(PreciseNumber.IsInfinity(one));
+		Assert.IsFalse(PreciseNumber.IsInfinity(one), "One should not be infinity");
 	}
 
 	[TestMethod]
 	public void TestIsInteger()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsTrue(PreciseNumber.IsInteger(one));
+		Assert.IsTrue(PreciseNumber.IsInteger(one), "One should be an integer");
 	}
 
 	[TestMethod]
 	public void TestIsNaN()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsFalse(PreciseNumber.IsNaN(one));
+		Assert.IsFalse(PreciseNumber.IsNaN(one), "One should not be NaN");
 	}
 
 	[TestMethod]
 	public void TestIsNegative()
 	{
 		PreciseNumber negativeOne = PreciseNumber.NegativeOne;
-		Assert.IsTrue(PreciseNumber.IsNegative(negativeOne));
+		Assert.IsTrue(PreciseNumber.IsNegative(negativeOne), "Negative one should be negative");
 
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsFalse(PreciseNumber.IsNegative(one));
+		Assert.IsFalse(PreciseNumber.IsNegative(one), "One should not be negative");
 	}
 
 	[TestMethod]
 	public void TestIsNegativeInfinity()
 	{
 		PreciseNumber negativeOne = PreciseNumber.NegativeOne;
-		Assert.IsFalse(PreciseNumber.IsNegativeInfinity(negativeOne));
+		Assert.IsFalse(PreciseNumber.IsNegativeInfinity(negativeOne), "Negative one should not be negative infinity");
 	}
 
 	[TestMethod]
 	public void TestIsNormal()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsTrue(PreciseNumber.IsNormal(one));
+		Assert.IsTrue(PreciseNumber.IsNormal(one), "One should be a normal number");
 	}
 
 	[TestMethod]
 	public void TestIsOddInteger()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsTrue(PreciseNumber.IsOddInteger(one));
+		Assert.IsTrue(PreciseNumber.IsOddInteger(one), "One should be an odd integer");
 
 		PreciseNumber two = 2.ToPreciseNumber();
-		Assert.IsFalse(PreciseNumber.IsOddInteger(two));
+		Assert.IsFalse(PreciseNumber.IsOddInteger(two), "Two should not be an odd integer");
 	}
 
 	[TestMethod]
 	public void TestIsPositive()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsTrue(PreciseNumber.IsPositive(one));
+		Assert.IsTrue(PreciseNumber.IsPositive(one), "One should be positive");
 
 		PreciseNumber negativeOne = PreciseNumber.NegativeOne;
-		Assert.IsFalse(PreciseNumber.IsPositive(negativeOne));
+		Assert.IsFalse(PreciseNumber.IsPositive(negativeOne), "Negative one should not be positive");
 	}
 
 	[TestMethod]
 	public void TestIsPositiveInfinity()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsFalse(PreciseNumber.IsPositiveInfinity(one));
+		Assert.IsFalse(PreciseNumber.IsPositiveInfinity(one), "One should not be positive infinity");
 	}
 
 	[TestMethod]
 	public void TestIsRealNumber()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsTrue(PreciseNumber.IsRealNumber(one));
+		Assert.IsTrue(PreciseNumber.IsRealNumber(one), "One should be a real number");
 	}
 
 	[TestMethod]
 	public void TestIsSubnormal()
 	{
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsFalse(PreciseNumber.IsSubnormal(one));
+		Assert.IsFalse(PreciseNumber.IsSubnormal(one), "One should not be subnormal");
 	}
 
 	[TestMethod]
 	public void TestIsZero()
 	{
 		PreciseNumber zero = PreciseNumber.Zero;
-		Assert.IsTrue(PreciseNumber.IsZero(zero));
+		Assert.IsTrue(PreciseNumber.IsZero(zero), "Zero should be identified as zero");
 
 		PreciseNumber one = PreciseNumber.One;
-		Assert.IsFalse(PreciseNumber.IsZero(one));
+		Assert.IsFalse(PreciseNumber.IsZero(one), "One should not be identified as zero");
 	}
 
 	[TestMethod]
@@ -629,8 +629,8 @@ public class PreciseNumberTests
 		object zeroObject = PreciseNumber.Zero;
 		object intObject = 1;
 		Assert.AreEqual(0, one.CompareTo(oneObject));
-		Assert.IsTrue(one.CompareTo(zeroObject) > 0);
-		Assert.IsTrue(zero.CompareTo(oneObject) < 0);
+		Assert.IsGreaterThan(0, one.CompareTo(zeroObject), "One should compare greater than zero object");
+		Assert.IsLessThan(0, zero.CompareTo(oneObject), "Zero should compare less than one object");
 		Assert.ThrowsExactly<NotSupportedException>(() => one.CompareTo(intObject));
 	}
 
@@ -641,8 +641,8 @@ public class PreciseNumberTests
 		PreciseNumber zero = PreciseNumber.Zero;
 		PreciseNumber anotherOne = PreciseNumber.One;
 
-		Assert.IsTrue(one.CompareTo(zero) > 0);
-		Assert.IsTrue(zero.CompareTo(one) < 0);
+		Assert.IsGreaterThan(0, one.CompareTo(zero), "One should compare greater than zero");
+		Assert.IsLessThan(0, zero.CompareTo(one), "Zero should compare less than one");
 		Assert.AreEqual(0, one.CompareTo(anotherOne));
 	}
 
@@ -653,16 +653,16 @@ public class PreciseNumberTests
 		PreciseNumber zero = PreciseNumber.Zero;
 		PreciseNumber anotherOne = PreciseNumber.One;
 
-		Assert.IsTrue(one.CompareTo<PreciseNumber>(zero) > 0);
-		Assert.IsTrue(zero.CompareTo<PreciseNumber>(one) < 0);
+		Assert.IsGreaterThan(0, one.CompareTo<PreciseNumber>(zero), "One should compare greater than zero using generic CompareTo");
+		Assert.IsLessThan(0, zero.CompareTo<PreciseNumber>(one), "Zero should compare less than one using generic CompareTo");
 		Assert.AreEqual(0, one.CompareTo<PreciseNumber>(anotherOne));
 
-		Assert.IsTrue(one.CompareTo(0) > 0);
-		Assert.IsTrue(zero.CompareTo(1) < 0);
+		Assert.IsGreaterThan(0, one.CompareTo(0), "One should compare greater than integer 0");
+		Assert.IsLessThan(0, zero.CompareTo(1), "Zero should compare less than integer 1");
 		Assert.AreEqual(0, one.CompareTo(1));
 
-		Assert.IsTrue(one.CompareTo(0.0) > 0);
-		Assert.IsTrue(zero.CompareTo(1.0) < 0);
+		Assert.IsGreaterThan(0, one.CompareTo(0.0), "One should compare greater than double 0.0");
+		Assert.IsLessThan(0, zero.CompareTo(1.0), "Zero should compare less than double 1.0");
 		Assert.AreEqual(0, one.CompareTo(1.0));
 	}
 
@@ -936,10 +936,10 @@ public class PreciseNumberTests
 	public void TestHasInfinitePrecision()
 	{
 		PreciseNumber number = PreciseNumber.One;
-		Assert.IsTrue(number.HasInfinitePrecision);
+		Assert.IsTrue(number.HasInfinitePrecision, "One should have infinite precision");
 
 		number = PreciseNumber.CreateFromComponents(0, new BigInteger(2));
-		Assert.IsFalse(number.HasInfinitePrecision);
+		Assert.IsFalse(number.HasInfinitePrecision, "Two should not have infinite precision");
 	}
 
 	[TestMethod]
@@ -1042,7 +1042,7 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number1 = PreciseNumber.CreateFromComponents(0, 12345);
 		PreciseNumber number2 = PreciseNumber.CreateFromComponents(0, 678);
-		Assert.IsTrue(number1 > number2);
+		Assert.IsTrue(number1 > number2, "12345 should be greater than 678");
 	}
 
 	[TestMethod]
@@ -1050,7 +1050,7 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number1 = PreciseNumber.CreateFromComponents(0, 123);
 		PreciseNumber number2 = PreciseNumber.CreateFromComponents(0, 678);
-		Assert.IsTrue(number1 < number2);
+		Assert.IsTrue(number1 < number2, "123 should be less than 678");
 	}
 
 	[TestMethod]
@@ -1058,7 +1058,7 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number1 = PreciseNumber.CreateFromComponents(0, 12345);
 		PreciseNumber number2 = PreciseNumber.CreateFromComponents(0, 12345);
-		Assert.IsTrue(number1 >= number2);
+		Assert.IsTrue(number1 >= number2, "12345 should be greater than or equal to 12345");
 	}
 
 	[TestMethod]
@@ -1066,7 +1066,7 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number1 = PreciseNumber.CreateFromComponents(0, 123);
 		PreciseNumber number2 = PreciseNumber.CreateFromComponents(0, 678);
-		Assert.IsTrue(number1 <= number2);
+		Assert.IsTrue(number1 <= number2, "123 should be less than or equal to 678");
 	}
 
 	[TestMethod]
@@ -1112,7 +1112,7 @@ public class PreciseNumberTests
 	public void TestEqualsObjectSameInstance()
 	{
 		PreciseNumber number = PreciseNumber.One;
-		Assert.IsTrue(number.Equals((object)number));
+		Assert.IsTrue(number.Equals((object)number), "Number should equal itself as object");
 	}
 
 	[TestMethod]
@@ -1120,7 +1120,7 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number1 = PreciseNumber.One;
 		PreciseNumber number2 = PreciseNumber.CreateFromComponents(0, 1);
-		Assert.IsTrue(number1.Equals((object)number2));
+		Assert.IsTrue(number1.Equals((object)number2), "Equivalent PreciseNumbers should be equal as objects");
 	}
 
 	[TestMethod]
@@ -1128,14 +1128,14 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number1 = PreciseNumber.One;
 		PreciseNumber number2 = PreciseNumber.Zero;
-		Assert.IsFalse(number1.Equals((object)number2));
+		Assert.IsFalse(number1.Equals((object)number2), "Different PreciseNumbers should not be equal as objects");
 	}
 
 	[TestMethod]
 	public void TestEqualsObjectNull()
 	{
 		PreciseNumber number = PreciseNumber.One;
-		Assert.IsFalse(number.Equals(null));
+		Assert.IsFalse(number.Equals(null), "PreciseNumber should not equal null");
 	}
 
 	[TestMethod]
@@ -1143,7 +1143,7 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number = PreciseNumber.One;
 		string differentType = "1";
-		Assert.IsFalse(number.Equals(differentType));
+		Assert.IsFalse(number.Equals(differentType), "PreciseNumber should not equal a different type");
 	}
 
 	[TestMethod]
@@ -1199,7 +1199,7 @@ public class PreciseNumberTests
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "TryFormat should succeed with sufficient buffer");
 		Assert.AreEqual("123.45", buffer[..charsWritten].ToString());
 	}
 
@@ -1211,7 +1211,7 @@ public class PreciseNumberTests
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
-		Assert.IsFalse(result);
+		Assert.IsFalse(result, "TryFormat should fail with insufficient buffer");
 		Assert.AreEqual(0, charsWritten);
 	}
 
@@ -1223,7 +1223,7 @@ public class PreciseNumberTests
 		string format = string.Empty;
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "TryFormat should succeed with empty format");
 		Assert.AreEqual("123.45", buffer[..charsWritten].ToString());
 	}
 
@@ -1242,7 +1242,7 @@ public class PreciseNumberTests
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), null);
 
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "TryFormat should succeed with null format provider");
 		Assert.AreEqual("123.45", buffer[..charsWritten].ToString());
 	}
 
@@ -1261,7 +1261,7 @@ public class PreciseNumberTests
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "TryFormat should succeed for zero");
 		Assert.AreEqual("0", buffer[..charsWritten].ToString());
 	}
 
@@ -1273,7 +1273,7 @@ public class PreciseNumberTests
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "TryFormat should succeed for one");
 		Assert.AreEqual("1", buffer[..charsWritten].ToString());
 	}
 
@@ -1285,7 +1285,7 @@ public class PreciseNumberTests
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "TryFormat should succeed for negative one");
 		Assert.AreEqual("-1", buffer[..charsWritten].ToString());
 	}
 
@@ -1297,7 +1297,7 @@ public class PreciseNumberTests
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "TryFormat should succeed for integer");
 		Assert.AreEqual("3", buffer[..charsWritten].ToString());
 	}
 
@@ -1309,7 +1309,7 @@ public class PreciseNumberTests
 		string format = "G";
 		bool result = number.TryFormat(buffer, out int charsWritten, format.AsSpan(), CultureInfo.InvariantCulture);
 
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "TryFormat should succeed for float");
 		Assert.AreEqual("3", buffer[..charsWritten].ToString());
 	}
 
@@ -1736,11 +1736,11 @@ public class PreciseNumberTests
 		ReadOnlySpan<char> input = "1.23E4".AsSpan();
 		PreciseNumber expected = 1.23e4.ToPreciseNumber();
 		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
-		Assert.IsTrue(success);
+		Assert.IsTrue(success, "TryParse should succeed with valid input");
 		Assert.AreEqual(expected, result);
 
 		success = PreciseNumber.TryParse(input, provider: null, out result);
-		Assert.IsTrue(success);
+		Assert.IsTrue(success, "TryParse should succeed with valid input and null provider");
 		Assert.AreEqual(expected, result);
 	}
 
@@ -1750,7 +1750,7 @@ public class PreciseNumberTests
 		ReadOnlySpan<char> input = "-5.67E-2".AsSpan();
 		PreciseNumber expected = -5.67e-2.ToPreciseNumber();
 		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
-		Assert.IsTrue(success);
+		Assert.IsTrue(success, "TryParse should succeed with negative input");
 		Assert.AreEqual(expected, result);
 	}
 
@@ -1759,7 +1759,7 @@ public class PreciseNumberTests
 	{
 		ReadOnlySpan<char> input = "invalid".AsSpan();
 		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
-		Assert.IsFalse(success);
+		Assert.IsFalse(success, "TryParse should fail with invalid input");
 		Assert.AreEqual(default, result);
 	}
 
@@ -1769,11 +1769,11 @@ public class PreciseNumberTests
 		string input = "1.23E4";
 		PreciseNumber expected = 1.23e4.ToPreciseNumber();
 		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
-		Assert.IsTrue(success);
+		Assert.IsTrue(success, "TryParse should succeed with valid string input");
 		Assert.AreEqual(expected, result);
 
 		success = PreciseNumber.TryParse(input, null, out result);
-		Assert.IsTrue(success);
+		Assert.IsTrue(success, "TryParse should succeed with valid string input and null provider");
 		Assert.AreEqual(expected, result);
 	}
 
@@ -1783,7 +1783,7 @@ public class PreciseNumberTests
 		string input = "-5.67E-2";
 		PreciseNumber expected = -5.67e-2.ToPreciseNumber();
 		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
-		Assert.IsTrue(success);
+		Assert.IsTrue(success, "TryParse should succeed with negative string input");
 		Assert.AreEqual(expected, result);
 	}
 
@@ -1792,7 +1792,7 @@ public class PreciseNumberTests
 	{
 		string input = "invalid";
 		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
-		Assert.IsFalse(success);
+		Assert.IsFalse(success, "TryParse should fail with invalid string input");
 		Assert.AreEqual(default, result);
 	}
 
@@ -1835,8 +1835,8 @@ public class PreciseNumberTests
 		PreciseNumber number2 = PreciseNumber.CreateFromComponents(0, 678);
 		PreciseNumber number3 = PreciseNumber.CreateFromComponents(0, 12345);
 
-		Assert.IsTrue(PreciseNumber.NotEqual(number1, number2));
-		Assert.IsFalse(PreciseNumber.NotEqual(number1, number3));
+		Assert.IsTrue(PreciseNumber.NotEqual(number1, number2), "12345 should not equal 678");
+		Assert.IsFalse(PreciseNumber.NotEqual(number1, number3), "12345 should equal 12345");
 	}
 	[TestMethod]
 	public void TestCompareToINumberWithNull()
@@ -1850,7 +1850,7 @@ public class PreciseNumberTests
 	{
 		PreciseNumber one = PreciseNumber.One;
 		PreciseNumber zero = PreciseNumber.Zero;
-		Assert.IsTrue(one.CompareTo<PreciseNumber>(zero) > 0);
+		Assert.IsGreaterThan(0, one.CompareTo<PreciseNumber>(zero), "One should compare greater than zero");
 	}
 
 	[TestMethod]
@@ -1858,7 +1858,7 @@ public class PreciseNumberTests
 	{
 		PreciseNumber one = PreciseNumber.One;
 		PreciseNumber two = 2.ToPreciseNumber();
-		Assert.IsTrue(one.CompareTo<PreciseNumber>(two) < 0);
+		Assert.IsLessThan(0, one.CompareTo<PreciseNumber>(two), "One should compare less than two");
 	}
 
 	[TestMethod]
@@ -1872,14 +1872,14 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TryCreate_WithIntegerInput_ReturnsTrueAndCreatesPreciseNumber()
 	{
-		// Arrange  
+		// Arrange
 		int input = 42;
 
-		// Act  
+		// Act
 		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
 
-		// Assert  
-		Assert.IsTrue(result);
+		// Assert
+		Assert.IsTrue(result, "TryCreate should succeed with integer input");
 		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(input, preciseNumber.To<int>());
 	}
@@ -1887,14 +1887,14 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TryCreate_WithFloatingPointInput_ReturnsTrueAndCreatesPreciseNumber()
 	{
-		// Arrange  
+		// Arrange
 		double input = 42.42;
 
-		// Act  
+		// Act
 		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
 
-		// Assert  
-		Assert.IsTrue(result);
+		// Assert
+		Assert.IsTrue(result, "TryCreate should succeed with floating point input");
 		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(input, preciseNumber.To<double>());
 	}
@@ -1909,7 +1909,7 @@ public class PreciseNumberTests
 		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
 
 		// Assert
-		Assert.IsTrue(result);
+		Assert.IsTrue(result, "TryCreate should succeed when input is PreciseNumber");
 		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(input, preciseNumber);
 	}
@@ -1917,28 +1917,28 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TryCreate_WithPreciseNumber_ReturnsTrue()
 	{
-		// Arrange  
+		// Arrange
 		PreciseNumber input = PreciseNumber.One;
 
-		// Act  
+		// Act
 		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
 
-		// Assert  
-		Assert.IsTrue(result);
+		// Assert
+		Assert.IsTrue(result, "TryCreate should succeed with PreciseNumber input");
 		Assert.AreEqual(input, preciseNumber);
 	}
 
 	[TestMethod]
 	public void TryCreate_WithBinaryInteger_ReturnsTrue()
 	{
-		// Arrange  
+		// Arrange
 		int input = 42;
 
-		// Act  
+		// Act
 		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
 
-		// Assert  
-		Assert.IsTrue(result);
+		// Assert
+		Assert.IsTrue(result, "TryCreate should succeed with binary integer input");
 		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(PreciseNumber.CreateFromInteger(input), preciseNumber);
 	}
@@ -1946,14 +1946,14 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TryCreate_WithFloatingPoint_ReturnsTrue()
 	{
-		// Arrange  
+		// Arrange
 		double input = 3.14;
 
-		// Act  
+		// Act
 		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
 
-		// Assert  
-		Assert.IsTrue(result);
+		// Assert
+		Assert.IsTrue(result, "TryCreate should succeed with floating point input");
 		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(PreciseNumber.CreateFromFloatingPoint(input), preciseNumber);
 	}
