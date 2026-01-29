@@ -243,8 +243,6 @@ public record PreciseNumber
 	internal static PreciseNumber CreateFromFloatingPoint<TFloat>(TFloat input)
 		where TFloat : INumber<TFloat>
 	{
-		ArgumentNullException.ThrowIfNull(input);
-
 		if (TFloat.IsInfinity(input))
 		{
 			throw new ArgumentOutOfRangeException(nameof(input), "Infinite values are not supported");
@@ -336,7 +334,6 @@ public record PreciseNumber
 	internal static PreciseNumber CreateFromInteger<TInteger>(TInteger input)
 		where TInteger : INumber<TInteger>
 	{
-		ArgumentNullException.ThrowIfNull(input);
 		AssertDoesImplementGenericInterface(typeof(TInteger), typeof(IBinaryInteger<>));
 
 		bool isOne = input == TInteger.One;
@@ -555,7 +552,7 @@ public record PreciseNumber
 			return 1;
 		}
 
-		PreciseNumber other = obj.ToPreciseNumber();
+		PreciseNumber other = ((TNumber)obj).ToPreciseNumber();
 		return CompareTo(other);
 	}
 

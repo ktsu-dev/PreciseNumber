@@ -19,11 +19,9 @@ public static class PreciseNumberExtensions
 	/// <param name="input">The input number to convert.</param>
 	/// <returns>The converted <see cref="PreciseNumber"/>.</returns>
 	/// <exception cref="NotSupportedException">Thrown when the conversion cannot be performed because the input type is not supported.</exception>
-	public static PreciseNumber ToPreciseNumber<TInput>(this INumber<TInput> input)
+	public static PreciseNumber ToPreciseNumber<TInput>(this TInput input)
 		where TInput : INumber<TInput>
 	{
-		ArgumentNullException.ThrowIfNull(input);
-
 		// if TInput is already a PreciseNumber then just return it
 		PreciseNumber preciseNumber;
 
@@ -36,7 +34,7 @@ public static class PreciseNumberExtensions
 			return (PreciseNumber)(object)input;
 		}
 
-		bool success = TryCreate((TInput)input, out preciseNumber!);
+		bool success = TryCreate(input, out preciseNumber!);
 
 		return success
 			? preciseNumber
