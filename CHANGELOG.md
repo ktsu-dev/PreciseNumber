@@ -1,6 +1,10 @@
-## v1.7.5
+## v1.7.6-pre.1 (prerelease)
 
-No significant changes detected since v1.7.5.
+Changes since v1.7.5:
+
+- Sync COPYRIGHT.md ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync scripts\update-winget-manifests.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
 ## v1.7.5 (patch)
 
 Changes since v1.7.4:
