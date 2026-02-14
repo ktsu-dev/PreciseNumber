@@ -1,7 +1,4 @@
-## v1.7.6 (patch)
+## v1.7.6
 
-Changes since v1.7.5:
-
-- Refactor CI pipeline to clone KtsuBuild at latest tag and streamline release logic ([@matt-edmondson](https://github.com/matt-edmondson))
-- Remove legacy build scripts ([@matt-edmondson](https://github.com/matt-edmondson))
+No significant changes detected since v1.7.6.
 
