@@ -1,6 +1,7 @@
-## v1.7.6-pre.6 (prerelease)
+## v1.7.6 (patch)
 
-Changes since v1.7.6-pre.5:
+Changes since v1.7.5:
 
-- Merge remote-tracking branch 'refs/remotes/origin/main' ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync scripts\update-winget-manifests.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Refactor CI pipeline to clone KtsuBuild at latest tag and streamline release logic ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove legacy build scripts ([@matt-edmondson](https://github.com/matt-edmondson))
+
