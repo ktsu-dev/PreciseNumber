@@ -1,6 +1,4 @@
-## v1.7.8 (patch)
+## v1.7.8
 
-Changes since v1.7.7:
-
-- Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
+No significant changes detected since v1.7.8.
 
