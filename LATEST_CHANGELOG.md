@@ -1,7 +1,4 @@
-## v1.7.9 (patch)
+## v1.7.9
 
-Changes since v1.7.8:
-
-- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
-- Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
+No significant changes detected since v1.7.9.
 
