@@ -1,4 +1,6 @@
-## v1.7.12
+## v1.7.13 (patch)
 
-No significant changes detected since v1.7.12.
+Changes since v1.7.12:
+
+- chore: remove SourceLink package references ([@matt-edmondson](https://github.com/matt-edmondson))
 
