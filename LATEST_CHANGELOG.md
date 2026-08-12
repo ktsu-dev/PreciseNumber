@@ -1,4 +1,6 @@
-## v1.7.27
+## v1.7.28 (patch)
 
-No significant changes detected since v1.7.27.
+Changes since v1.7.27:
+
+- Sync global.json ([@KtsuTools](https://github.com/KtsuTools))
 
