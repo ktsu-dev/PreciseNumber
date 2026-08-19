@@ -2,15 +2,13 @@
 
 A high-precision numeric type for .NET that provides arbitrary precision arithmetic with a focus on accuracy. By combining the scale benefits of scientific notation with the precision of `BigInteger`, this library offers reliable and accurate mathematical operations where standard floating point types fall short.  
 
-[![License](https://img.shields.io/github/license/ktsu-dev/PreciseNumber.svg?label=License&logo=nuget)](LICENSE.md)  
-
-[![NuGet Version](https://img.shields.io/nuget/v/ktsu.PreciseNumber?label=Stable&logo=nuget)](https://nuget.org/packages/ktsu.PreciseNumber)  
-[![NuGet Version](https://img.shields.io/nuget/vpre/ktsu.PreciseNumber?label=Latest&logo=nuget)](https://nuget.org/packages/ktsu.PreciseNumber)  
-[![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.PreciseNumber?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.PreciseNumber)  
-
-[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/PreciseNumber?label=Commits&logo=github)](https://github.com/ktsu-dev/PreciseNumber/commits/main)  
-[![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/PreciseNumber?label=Contributors&logo=github)](https://github.com/ktsu-dev/PreciseNumber/graphs/contributors)  
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/PreciseNumber/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/PreciseNumber/actions)  
+[![License](https://img.shields.io/github/license/ktsu-dev/PreciseNumber.svg?label=License&logo=nuget)](LICENSE.md)
+[![NuGet Version](https://img.shields.io/nuget/v/ktsu.PreciseNumber?label=Stable&logo=nuget)](https://nuget.org/packages/ktsu.PreciseNumber)
+[![NuGet Version](https://img.shields.io/nuget/vpre/ktsu.PreciseNumber?label=Latest&logo=nuget)](https://nuget.org/packages/ktsu.PreciseNumber)
+[![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.PreciseNumber?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.PreciseNumber)
+[![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/PreciseNumber?label=Commits&logo=github)](https://github.com/ktsu-dev/PreciseNumber/commits/main)
+[![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/PreciseNumber?label=Contributors&logo=github)](https://github.com/ktsu-dev/PreciseNumber/graphs/contributors)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/PreciseNumber/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/PreciseNumber/actions)
 
 ## Table of Contents  
 
@@ -385,4 +383,4 @@ Contributions are welcome! Please open an issue or submit a pull request for any
 
 ## Acknowledgements  
 
-Thanks to the .NET community and ktsu.dev contributors for their support.  
+Thanks to the .NET community and ktsu.dev contributors for their support.

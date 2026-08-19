@@ -1,1 +1,1 @@
-ktsu.PreciseNumber
+A high-precision numeric type for .NET that provides arbitrary precision arithmetic with a focus on accuracy. Combines the scale of scientific notation with the exactness of BigInteger to deliver reliable results where standard floating point types lose precision, with generic math operator support, conversions to and from the built-in numeric types, and full parsing and formatting.
