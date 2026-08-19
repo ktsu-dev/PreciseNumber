@@ -8,7 +8,7 @@ A high-precision numeric type for .NET that provides arbitrary precision arithme
 [![NuGet Downloads](https://img.shields.io/nuget/dt/ktsu.PreciseNumber?label=Downloads&logo=nuget)](https://nuget.org/packages/ktsu.PreciseNumber)
 [![GitHub commit activity](https://img.shields.io/github/commit-activity/m/ktsu-dev/PreciseNumber?label=Commits&logo=github)](https://github.com/ktsu-dev/PreciseNumber/commits/main)
 [![GitHub contributors](https://img.shields.io/github/contributors/ktsu-dev/PreciseNumber?label=Contributors&logo=github)](https://github.com/ktsu-dev/PreciseNumber/graphs/contributors)
-[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/PreciseNumber/dotnet.yml?label=Build&logo=github)](https://github.com/ktsu-dev/PreciseNumber/actions)
+[![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/ktsu-dev/PreciseNumber/dotnet.yml?branch=main&label=Build&logo=github)](https://github.com/ktsu-dev/PreciseNumber/actions)
 
 ## Table of Contents  
 
