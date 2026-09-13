@@ -78,7 +78,9 @@ A high-precision numeric type for .NET that provides arbitrary precision arithme
 
 - **Lossless Arithmetic**: Preserves precision during calculations with no rounding errors.  
 
-- **Full .NET Integration**: Implements `INumber<T>` interface for seamless integration with .NET's numeric ecosystem.  
+- **Full .NET Integration**: Implements `INumber<T>`, including `CreateChecked`, `CreateSaturating`, and `CreateTruncating` in both directions, so generic math code can create and convert values.  
+
+- **Value Type**: A `readonly record struct` whose `default` value is zero. Adding, subtracting, multiplying, and comparing values whose significands fit in an `int` allocates nothing.  
 
 - **Comprehensive Mathematical Support**: Includes advanced mathematical functions like exponential operations (Pow, Exp, Squared, Cubed), constant values (Pi, E, Tau) with high precision, absolute value operations, and specialized numerical checks (isOdd, isEven, etc.)—all with arbitrary precision.  
 
@@ -196,6 +198,29 @@ Console.WriteLine(originalDecimal == roundTripDecimal);   // True
 Console.WriteLine(originalBigInt == roundTripBigInt);     // True  
 
 ```  
+
+### Generic math conversions
+
+Code written against `INumber<T>` reaches PreciseNumber through `CreateChecked`, `CreateSaturating`, and `CreateTruncating`. They work in both directions for every built-in numeric type and `BigInteger`:
+
+```csharp
+using System.Numerics;
+using ktsu.PreciseNumber;
+
+static T ToMeters<T>(T feet) where T : INumber<T> => feet * T.CreateChecked(0.3048);
+
+PreciseNumber meters = ToMeters(10.ToPreciseNumber()); // exactly 3.048
+double asDouble = double.CreateChecked(meters);        // 3.048
+int whole = int.CreateChecked(meters);                 // 3, truncated toward zero
+```
+
+- Integers, `BigInteger`, and `decimal` convert in exactly. `double`, `float`, and `Half` convert through their decimal text, so `0.3048` arrives as exactly 0.3048.
+- NaN throws in a checked conversion and becomes zero otherwise. An infinity always throws. Both match `BigInteger`.
+- Integer destinations keep the integral part. Checked throws when it's out of range, saturating clamps, and truncating wraps the way `BigInteger` does.
+- `double`, `float`, and `Half` destinations are correctly rounded however many digits the number has.
+- `decimal` destinations round to the digits `decimal` holds. Checked throws when the value is out of range, and saturating and truncating clamp.
+
+`To<T>()` uses the same conversions.
 
 ### Mathematical Functions  
 
@@ -343,6 +368,8 @@ This representation allows for:
 
 - Accurate arithmetic without floating-point errors  
 
+- A `default` value that is exactly zero, since PreciseNumber is a value type  
+
 ## Precision Control  
 
 You can control precision using:  
@@ -363,13 +390,17 @@ three-argument overload when you want something other than that.
 
 - `Exp()`, and `Pow()` with a non-integer power, are computed through `double` and are therefore limited to its precision. Addition, subtraction, multiplication and division are not  
 
-- Conversion to standard types may throw `OverflowException` if the value is too large  
+- A checked conversion to an integer type or `decimal` throws `OverflowException` when the value is out of range. Conversion to `double`, `float`, or `Half` overflows to infinity instead, as it does for every built-in type  
+
+- Converting from `double` keeps 16 significant digits, and from `float` 8. A binary value that needs all 17 digits to round-trip, such as the result of `0.1 + 0.2` in `double`, arrives rounded  
 
 ## Performance  
 
-Values are immutable, so every operation returns a new instance, and every instance holds its
-digits in a `BigInteger`. Cost therefore tracks the number of significant digits rather than the
-magnitude of the value, and allocation matters as much as raw speed.  
+Values are immutable value types. Every operation returns a new value, but that value lives inline
+in its variable, field, or array element, so the only heap allocation is the `BigInteger` digit
+array, and a significand that fits in an `int` doesn't need one. Cost therefore tracks the number
+of significant digits rather than the magnitude of the value, and allocation matters as much as
+raw speed.  
 
 The repository carries a [BenchmarkDotNet suite](PreciseNumber.Benchmarks/README.md) covering
 construction, comparison, arithmetic, rounding, text conversion and primitive conversion, each
@@ -396,6 +427,10 @@ that produced them.
 - **Functions**: `Abs()`, `Round()`, `Clamp()`, `Squared()`, `Cubed()`, `Pow()`, `Exp()`  
 
 - **Utility**: `ToString()`, `Parse()`, `TryParse()`, `To<T>()`  
+
+- **Generic Conversion**: `TryConvertFromChecked`, `TryConvertFromSaturating`, `TryConvertFromTruncating`, `TryConvertToChecked`, `TryConvertToSaturating`, and `TryConvertToTruncating`, reached through `CreateChecked`, `CreateSaturating`, and `CreateTruncating`  
+
+Upgrading from 1.x? See the [2.0 migration guide](docs/migration-guide-2.0.md).  
 
 ### PreciseNumberExtensions Class  
 
