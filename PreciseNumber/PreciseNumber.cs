@@ -3,6 +3,7 @@
 namespace ktsu.PreciseNumber;
 
 using System;
+using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -16,6 +17,173 @@ public record PreciseNumber
 	: INumber<PreciseNumber>
 {
 	private const int Base10 = 10;
+
+	/// <summary>
+	/// Largest character buffer that is taken from the stack before falling back to the array pool.
+	/// </summary>
+	private const int MaxStackAllocChars = 256;
+
+	/// <summary>
+	/// Number of powers of ten pre-computed when the type is first used.
+	/// </summary>
+	private const int Pow10InitialCacheSize = 128;
+
+	/// <summary>
+	/// Ceiling on the power of ten cache. Beyond this, powers are computed per call rather than
+	/// retained, so that one extreme exponent cannot leave a large cache behind.
+	/// </summary>
+	private const int Pow10MaxCacheSize = 1024;
+
+	/// <summary>
+	/// log10(2), used to derive a decimal digit count from a binary bit length.
+	/// </summary>
+	private const double Log10Of2 = 0.3010299956639812;
+
+	/// <summary>
+	/// The message carried by the <see cref="FormatException"/> that parsing throws.
+	/// </summary>
+	private const string InvalidFormatMessage = "Input string was not in a correct format.";
+
+	/// <summary>
+	/// Pre-computed powers of ten, grown on demand. Declared before any other static state so
+	/// that the static constants below can rely on it while they are being initialized.
+	/// </summary>
+	/// <remarks>
+	/// Growing replaces the array rather than filling the existing one. A <see cref="BigInteger"/>
+	/// is a multi-field struct, so writing one into a shared array is not atomic and a concurrent
+	/// reader could observe it half written. Publishing an already populated array through a
+	/// single reference assignment cannot tear, and two threads growing at once simply build two
+	/// correct arrays, one of which wins.
+	/// </remarks>
+	private static BigInteger[] pow10Cache = BuildPow10Cache(Pow10InitialCacheSize, []);
+
+	/// <summary>
+	/// Builds a power of ten cache of the given size, reusing the entries already computed.
+	/// </summary>
+	/// <param name="size">The number of powers the new cache should hold.</param>
+	/// <param name="existing">The entries to carry over, which must be a prefix of the new cache.</param>
+	/// <returns>The populated cache.</returns>
+	private static BigInteger[] BuildPow10Cache(int size, BigInteger[] existing)
+	{
+		BigInteger[] cache = new BigInteger[size];
+		existing.CopyTo(cache, 0);
+
+		BigInteger value = existing.Length == 0 ? BigInteger.One : existing[^1] * Base10;
+		for (int i = existing.Length; i < size; i++)
+		{
+			cache[i] = value;
+			value *= Base10;
+		}
+
+		return cache;
+	}
+
+	/// <summary>
+	/// Raises ten to the specified non-negative power, serving it from a cache.
+	/// </summary>
+	/// <param name="exponent">The power to raise ten to.</param>
+	/// <returns>Ten raised to <paramref name="exponent"/>.</returns>
+	internal static BigInteger Pow10(int exponent)
+	{
+		BigInteger[] cache = pow10Cache;
+		return (uint)exponent < (uint)cache.Length
+			? cache[exponent]
+			: GrowCacheAndGetPow10(exponent, cache);
+	}
+
+	/// <summary>
+	/// Extends the power of ten cache to cover an exponent it does not yet reach.
+	/// </summary>
+	/// <param name="exponent">The power to raise ten to.</param>
+	/// <param name="current">The cache as it was read by the caller.</param>
+	/// <returns>Ten raised to <paramref name="exponent"/>.</returns>
+	/// <remarks>
+	/// Every digit count and every exponent alignment needs a power of ten, so a value wider than
+	/// the cache would otherwise pay for a fresh <see cref="BigInteger.Pow"/> on every single
+	/// operation. That produced a cliff at the cache boundary rather than a gradual slope.
+	/// </remarks>
+	private static BigInteger GrowCacheAndGetPow10(int exponent, BigInteger[] current)
+	{
+		if (exponent is < 0 or > Pow10MaxCacheSize)
+		{
+			return BigInteger.Pow(Base10, exponent);
+		}
+
+		int size = Math.Min(Math.Max(current.Length * 2, exponent + 1), Pow10MaxCacheSize + 1);
+		BigInteger[] grown = BuildPow10Cache(size, current);
+		pow10Cache = grown;
+		return grown[exponent];
+	}
+
+	/// <summary>
+	/// Counts the decimal digits in the absolute value of a <see cref="BigInteger"/>.
+	/// </summary>
+	/// <param name="value">The value to count the digits of.</param>
+	/// <returns>The number of decimal digits, or zero when <paramref name="value"/> is zero.</returns>
+	/// <remarks>
+	/// Derives an estimate from the bit length in constant time and corrects it with at most a
+	/// couple of comparisons, rather than dividing the value down one digit at a time.
+	/// </remarks>
+	internal static int CountDigits(BigInteger value)
+	{
+		if (value.IsZero)
+		{
+			return 0;
+		}
+
+		BigInteger magnitude = BigInteger.Abs(value);
+		long bitLength = magnitude.GetBitLength();
+
+		// 2^(bitLength - 1) <= magnitude, so this never overestimates the digit count.
+		int digits = (int)((bitLength - 1) * Log10Of2) + 1;
+
+		while (digits > 1 && magnitude < Pow10(digits - 1))
+		{
+			digits--;
+		}
+
+		while (magnitude >= Pow10(digits))
+		{
+			digits++;
+		}
+
+		return digits;
+	}
+
+	/// <summary>
+	/// Counts how many trailing decimal zeros a value has, up to a known upper bound.
+	/// </summary>
+	/// <param name="value">The value to inspect. Must not be zero.</param>
+	/// <param name="maxZeros">An upper bound on the number of trailing zeros.</param>
+	/// <returns>The number of trailing decimal zeros.</returns>
+	/// <remarks>
+	/// Binary searches on divisibility so the cost is logarithmic in the digit count instead of
+	/// linear, which matters for significands with many digits.
+	/// </remarks>
+	private static int CountTrailingZeros(BigInteger value, int maxZeros)
+	{
+		if (maxZeros <= 0 || !(value % Base10).IsZero)
+		{
+			return 0;
+		}
+
+		int low = 1;
+		int high = maxZeros;
+		while (low < high)
+		{
+			int middle = low + ((high - low + 1) / 2);
+			if ((value % Pow10(middle)).IsZero)
+			{
+				low = middle;
+			}
+			else
+			{
+				high = middle - 1;
+			}
+		}
+
+		return low;
+	}
 
 	/// <summary>
 	/// Initializes a new instance of the <see cref="PreciseNumber"/> record by copying the values from an existing instance.
@@ -47,31 +215,26 @@ public record PreciseNumber
 	/// <param name="sanitize">If true, trailing zeros in the significand will be removed.</param>
 	protected internal PreciseNumber(int exponent, BigInteger significand, bool sanitize)
 	{
-		if (sanitize)
+		if (significand.IsZero)
 		{
-			if (significand == 0)
-			{
-				Exponent = 0;
-				Significand = 0;
-				SignificantDigits = 0;
-				return;
-			}
-
-			// remove trailing zeros
-			while (significand != 0 && significand % Base10 == 0)
-			{
-				significand /= Base10;
-				exponent++;
-			}
+			Exponent = sanitize ? 0 : exponent;
+			Significand = BigInteger.Zero;
+			SignificantDigits = 0;
+			return;
 		}
 
-		// count digits
-		int significantDigits = 0;
-		BigInteger number = significand;
-		while (number != 0)
+		int significantDigits = CountDigits(significand);
+
+		if (sanitize)
 		{
-			significantDigits++;
-			number /= Base10;
+			// The leading digit is non-zero, so at most significantDigits - 1 zeros can trail.
+			int trailingZeros = CountTrailingZeros(significand, significantDigits - 1);
+			if (trailingZeros > 0)
+			{
+				significand /= Pow10(trailingZeros);
+				exponent += trailingZeros;
+				significantDigits -= trailingZeros;
+			}
 		}
 
 		SignificantDigits = significantDigits;
@@ -169,15 +332,33 @@ public record PreciseNumber
 	{
 		Ensure.NotNull(number);
 
-		int desiredAlloc = int.Abs(number.Exponent) + number.SignificantDigits + 2; // +2 is for negative symbol and decimal symbol
-		int stackAlloc = Math.Min(desiredAlloc, 128);
-		Span<char> buffer = stackAlloc == desiredAlloc
-			? stackalloc char[stackAlloc]
-			: new char[desiredAlloc];
+		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(formatProvider ?? InvariantCulture);
 
-		return number.TryFormat(buffer, out int charsWritten, format.AsSpan(), formatProvider)
-			? buffer[..charsWritten].ToString()
-			: string.Empty;
+		// Digits, plus the padding zeros implied by the exponent, plus the sign, the decimal
+		// separator and a possible leading "0".
+		int desiredAlloc = number.SignificantDigits
+			+ int.Abs(number.Exponent)
+			+ numberFormat.NegativeSign.Length
+			+ numberFormat.NumberDecimalSeparator.Length
+			+ 1;
+
+		char[]? rentedBuffer = desiredAlloc > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent(desiredAlloc) : null;
+		Span<char> stackBuffer = stackalloc char[MaxStackAllocChars];
+		Span<char> buffer = rentedBuffer is null ? stackBuffer : rentedBuffer.AsSpan();
+
+		try
+		{
+			return number.TryFormat(buffer, out int charsWritten, format.AsSpan(), formatProvider)
+				? buffer[..charsWritten].ToString()
+				: string.Empty;
+		}
+		finally
+		{
+			if (rentedBuffer is not null)
+			{
+				ArrayPool<char>.Shared.Return(rentedBuffer);
+			}
+		}
 	}
 
 	/// <inheritdoc/>
@@ -201,7 +382,7 @@ public record PreciseNumber
 		if (currentDecimalDigits > decimalDigits && decimalDifference > 0)
 		{
 			BigInteger roundingFactor = BigInteger.CopySign(CreateRepeatingDigits(5, decimalDifference), Significand);
-			BigInteger newSignificand = (Significand + roundingFactor) / BigInteger.Pow(Base10, decimalDifference);
+			BigInteger newSignificand = (Significand + roundingFactor) / Pow10(decimalDifference);
 			int newExponent = Exponent - int.CopySign(decimalDifference, Exponent);
 			return new PreciseNumber(newExponent, newSignificand);
 		}
@@ -273,43 +454,65 @@ public record PreciseNumber
 		where TFloat : INumber<TFloat>
 	{
 		string format = GetStringFormatForFloatType<TFloat>();
-		string significandString = input.ToString(format, InvariantCulture).ToUpperInvariant();
-		ReadOnlySpan<char> significandSpan = significandString.AsSpan();
 
+		Span<char> rendered = stackalloc char[MaxStackAllocChars];
+		return input.TryFormat(rendered, out int renderedLength, format.AsSpan(), InvariantCulture)
+			? ParseRenderedFloat(rendered[..renderedLength])
+			: ParseRenderedFloat(input.ToString(format, InvariantCulture).AsSpan());
+	}
+
+	/// <summary>
+	/// Converts the round-trippable text of a floating point value into a <see cref="PreciseNumber"/>.
+	/// </summary>
+	/// <param name="text">The rendered value, optionally in scientific notation.</param>
+	/// <returns>A <see cref="PreciseNumber"/> with the same value.</returns>
+	private static PreciseNumber ParseRenderedFloat(ReadOnlySpan<char> text)
+	{
 		int exponentValue = 0;
-		if (significandString.Contains('E', StringComparison.OrdinalIgnoreCase))
+		int exponentIndex = text.IndexOfAny('E', 'e');
+		if (exponentIndex >= 0)
 		{
-			string[] expComponents = significandString.Split('E');
-			Debug.Assert(expComponents.Length == 2, $"Unexpected format: {significandString}");
-			significandSpan = expComponents[0].AsSpan();
-			exponentValue = int.Parse(expComponents[1], InvariantCulture);
+			exponentValue = int.Parse(text[(exponentIndex + 1)..], NumberStyles.Integer, InvariantCulture);
+			text = text[..exponentIndex];
 		}
 
-		bool isInteger = !significandSpan.Contains('.');
+		bool isInteger = !text.Contains('.');
 
-		while (significandSpan.Length > 2 && significandSpan[^1] == '0')
+		while (text.Length > 2 && text[^1] == '0')
 		{
-			significandSpan = significandSpan[..^1];
+			text = text[..^1];
 			if (isInteger)
 			{
 				++exponentValue;
 			}
 		}
 
-		string[] components = significandSpan.ToString().Split('.');
-		Debug.Assert(components.Length <= 2, $"Invalid format: {significandSpan}");
+		int decimalIndex = text.IndexOf('.');
+		ReadOnlySpan<char> integerComponent = decimalIndex < 0 ? text : text[..decimalIndex];
+		ReadOnlySpan<char> fractionalComponent = decimalIndex < 0 ? "0".AsSpan() : text[(decimalIndex + 1)..];
+		exponentValue -= fractionalComponent.Length;
 
-		ReadOnlySpan<char> integerComponent = components[0].AsSpan();
-		ReadOnlySpan<char> fractionalComponent = components.Length == 2 ? components[1].AsSpan() : "0".AsSpan();
-		int fractionalLength = fractionalComponent.Length;
-		exponentValue -= fractionalLength;
+		Debug.Assert(fractionalComponent.Length != 0 || integerComponent.TrimStart("-").Length == 1, $"Unexpected format: {text}");
 
-		Debug.Assert(fractionalLength != 0 || integerComponent.TrimStart("-").Length == 1, $"Unexpected format: {integerComponent}.{fractionalComponent}");
+		int digitLength = integerComponent.Length + fractionalComponent.Length;
+		char[]? rentedDigits = digitLength > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent(digitLength) : null;
+		Span<char> stackDigits = stackalloc char[MaxStackAllocChars];
+		Span<char> digits = rentedDigits is null ? stackDigits : rentedDigits.AsSpan();
 
-		string significandStrWithoutDecimal = $"{integerComponent}{fractionalComponent}";
-		BigInteger significandValue = BigInteger.Parse(significandStrWithoutDecimal, InvariantCulture);
+		try
+		{
+			integerComponent.CopyTo(digits);
+			fractionalComponent.CopyTo(digits[integerComponent.Length..]);
 
-		return new(exponentValue, significandValue);
+			return new(exponentValue, BigInteger.Parse(digits[..digitLength], NumberStyles.Integer, InvariantCulture));
+		}
+		finally
+		{
+			if (rentedDigits is not null)
+			{
+				ArrayPool<char>.Shared.Return(rentedDigits);
+			}
+		}
 	}
 
 	internal static string GetStringFormatForFloatType<TFloat>()
@@ -353,15 +556,8 @@ public record PreciseNumber
 			return NegativeOne;
 		}
 
-		int exponentValue = 0;
-		BigInteger significandValue = BigInteger.CreateChecked(input);
-		while (significandValue != 0 && significandValue % Base10 == 0)
-		{
-			significandValue /= Base10;
-			exponentValue++;
-		}
-
-		return new(exponentValue, significandValue);
+		// The constructor sanitizes trailing zeros, so there is no need to do it again here.
+		return new(0, BigInteger.CreateChecked(input));
 	}
 
 	/// <summary>
@@ -377,14 +573,14 @@ public record PreciseNumber
 			return 0;
 		}
 
-		BigInteger repeatingDigit = digit;
-		for (int i = 1; i < numberOfRepeats; i++)
-		{
-			repeatingDigit = (repeatingDigit * Base10) + digit;
-		}
-
-		return repeatingDigit;
+		// digit * (10^n - 1) / 9 is the repunit of length n scaled by the digit.
+		return digit * (Pow10(numberOfRepeats) - BigInteger.One) / 9;
 	}
+
+	/// <summary>
+	/// Gets a value indicating whether the current instance is exactly one in canonical form.
+	/// </summary>
+	private bool IsUnit => Exponent == 0 && Significand.IsOne;
 
 	/// <summary>
 	/// Gets a value indicating whether the current instance has infinite precision.
@@ -466,7 +662,7 @@ public record PreciseNumber
 			? significantDifference
 			: Exponent + significantDifference;
 		BigInteger roundingFactor = BigInteger.CopySign(CreateRepeatingDigits(5, significantDifference), Significand);
-		BigInteger newSignificand = (Significand + roundingFactor) / BigInteger.Pow(Base10, significantDifference);
+		BigInteger newSignificand = (Significand + roundingFactor) / Pow10(significantDifference);
 		return new(newExponent, newSignificand);
 	}
 
@@ -506,17 +702,78 @@ public record PreciseNumber
 			smallestExponent);
 	}
 
-	/// <inheritdoc/>
-	public int CompareTo(PreciseNumber? other)
+	/// <summary>
+	/// Scales the significands of two numbers to a common exponent without allocating
+	/// intermediate <see cref="PreciseNumber"/> instances.
+	/// </summary>
+	/// <param name="left">The left number.</param>
+	/// <param name="right">The right number.</param>
+	/// <returns>The scaled significands and the exponent they share.</returns>
+	private static (BigInteger Left, BigInteger Right, int Exponent) CommonizeSignificands(PreciseNumber left, PreciseNumber right)
 	{
-		if (other is null)
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
+
+		int leftExponent = left.Exponent;
+		int rightExponent = right.Exponent;
+
+		if (leftExponent == rightExponent)
 		{
-			return 1;
+			return (left.Significand, right.Significand, leftExponent);
 		}
 
-		int greaterOrEqual = this > other ? 1 : 0;
-		return this < other ? -1 : greaterOrEqual;
+		return leftExponent > rightExponent
+			? (left.Significand * Pow10(leftExponent - rightExponent), right.Significand, rightExponent)
+			: (left.Significand, right.Significand * Pow10(rightExponent - leftExponent), leftExponent);
 	}
+
+	/// <summary>
+	/// Orders two numbers, returning a negative value, zero, or a positive value.
+	/// </summary>
+	/// <param name="left">The first number.</param>
+	/// <param name="right">The second number.</param>
+	/// <returns>A negative value if <paramref name="left"/> is smaller, zero if the two are equal, otherwise a positive value.</returns>
+	/// <remarks>
+	/// This is the single primitive behind every comparison operator. It short circuits on sign and
+	/// on decimal magnitude so that significands only have to be scaled when the two numbers occupy
+	/// the same decade.
+	/// </remarks>
+	private static int Compare(PreciseNumber left, PreciseNumber right)
+	{
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
+
+		int leftSign = left.Significand.Sign;
+		int rightSign = right.Significand.Sign;
+
+		if (leftSign != rightSign)
+		{
+			return leftSign < rightSign ? -1 : 1;
+		}
+
+		if (leftSign == 0)
+		{
+			return 0;
+		}
+
+		// A value lies in [10^(exponent + digits - 1), 10^(exponent + digits)), so a strictly larger
+		// decimal magnitude always implies a strictly larger absolute value.
+		long leftMagnitude = (long)left.Exponent + left.SignificantDigits;
+		long rightMagnitude = (long)right.Exponent + right.SignificantDigits;
+
+		if (leftMagnitude != rightMagnitude)
+		{
+			int magnitudeOrder = leftMagnitude < rightMagnitude ? -1 : 1;
+			return leftSign < 0 ? -magnitudeOrder : magnitudeOrder;
+		}
+
+		(BigInteger commonLeft, BigInteger commonRight, _) = CommonizeSignificands(left, right);
+		return BigInteger.Compare(commonLeft, commonRight);
+	}
+
+	/// <inheritdoc/>
+	public int CompareTo(PreciseNumber? other) =>
+		other is null ? 1 : Compare(this, other);
 
 	/// <summary>
 	/// Compares the current instance with another number of a specified type.
@@ -576,16 +833,14 @@ public record PreciseNumber
 			return 1;
 		}
 
-		PreciseNumber significantOther = other.ToPreciseNumber();
-		int greaterOrEqual = this > significantOther ? 1 : 0;
-		return this < significantOther ? -1 : greaterOrEqual;
+		return Compare(this, other.ToPreciseNumber());
 	}
 
 	/// <inheritdoc/>
 	public static PreciseNumber Abs(PreciseNumber value)
 	{
 		Ensure.NotNull(value);
-		return value.Significand < 0 ? -value : value;
+		return value.Significand.Sign < 0 ? -value : value;
 	}
 
 	/// <inheritdoc/>
@@ -684,7 +939,7 @@ public record PreciseNumber
 	{
 		if (s.IsEmpty)
 		{
-			throw new FormatException("Input string was not in a correct format.");
+			throw new FormatException(InvalidFormatMessage);
 		}
 
 		if (s.Length == 1 && s[0] == '0')
@@ -694,52 +949,76 @@ public record PreciseNumber
 
 		bool isNegative = s[0] == '-';
 		int startIndex = isNegative ? 1 : 0;
-		int exponent = 0;
-		BigInteger significand = 0;
-		bool hasDecimal = false;
-		int decimalDigits = 0;
 
-		for (int i = startIndex; i < s.Length; i++)
+		// Collect the digits first and hand them to BigInteger in one go. Accumulating with
+		// significand = significand * 10 + digit costs a full BigInteger multiply per character.
+		char[]? rentedDigits = s.Length > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent(s.Length) : null;
+		Span<char> stackDigits = stackalloc char[MaxStackAllocChars];
+		Span<char> digits = rentedDigits is null ? stackDigits : rentedDigits.AsSpan();
+
+		try
 		{
-			char c = s[i];
-			if (c == '.')
+			int digitCount = 0;
+			int exponent = 0;
+			bool hasDecimal = false;
+			int decimalDigits = 0;
+
+			for (int i = startIndex; i < s.Length; i++)
 			{
-				if (hasDecimal)
+				char c = s[i];
+				if (c == '.')
 				{
-					throw new FormatException("Input string was not in a correct format.");
+					if (hasDecimal)
+					{
+						throw new FormatException(InvalidFormatMessage);
+					}
+
+					hasDecimal = true;
+					continue;
 				}
 
-				hasDecimal = true;
-				continue;
+				if (c is 'e' or 'E')
+				{
+					exponent = int.Parse(s[(i + 1)..], InvariantCulture);
+					break;
+				}
+
+				if (c is < '0' or > '9')
+				{
+					throw new FormatException(InvalidFormatMessage);
+				}
+
+				if (hasDecimal)
+				{
+					decimalDigits++;
+				}
+
+				digits[digitCount++] = c;
 			}
 
-			if (c is 'e' or 'E')
+			if (digitCount == 0)
 			{
-				exponent = int.Parse(s[(i + 1)..], InvariantCulture);
-				break;
+				throw new FormatException(InvalidFormatMessage);
 			}
 
-			if (c is < '0' or > '9')
+			BigInteger significand = BigInteger.Parse(digits[..digitCount], NumberStyles.None, InvariantCulture);
+
+			exponent -= decimalDigits;
+
+			if (isNegative)
 			{
-				throw new FormatException("Input string was not in a correct format.");
+				significand = -significand;
 			}
 
-			if (hasDecimal)
-			{
-				decimalDigits++;
-			}
-
-			significand = (significand * Base10) + (c - '0');
+			return new(exponent, significand);
 		}
-
-		exponent -= decimalDigits;
-
-		if (isNegative)
+		finally
 		{
-			significand = -significand;
+			if (rentedDigits is not null)
+			{
+				ArrayPool<char>.Shared.Return(rentedDigits);
+			}
 		}
-
-		return new(exponent, significand);
 	}
 
 	/// <inheritdoc/>
@@ -784,69 +1063,117 @@ public record PreciseNumber
 	/// <inheritdoc/>
 	public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 	{
-		int requiredLength = SignificantDigits + Exponent + 2;
-
-		if (destination.Length < requiredLength)
-		{
-			charsWritten = 0;
-			return false;
-		}
-
 		if (!format.IsEmpty && !format.Equals("G", StringComparison.OrdinalIgnoreCase))
 		{
 			throw new FormatException();
 		}
 
-		destination.Clear();
+		if (Significand.IsZero)
+		{
+			charsWritten = 0;
+			if (destination.IsEmpty)
+			{
+				return false;
+			}
 
-		string output = FormatOutput(provider);
+			destination[0] = '0';
+			charsWritten = 1;
+			return true;
+		}
 
-		bool success = output.TryCopyTo(destination);
-		charsWritten = success ? output.Length : 0;
-		return success;
+		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider ?? InvariantCulture);
+
+		int digitCount = SignificantDigits;
+		char[]? rentedDigits = digitCount > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent(digitCount) : null;
+		Span<char> stackDigits = stackalloc char[MaxStackAllocChars];
+		Span<char> digitBuffer = rentedDigits is null ? stackDigits : rentedDigits.AsSpan();
+
+		try
+		{
+			if (!BigInteger.Abs(Significand).TryFormat(digitBuffer, out int digitsWritten, default, InvariantCulture))
+			{
+				charsWritten = 0;
+				return false;
+			}
+
+			return TryWriteDigits(destination, digitBuffer[..digitsWritten], numberFormat, out charsWritten);
+		}
+		finally
+		{
+			if (rentedDigits is not null)
+			{
+				ArrayPool<char>.Shared.Return(rentedDigits);
+			}
+		}
 	}
 
-	private string FormatOutput(IFormatProvider? provider)
+	/// <summary>
+	/// Places the already rendered significand digits into <paramref name="destination"/>, inserting the
+	/// sign, padding zeros and decimal separator required by this number's exponent.
+	/// </summary>
+	private bool TryWriteDigits(Span<char> destination, ReadOnlySpan<char> digits, NumberFormatInfo numberFormat, out int charsWritten)
 	{
-		if (this == Zero)
+		charsWritten = 0;
+
+		ReadOnlySpan<char> sign = default;
+		if (Significand.Sign < 0)
 		{
-			return "0";
-		}
-		else if (this == One)
-		{
-			return "1";
-		}
-		else if (this == NegativeOne)
-		{
-			return $"{NumberFormatInfo.GetInstance(provider).NegativeSign}1";
+			sign = numberFormat.NegativeSign;
 		}
 
-		provider ??= InvariantCulture;
-		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider);
-		string sign = Significand < 0 ? numberFormat.NegativeSign : string.Empty;
-		string significandStr = BigInteger.Abs(Significand).ToString(InvariantCulture);
-
-		if (Exponent == 0)
+		if (Exponent >= 0)
 		{
-			return $"{sign}{significandStr}";
+			int wholeLength = sign.Length + digits.Length + Exponent;
+			if (destination.Length < wholeLength)
+			{
+				return false;
+			}
+
+			sign.CopyTo(destination);
+			digits.CopyTo(destination[sign.Length..]);
+			destination.Slice(sign.Length + digits.Length, Exponent).Fill('0');
+			charsWritten = wholeLength;
+			return true;
 		}
-		else if (Exponent > 0)
+
+		ReadOnlySpan<char> separator = numberFormat.NumberDecimalSeparator;
+		int fractionalDigits = -Exponent;
+		int integralDigits = digits.Length - fractionalDigits;
+
+		// When the exponent consumes every digit the integral part is a single "0" and the
+		// fractional part is padded out to the full width with leading zeros.
+		int integralLength = integralDigits > 0 ? integralDigits : 1;
+		int required = sign.Length + integralLength + separator.Length + fractionalDigits;
+
+		if (destination.Length < required)
 		{
-			return $"{sign}{significandStr}{new string('0', Exponent)}";
+			return false;
 		}
 
-		return FormatNegativeExponent(sign, significandStr, numberFormat);
-	}
+		int position = 0;
+		sign.CopyTo(destination);
+		position += sign.Length;
 
-	private string FormatNegativeExponent(string sign, string significandStr, NumberFormatInfo numberFormat)
-	{
-		int absExponent = -Exponent;
-		string integralComponent = absExponent >= significandStr.Length ? "0" : significandStr[..^absExponent];
-		string fractionalComponent = absExponent >= significandStr.Length
-			? $"{new string('0', absExponent - significandStr.Length)}{BigInteger.Abs(Significand)}"
-			: significandStr[^absExponent..];
+		if (integralDigits > 0)
+		{
+			digits[..integralDigits].CopyTo(destination[position..]);
+			position += integralDigits;
+			separator.CopyTo(destination[position..]);
+			position += separator.Length;
+			digits[integralDigits..].CopyTo(destination[position..]);
+		}
+		else
+		{
+			destination[position++] = '0';
+			separator.CopyTo(destination[position..]);
+			position += separator.Length;
+			destination.Slice(position, fractionalDigits - digits.Length).Fill('0');
+			position += fractionalDigits - digits.Length;
+			digits.CopyTo(destination[position..]);
+		}
 
-		return $"{sign}{integralComponent}{numberFormat.NumberDecimalSeparator}{fractionalComponent}";
+		charsWritten = required;
+		return true;
 	}
 
 	/// <inheritdoc/>
@@ -900,7 +1227,7 @@ public record PreciseNumber
 	public static PreciseNumber Negate(PreciseNumber value)
 	{
 		Ensure.NotNull(value);
-		return value == Zero
+		return value.Significand.IsZero
 			? value
 			: new(value.Exponent, -value.Significand);
 	}
@@ -913,11 +1240,8 @@ public record PreciseNumber
 	/// <returns>The result of the subtraction.</returns>
 	public static PreciseNumber Subtract(PreciseNumber left, PreciseNumber right)
 	{
-		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
-
-		BigInteger newSignificand = commonLeft.Significand - commonRight.Significand;
-		return new PreciseNumber(commonExponent, newSignificand);
+		(BigInteger commonLeft, BigInteger commonRight, int commonExponent) = CommonizeSignificands(left, right);
+		return new PreciseNumber(commonExponent, commonLeft - commonRight);
 	}
 
 	/// <summary>
@@ -928,11 +1252,8 @@ public record PreciseNumber
 	/// <returns>The result of the addition.</returns>
 	public static PreciseNumber Add(PreciseNumber left, PreciseNumber right)
 	{
-		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
-
-		BigInteger newSignificand = commonLeft.Significand + commonRight.Significand;
-		return new PreciseNumber(commonExponent, newSignificand);
+		(BigInteger commonLeft, BigInteger commonRight, int commonExponent) = CommonizeSignificands(left, right);
+		return new PreciseNumber(commonExponent, commonLeft + commonRight);
 	}
 
 	/// <summary>
@@ -943,24 +1264,25 @@ public record PreciseNumber
 	/// <returns>The result of the multiplication.</returns>
 	public static PreciseNumber Multiply(PreciseNumber left, PreciseNumber right)
 	{
-		if (left == Zero || right == Zero)
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
+
+		if (left.Significand.IsZero || right.Significand.IsZero)
 		{
 			return Zero;
 		}
-		else if (left == One)
+		else if (left.IsUnit)
 		{
 			return right;
 		}
-		else if (right == One)
+		else if (right.IsUnit)
 		{
 			return left;
 		}
 
-		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
-
-		BigInteger newSignificand = commonLeft.Significand * commonRight.Significand;
-		return new PreciseNumber(commonExponent + commonExponent, newSignificand);
+		// (l * 10^el) * (r * 10^er) == (l * r) * 10^(el + er), so there is no need to scale the
+		// operands to a common exponent first; doing so only inflates both significands.
+		return new PreciseNumber(left.Exponent + right.Exponent, left.Significand * right.Significand);
 	}
 
 	/// <summary>
@@ -971,22 +1293,26 @@ public record PreciseNumber
 	/// <returns>The result of the division.</returns>
 	public static PreciseNumber Divide(PreciseNumber left, PreciseNumber right)
 	{
-		if (right == Zero)
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
+
+		if (right.Significand.IsZero)
 		{
 			throw new DivideByZeroException();
 		}
 
-		if (left == right)
+		if (Compare(left, right) == 0)
 		{
 			return One;
 		}
 
-		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
+		(BigInteger commonLeft, BigInteger commonRight, _) = CommonizeSignificands(left, right);
 
-		BigInteger integerComponent = commonLeft.Significand / commonRight.Significand;
-		double remainder = double.CreateTruncating(commonLeft.Significand - (integerComponent * commonRight.Significand)) * double.Pow(Base10, commonExponent);
-		double fractionalComponent = remainder / (double.CreateTruncating(commonRight.Significand) * double.Pow(Base10, commonExponent));
+		BigInteger integerComponent = BigInteger.DivRem(commonLeft, commonRight, out BigInteger remainder);
+
+		// The common power of ten cancels between the remainder and the divisor, so it is left out
+		// entirely; including it would overflow to infinity for large exponents.
+		double fractionalComponent = double.CreateTruncating(remainder) / double.CreateTruncating(commonRight);
 
 		return new PreciseNumber(0, integerComponent) + fractionalComponent.ToPreciseNumber();
 	}
@@ -999,23 +1325,22 @@ public record PreciseNumber
 	/// <returns>The modulus of the two numbers.</returns>
 	public static PreciseNumber Mod(PreciseNumber left, PreciseNumber right)
 	{
-		if (right == Zero)
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
+
+		if (right.Significand.IsZero)
 		{
 			throw new DivideByZeroException();
 		}
 
-		if (left == right)
+		if (Compare(left, right) == 0)
 		{
 			return Zero;
 		}
 
-		(PreciseNumber commonLeft, PreciseNumber commonRight, int commonExponent) = MakeCommonizedWithExponent(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
+		(BigInteger commonLeft, BigInteger commonRight, int commonExponent) = CommonizeSignificands(left, right);
 
-		BigInteger integerComponent = commonLeft.Significand / commonRight.Significand;
-		BigInteger remainder = commonLeft.Significand - (integerComponent * commonRight.Significand);
-
-		return new PreciseNumber(commonExponent, remainder);
+		return new PreciseNumber(commonExponent, BigInteger.Remainder(commonLeft, commonRight));
 	}
 
 	/// <summary>
@@ -1048,12 +1373,8 @@ public record PreciseNumber
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
 	/// <returns><c>true</c> if the first number is greater than the second; otherwise, <c>false</c>.</returns>
-	public static bool GreaterThan(PreciseNumber left, PreciseNumber right)
-	{
-		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
-		return commonLeft.Significand > commonRight.Significand;
-	}
+	public static bool GreaterThan(PreciseNumber left, PreciseNumber right) =>
+		Compare(left, right) > 0;
 
 	/// <summary>
 	/// Determines whether one number is greater than or equal to another.
@@ -1061,12 +1382,8 @@ public record PreciseNumber
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
 	/// <returns><c>true</c> if the first number is greater than or equal to the second; otherwise, <c>false</c>.</returns>
-	public static bool GreaterThanOrEqual(PreciseNumber left, PreciseNumber right)
-	{
-		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
-		return commonLeft.Significand >= commonRight.Significand;
-	}
+	public static bool GreaterThanOrEqual(PreciseNumber left, PreciseNumber right) =>
+		Compare(left, right) >= 0;
 
 	/// <summary>
 	/// Determines whether one number is less than another.
@@ -1074,12 +1391,8 @@ public record PreciseNumber
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
 	/// <returns><c>true</c> if the first number is less than the second; otherwise, <c>false</c>.</returns>
-	public static bool LessThan(PreciseNumber left, PreciseNumber right)
-	{
-		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
-		return commonLeft.Significand < commonRight.Significand;
-	}
+	public static bool LessThan(PreciseNumber left, PreciseNumber right) =>
+		Compare(left, right) < 0;
 
 	/// <summary>
 	/// Determines whether one number is less than or equal to another.
@@ -1087,12 +1400,8 @@ public record PreciseNumber
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
 	/// <returns><c>true</c> if the first number is less than or equal to the second; otherwise, <c>false</c>.</returns>
-	public static bool LessThanOrEqual(PreciseNumber left, PreciseNumber right)
-	{
-		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
-		return commonLeft.Significand <= commonRight.Significand;
-	}
+	public static bool LessThanOrEqual(PreciseNumber left, PreciseNumber right) =>
+		Compare(left, right) <= 0;
 
 	/// <summary>
 	/// Determines whether two numbers are equal.
@@ -1100,12 +1409,8 @@ public record PreciseNumber
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
 	/// <returns><c>true</c> if the two numbers are equal; otherwise, <c>false</c>.</returns>
-	public static bool Equal(PreciseNumber left, PreciseNumber right)
-	{
-		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
-		return commonLeft.Significand == commonRight.Significand;
-	}
+	public static bool Equal(PreciseNumber left, PreciseNumber right) =>
+		Compare(left, right) == 0;
 
 	/// <summary>
 	/// Determines whether two numbers are not equal.
@@ -1113,12 +1418,8 @@ public record PreciseNumber
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
 	/// <returns><c>true</c> if the two numbers are not equal; otherwise, <c>false</c>.</returns>
-	public static bool NotEqual(PreciseNumber left, PreciseNumber right)
-	{
-		(PreciseNumber commonLeft, PreciseNumber commonRight) = MakeCommonized(left, right);
-		AssertExponentsMatch(commonLeft, commonRight);
-		return commonLeft.Significand != commonRight.Significand;
-	}
+	public static bool NotEqual(PreciseNumber left, PreciseNumber right) =>
+		Compare(left, right) != 0;
 
 	/// <summary>
 	/// Returns the larger of two numbers.
@@ -1180,30 +1481,41 @@ public record PreciseNumber
 	/// <returns>A new instance of <see cref="PreciseNumber"/> that is the result of raising the current instance to the specified power.</returns>
 	public PreciseNumber Pow(PreciseNumber power)
 	{
-		if (power == Zero)
+		Ensure.NotNull(power);
+
+		if (power.Significand.IsZero)
 		{
 			return One;
 		}
-		else if (this == Zero)
+		else if (Significand.IsZero)
 		{
 			return Zero;
 		}
-		else if (this == One)
+		else if (IsUnit)
 		{
 			return One;
 		}
 
 		if (IsInteger(power))
 		{
-			PreciseNumber result = this;
-			int absPower = power.Abs().To<int>();
+			// Exponentiation by squaring: O(log n) multiplications instead of O(n).
+			PreciseNumber result = One;
+			PreciseNumber factor = this;
 
-			for (int i = 1; i < absPower; i++)
+			for (int remaining = power.Abs().To<int>(); remaining > 0; remaining >>= 1)
 			{
-				result *= this;
+				if ((remaining & 1) != 0)
+				{
+					result *= factor;
+				}
+
+				if (remaining > 1)
+				{
+					factor = factor.Squared();
+				}
 			}
 
-			return power < Zero ? One / result : result;
+			return power.Significand.Sign < 0 ? One / result : result;
 		}
 
 		// Use logarithm and exponential to support decimal powers
@@ -1220,11 +1532,11 @@ public record PreciseNumber
 	{
 		Ensure.NotNull(power);
 
-		if (power == Zero)
+		if (power.Significand.IsZero)
 		{
 			return One;
 		}
-		else if (power == One)
+		else if (power.IsUnit)
 		{
 			return E;
 		}
@@ -1285,6 +1597,17 @@ public record PreciseNumber
 		Increment(value);
 
 	/// <summary>
+	/// Caches the <see cref="PreciseNumber"/> copy constructor of a derived type so that
+	/// <see cref="As{TOutput}"/> only reflects over each type once.
+	/// </summary>
+	private static class CopyConstructorOf<TOutput>
+		where TOutput : PreciseNumber
+	{
+		internal static readonly System.Reflection.ConstructorInfo? Constructor =
+			typeof(TOutput).GetConstructor([typeof(PreciseNumber)]);
+	}
+
+	/// <summary>
 	/// Asserts that a type implements a specified generic interface.
 	/// </summary>
 	/// <param name="type">The type to check.</param>
@@ -1343,7 +1666,7 @@ public record PreciseNumber
 			return (TOutput)(object)this;
 		}
 
-		System.Reflection.ConstructorInfo? constructor = typeof(TOutput).GetConstructor([typeof(PreciseNumber)]);
+		System.Reflection.ConstructorInfo? constructor = CopyConstructorOf<TOutput>.Constructor;
 		return (TOutput)(constructor?.Invoke([this]) ??
 		throw new NotSupportedException($"Cannot convert {GetType()} to {typeof(TOutput)}"));
 	}

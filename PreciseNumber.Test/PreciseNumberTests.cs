@@ -1984,6 +1984,153 @@ public class PreciseNumberTests
 		Assert.AreEqual(input.Significand, result.Significand);
 	}
 
+	[TestMethod]
+	public void TestCountDigitsMatchesDecimalText()
+	{
+		Assert.AreEqual(0, PreciseNumber.CountDigits(BigInteger.Zero));
+
+		for (int digits = 1; digits <= 220; digits++)
+		{
+			BigInteger power = BigInteger.Pow(10, digits);
+
+			Assert.AreEqual(digits, PreciseNumber.CountDigits(power - 1), $"10^{digits} - 1 should have {digits} digits");
+			Assert.AreEqual(digits + 1, PreciseNumber.CountDigits(power), $"10^{digits} should have {digits + 1} digits");
+			Assert.AreEqual(digits + 1, PreciseNumber.CountDigits(power + 1), $"10^{digits} + 1 should have {digits + 1} digits");
+			Assert.AreEqual(digits + 1, PreciseNumber.CountDigits(-power), $"-10^{digits} should have {digits + 1} digits");
+		}
+	}
+
+	[TestMethod]
+	public void TestPow10IsCorrectAcrossCacheBoundaries()
+	{
+		// The cache starts at 128 entries, grows on demand up to 1024, and computes anything
+		// beyond that per call. Every one of those transitions must produce the same value.
+		foreach (int exponent in new[] { 0, 1, 127, 128, 129, 255, 256, 257, 1023, 1024, 1025, 2048 })
+		{
+			Assert.AreEqual(BigInteger.Pow(10, exponent), PreciseNumber.Pow10(exponent), $"10^{exponent}");
+		}
+
+		// Ascending and descending, to exercise both a grown cache and one grown past the request.
+		for (int exponent = 0; exponent <= 300; exponent++)
+		{
+			Assert.AreEqual(BigInteger.Pow(10, exponent), PreciseNumber.Pow10(exponent), $"10^{exponent}");
+		}
+
+		for (int exponent = 300; exponent >= 0; exponent--)
+		{
+			Assert.AreEqual(BigInteger.Pow(10, exponent), PreciseNumber.Pow10(exponent), $"10^{exponent}");
+		}
+	}
+
+	[TestMethod]
+	public void TestPow10RejectsNegativeExponents() =>
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Pow10(-1));
+
+	[TestMethod]
+	public void TestSanitizeStripsLongRunsOfTrailingZeros()
+	{
+		BigInteger significand = BigInteger.Parse("1234567", CultureInfo.InvariantCulture) * BigInteger.Pow(10, 200);
+		PreciseNumber number = PreciseNumber.CreateFromComponents(-5, significand);
+
+		Assert.AreEqual(new BigInteger(1234567), number.Significand);
+		Assert.AreEqual(195, number.Exponent);
+		Assert.AreEqual(7, number.SignificantDigits);
+	}
+
+	[TestMethod]
+	public void TestMultiplyWithWidelySeparatedExponents()
+	{
+		PreciseNumber left = PreciseNumber.CreateFromComponents(500, 3);
+		PreciseNumber right = PreciseNumber.CreateFromComponents(-500, 7);
+
+		PreciseNumber result = left * right;
+
+		Assert.AreEqual(new BigInteger(21), result.Significand);
+		Assert.AreEqual(0, result.Exponent);
+	}
+
+	[TestMethod]
+	public void TestDivideWithExponentsBeyondDoubleRange()
+	{
+		PreciseNumber left = PreciseNumber.CreateFromComponents(-400, 7);
+		PreciseNumber right = PreciseNumber.CreateFromComponents(-400, 3);
+
+		PreciseNumber result = left / right;
+
+		Assert.AreEqual("2.3333333333333333", result.ToString(CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
+	public void TestComparisonAcrossWidelySeparatedExponents()
+	{
+		PreciseNumber tiny = PreciseNumber.CreateFromComponents(-400, 1);
+		PreciseNumber huge = PreciseNumber.CreateFromComponents(400, 1);
+
+		Assert.IsTrue(tiny < huge);
+		Assert.IsTrue(huge > tiny);
+		Assert.IsTrue(-huge < -tiny);
+		Assert.IsTrue(-tiny > -huge);
+		Assert.IsFalse(tiny == huge);
+		Assert.IsGreaterThan(0, huge.CompareTo(tiny));
+		Assert.IsLessThan(0, tiny.CompareTo(huge));
+	}
+
+	[TestMethod]
+	public void TestPowWithLargeIntegerExponent()
+	{
+		PreciseNumber two = 2.ToPreciseNumber();
+
+		PreciseNumber result = two.Pow(64.ToPreciseNumber());
+
+		Assert.AreEqual(BigInteger.Pow(2, 64), result.Significand * BigInteger.Pow(10, result.Exponent));
+	}
+
+	[TestMethod]
+	public void TestTryFormatWithExactlySizedBuffer()
+	{
+		PreciseNumber number = PreciseNumber.CreateFromComponents(-5, 12345);
+		string expected = number.ToString(CultureInfo.InvariantCulture);
+		Assert.AreEqual("0.12345", expected);
+
+		Span<char> exact = stackalloc char[expected.Length];
+		Assert.IsTrue(number.TryFormat(exact, out int charsWritten, "G".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.AreEqual(expected, exact[..charsWritten].ToString());
+
+		Span<char> tooSmall = stackalloc char[expected.Length - 1];
+		Assert.IsFalse(number.TryFormat(tooSmall, out charsWritten, "G".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.AreEqual(0, charsWritten);
+	}
+
+	[TestMethod]
+	public void TestTryFormatDoesNotDisturbTheRestOfTheBuffer()
+	{
+		PreciseNumber number = PreciseNumber.CreateFromComponents(-2, 12345);
+		Span<char> buffer = stackalloc char[20];
+		buffer.Fill('x');
+
+		Assert.IsTrue(number.TryFormat(buffer, out int charsWritten, "G".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.AreEqual("123.45", buffer[..charsWritten].ToString());
+		Assert.AreEqual("xxxxxxxxxxxxxx", buffer[charsWritten..].ToString());
+	}
+
+	[TestMethod]
+	public void TestParseWithoutAnyDigitsThrows()
+	{
+		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse("-".AsSpan(), NumberStyles.Any, null));
+		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse(".".AsSpan(), NumberStyles.Any, null));
+	}
+
+	[TestMethod]
+	public void TestParseRoundTripsLongDecimals()
+	{
+		// No trailing zero, so the sanitized round trip is exact.
+		const string text = "123456789012345678901234567890.123456789012345678901234567891";
+
+		PreciseNumber parsed = PreciseNumber.Parse(text, CultureInfo.InvariantCulture);
+
+		Assert.AreEqual(text, parsed.ToString(CultureInfo.InvariantCulture));
+	}
+
 	public record DerivedPreciseNumber : PreciseNumber
 	{
 		public DerivedPreciseNumber(PreciseNumber original) : base(original)

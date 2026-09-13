@@ -12,6 +12,11 @@ ktsu.PreciseNumber is a high-precision numeric type for .NET that provides arbit
 dotnet build                                           # Build the solution
 dotnet test                                            # Run all tests
 dotnet test --filter "FullyQualifiedName~TestName"     # Run specific test
+
+# Benchmarks (Release only; BenchmarkDotNet refuses to measure a debug build)
+dotnet run -c Release --project PreciseNumber.Benchmarks                        # Pick from a list
+dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*Compar*' # One class
+dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*' --job short
 ```
 
 ## Architecture
@@ -34,4 +39,21 @@ dotnet test --filter "FullyQualifiedName~TestName"     # Run specific test
 
 ### Test Structure
 
-Tests use MSTest framework in `PreciseNumber.Test/PreciseNumberTests.cs`. The test project targets only .NET 9.0 while the main library multi-targets net7.0, net8.0, and net9.0.
+Tests use MSTest framework in `PreciseNumber.Test/PreciseNumberTests.cs`. The test project targets only .NET 10.0 while the main library multi-targets net7.0, net8.0, net9.0, and net10.0.
+
+### Benchmarks
+
+`PreciseNumber.Benchmarks` is a BenchmarkDotNet suite, one class per area (construction,
+comparison, arithmetic, pow, rounding, text, conversion). The library exposes its internals to it
+so construction can be measured directly.
+
+Most classes are parameterised by `Digits` (8, 30, 200). That axis is the point: digits live in a
+`BigInteger`, so anything that touches them one at a time looks fine at 8 digits and collapses at
+200. Read results across the `Digits` column, not down one value of it.
+
+Allocation is reported alongside time and matters just as much — every operation returns a new
+instance, so avoiding an intermediate shows up in `Allocated` before it shows up in `Mean`.
+Comparisons should allocate nothing at all.
+
+Run the relevant benchmarks before and after any change to the library's internals. See
+`PreciseNumber.Benchmarks/README.md` for details.

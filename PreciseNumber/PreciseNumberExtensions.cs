@@ -2,6 +2,7 @@
 
 namespace ktsu.PreciseNumber;
 
+using System.Collections.Concurrent;
 using System.Diagnostics.CodeAnalysis;
 using System.Numerics;
 
@@ -10,6 +11,64 @@ using System.Numerics;
 /// </summary>
 public static class PreciseNumberExtensions
 {
+	/// <summary>
+	/// How a numeric type should be converted to a <see cref="PreciseNumber"/>.
+	/// </summary>
+	private enum NumberKind
+	{
+		Unsupported,
+		PreciseNumber,
+		Integer,
+		FloatingPoint,
+	}
+
+	/// <summary>
+	/// Caches the conversion strategy for a numeric type so the interface probing below only ever
+	/// runs once per type rather than once per conversion.
+	/// </summary>
+	private static class KindOf<TInput>
+		where TInput : INumber<TInput>
+	{
+		internal static readonly NumberKind Kind = ClassifyType(typeof(TInput));
+	}
+
+	/// <summary>
+	/// Caches the conversion strategy for runtime types that do not match their static type, such as
+	/// a type derived from one that already implements <see cref="INumber{TSelf}"/>.
+	/// </summary>
+	private static readonly ConcurrentDictionary<Type, NumberKind> RuntimeKinds = new();
+
+	private static NumberKind ClassifyType(Type type)
+	{
+		if (type == typeof(PreciseNumber) || type.IsSubclassOf(typeof(PreciseNumber)))
+		{
+			return NumberKind.PreciseNumber;
+		}
+
+		Type[] interfaces = type.GetInterfaces();
+
+		if (Array.Exists(interfaces, i => i.Name.StartsWith("IBinaryInteger", StringComparison.Ordinal)))
+		{
+			return NumberKind.Integer;
+		}
+
+		return Array.Exists(interfaces, i => i.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal))
+			? NumberKind.FloatingPoint
+			: NumberKind.Unsupported;
+	}
+
+	private static NumberKind ClassifyInput<TInput>(TInput input)
+		where TInput : INumber<TInput>
+	{
+		NumberKind kind = KindOf<TInput>.Kind;
+
+		// Reference types can be passed as a base type, in which case the runtime type is what
+		// decides. Value types always match their static type, so this never boxes for them.
+		return kind == NumberKind.Unsupported && !typeof(TInput).IsValueType
+			? RuntimeKinds.GetOrAdd(input.GetType(), static t => ClassifyType(t))
+			: kind;
+	}
+
 	/// <summary>
 	/// Converts the input number to a <see cref="PreciseNumber"/>.
 	/// </summary>
@@ -21,20 +80,12 @@ public static class PreciseNumberExtensions
 		where TInput : INumber<TInput>
 	{
 		// if TInput is already a PreciseNumber then just return it
-		PreciseNumber preciseNumber;
-
-		Type inputType = input.GetType();
-		Type preciseNumberType = typeof(PreciseNumber);
-		bool isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
-
-		if (isPreciseNumber)
+		if (input is PreciseNumber alreadyPrecise)
 		{
-			return (PreciseNumber)(object)input;
+			return alreadyPrecise;
 		}
 
-		bool success = TryCreate(input, out preciseNumber!);
-
-		return success
+		return TryCreate(input, out PreciseNumber? preciseNumber)
 			? preciseNumber
 			: throw new NotSupportedException();
 	}
@@ -49,29 +100,25 @@ public static class PreciseNumberExtensions
 	internal static bool TryCreate<TInput>([NotNullWhen(true)] TInput input, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber? preciseNumber)
 		where TInput : INumber<TInput>
 	{
-		Type inputType = input.GetType();
-		Type preciseNumberType = typeof(PreciseNumber);
-		bool isPreciseNumber = inputType == preciseNumberType || inputType.IsSubclassOf(preciseNumberType);
-
-		if (isPreciseNumber)
+		if (input is PreciseNumber alreadyPrecise)
 		{
-			preciseNumber = (PreciseNumber)(object)input;
+			preciseNumber = alreadyPrecise;
 			return true;
 		}
 
-		if (Array.Exists(inputType.GetInterfaces(), i => i.Name.StartsWith("IBinaryInteger", StringComparison.Ordinal)))
+		switch (ClassifyInput(input))
 		{
-			preciseNumber = PreciseNumber.CreateFromInteger(input);
-			return true;
-		}
+			case NumberKind.Integer:
+				preciseNumber = PreciseNumber.CreateFromInteger(input);
+				return true;
 
-		if (Array.Exists(inputType.GetInterfaces(), i => i.Name.StartsWith("IFloatingPoint", StringComparison.Ordinal)))
-		{
-			preciseNumber = PreciseNumber.CreateFromFloatingPoint(input);
-			return true;
-		}
+			case NumberKind.FloatingPoint:
+				preciseNumber = PreciseNumber.CreateFromFloatingPoint(input);
+				return true;
 
-		preciseNumber = null;
-		return false;
+			default:
+				preciseNumber = null;
+				return false;
+		}
 	}
 }
