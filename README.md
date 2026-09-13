@@ -56,6 +56,8 @@ A high-precision numeric type for .NET that provides arbitrary precision arithme
 
 - [Limitations](#limitations)  
 
+- [Performance](#performance)  
+
 - [API Reference](#api-reference)  
 
 - [PreciseNumber Class](#precisenumber-class)  
@@ -354,6 +356,24 @@ You can control precision using:
 - Operations that inherently require approximation (like certain roots or logarithms) fall back to `double` precision for calculation  
 
 - Conversion to standard types may throw `OverflowException` if the value is too large  
+
+## Performance  
+
+Values are immutable, so every operation returns a new instance, and every instance holds its
+digits in a `BigInteger`. Cost therefore tracks the number of significant digits rather than the
+magnitude of the value, and allocation matters as much as raw speed.  
+
+The repository carries a [BenchmarkDotNet suite](PreciseNumber.Benchmarks/README.md) covering
+construction, comparison, arithmetic, rounding, text conversion and primitive conversion, each
+parameterised across 8, 30 and 200 significant digits:  
+
+```bash
+dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*ArithmeticBenchmarks*'
+```
+
+Run it before and after any change to the library's internals. A full run can also be started
+from the **Benchmarks** workflow in GitHub Actions, which archives the reports against the commit
+that produced them.  
 
 ## API Reference  
 

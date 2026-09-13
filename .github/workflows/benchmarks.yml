@@ -1,0 +1,85 @@
+name: Benchmarks
+
+# Benchmarks are not a gate. GitHub-hosted runners are shared and their timings vary far more
+# than most of the changes worth catching, so a threshold here would either never fire or fire
+# constantly. This exists so that anyone can get a full run without a local .NET setup, and so
+# that the results are archived against the commit that produced them.
+on:
+  workflow_dispatch:
+    inputs:
+      filter:
+        description: "BenchmarkDotNet filter, e.g. *ArithmeticBenchmarks* or *.Multiply"
+        required: false
+        default: "*"
+        type: string
+      job:
+        description: "Measurement length"
+        required: false
+        default: "short"
+        type: choice
+        options:
+          - short
+          - default
+          - long
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_VERSION: "10.0"
+
+jobs:
+  benchmark:
+    name: Run Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+
+      - name: Setup .NET SDK ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}.x
+          cache: true
+          cache-dependency-path: |
+            **/*.csproj
+            **/Directory.Packages.props
+            **/global.json
+
+      - name: Run Benchmarks
+        shell: bash
+        run: |
+          set -euo pipefail
+          args=(--filter "${{ inputs.filter }}")
+          if [ "${{ inputs.job }}" != "default" ]; then
+            args+=(--job "${{ inputs.job }}")
+          fi
+          dotnet run -c Release --project PreciseNumber.Benchmarks -- "${args[@]}"
+
+      # The Markdown reports are the readable artifact; the JSON is what a later comparison
+      # against another run would be built from.
+      - name: Summarize
+        if: always()
+        shell: bash
+        run: |
+          shopt -s nullglob
+          reports=(PreciseNumber.Benchmarks/BenchmarkDotNet.Artifacts/results/*-report-github.md)
+          if [ ${#reports[@]} -eq 0 ]; then
+            echo "No benchmark reports were produced." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          for report in "${reports[@]}"; do
+            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+            echo >> "$GITHUB_STEP_SUMMARY"
+          done
+
+      - name: Upload Results
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-results-${{ github.sha }}
+          path: PreciseNumber.Benchmarks/BenchmarkDotNet.Artifacts/results/*
+          retention-days: 30
+          if-no-files-found: warn

@@ -7,6 +7,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PreciseNumber", "PreciseNum
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PreciseNumber.Test", "PreciseNumber.Test\PreciseNumber.Test.csproj", "{FEABC5CD-7CE6-42AA-8CB4-1C8108F24C1E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PreciseNumber.Benchmarks", "PreciseNumber.Benchmarks\PreciseNumber.Benchmarks.csproj", "{7D3E1B4A-2C96-4F58-9B0D-5A8E4C1F60B2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{FEABC5CD-7CE6-42AA-8CB4-1C8108F24C1E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FEABC5CD-7CE6-42AA-8CB4-1C8108F24C1E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FEABC5CD-7CE6-42AA-8CB4-1C8108F24C1E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7D3E1B4A-2C96-4F58-9B0D-5A8E4C1F60B2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7D3E1B4A-2C96-4F58-9B0D-5A8E4C1F60B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7D3E1B4A-2C96-4F58-9B0D-5A8E4C1F60B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7D3E1B4A-2C96-4F58-9B0D-5A8E4C1F60B2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

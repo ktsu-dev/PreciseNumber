@@ -3,3 +3,4 @@
 [assembly: CLSCompliant(true)]
 [assembly: System.Runtime.InteropServices.ComVisible(false)]
 [assembly: System.Runtime.CompilerServices.InternalsVisibleTo("ktsu.PreciseNumber.Test")]
+[assembly: System.Runtime.CompilerServices.InternalsVisibleTo("PreciseNumber.Benchmarks")]
