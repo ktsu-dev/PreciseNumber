@@ -45,6 +45,12 @@ public record PreciseNumber
 	private const string InvalidFormatMessage = "Input string was not in a correct format.";
 
 	/// <summary>
+	/// The fewest significant digits <see cref="Divide(PreciseNumber, PreciseNumber)"/> produces
+	/// when a quotient does not terminate.
+	/// </summary>
+	public const int MinimumDivisionPrecision = 50;
+
+	/// <summary>
 	/// Pre-computed powers of ten, grown on demand. Declared before any other static state so
 	/// that the static constants below can rely on it while they are being initialized.
 	/// </summary>
@@ -1291,30 +1297,149 @@ public record PreciseNumber
 	/// <param name="left">The number to divide.</param>
 	/// <param name="right">The number to divide by.</param>
 	/// <returns>The result of the division.</returns>
+	/// <exception cref="DivideByZeroException">Thrown when <paramref name="right"/> is zero.</exception>
+	/// <remarks>
+	/// A quotient whose decimal expansion terminates is produced exactly, however many digits that
+	/// takes. One that repeats is produced to the precision of the wider operand, and never fewer
+	/// than <see cref="MinimumDivisionPrecision"/> significant digits, with the last digit rounded
+	/// half away from zero. Use <see cref="Divide(PreciseNumber, PreciseNumber, int)"/> to choose
+	/// that precision.
+	/// </remarks>
 	public static PreciseNumber Divide(PreciseNumber left, PreciseNumber right)
 	{
 		Ensure.NotNull(left);
 		Ensure.NotNull(right);
+
+		// Dividing must not silently discard precision the operands already carry.
+		int significantDigits = Math.Max(
+			Math.Max(left.SignificantDigits, right.SignificantDigits),
+			MinimumDivisionPrecision);
+
+		return Divide(left, right, significantDigits);
+	}
+
+	/// <summary>
+	/// Divides one number by another, to a chosen number of significant digits.
+	/// </summary>
+	/// <param name="left">The number to divide.</param>
+	/// <param name="right">The number to divide by.</param>
+	/// <param name="significantDigits">
+	/// The number of significant digits to produce when the quotient does not terminate. A quotient
+	/// that does terminate is exact regardless of this value.
+	/// </param>
+	/// <returns>The result of the division.</returns>
+	/// <exception cref="DivideByZeroException">Thrown when <paramref name="right"/> is zero.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	public static PreciseNumber Divide(PreciseNumber left, PreciseNumber right, int significantDigits)
+	{
+		Ensure.NotNull(left);
+		Ensure.NotNull(right);
+
+		if (significantDigits < 1)
+		{
+			throw new ArgumentOutOfRangeException(nameof(significantDigits), significantDigits, "At least one significant digit is required.");
+		}
 
 		if (right.Significand.IsZero)
 		{
 			throw new DivideByZeroException();
 		}
 
-		if (Compare(left, right) == 0)
+		if (left.Significand.IsZero)
 		{
-			return One;
+			return Zero;
 		}
 
-		(BigInteger commonLeft, BigInteger commonRight, _) = CommonizeSignificands(left, right);
+		BigInteger numerator = left.Significand;
+		BigInteger denominator = right.Significand;
+		int exponent = left.Exponent - right.Exponent;
 
-		BigInteger integerComponent = BigInteger.DivRem(commonLeft, commonRight, out BigInteger remainder);
+		// Carry the sign on the numerator so the denominator can be factorized as a positive value.
+		if (denominator.Sign < 0)
+		{
+			numerator = -numerator;
+			denominator = -denominator;
+		}
 
-		// The common power of ten cancels between the remainder and the divisor, so it is left out
-		// entirely; including it would overflow to infinity for large exponents.
-		double fractionalComponent = double.CreateTruncating(remainder) / double.CreateTruncating(commonRight);
+		return TryDivideExactly(numerator, denominator, exponent, out PreciseNumber? exact)
+			? exact
+			: DivideToPrecision(numerator, denominator, exponent, significantDigits);
+	}
 
-		return new PreciseNumber(0, integerComponent) + fractionalComponent.ToPreciseNumber();
+	/// <summary>
+	/// Divides exactly, when the quotient has a terminating decimal expansion.
+	/// </summary>
+	/// <param name="numerator">The numerator, carrying the sign of the quotient.</param>
+	/// <param name="denominator">The denominator, which must be positive.</param>
+	/// <param name="exponent">The exponent the quotient's significand sits at.</param>
+	/// <param name="result">The exact quotient, when there is one.</param>
+	/// <returns><c>true</c> if the quotient terminates and <paramref name="result"/> is exact; otherwise <c>false</c>.</returns>
+	private static bool TryDivideExactly(BigInteger numerator, BigInteger denominator, int exponent, [NotNullWhen(true)] out PreciseNumber? result)
+	{
+		// A fraction terminates in base ten exactly when its denominator is 2^twos * 5^fives. Most
+		// denominators are rejected by the first remainder test, which is why this is worth trying
+		// before falling back to a rounded quotient.
+		int twos = (int)BigInteger.TrailingZeroCount(denominator);
+		BigInteger remaining = denominator >> twos;
+
+		int fives = 0;
+		while ((remaining % 5).IsZero)
+		{
+			remaining /= 5;
+			fives++;
+		}
+
+		if (!remaining.IsOne)
+		{
+			result = null;
+			return false;
+		}
+
+		// 1 / (2^p * 5^q) == (2^(k-p) * 5^(k-q)) / 10^k, where k is the larger of p and q.
+		int scale = Math.Max(twos, fives);
+		BigInteger significand = numerator * BigInteger.Pow(2, scale - twos) * BigInteger.Pow(5, scale - fives);
+
+		result = new PreciseNumber(exponent - scale, significand);
+		return true;
+	}
+
+	/// <summary>
+	/// Divides to a fixed number of significant digits, rounding the last of them half away from zero.
+	/// </summary>
+	/// <param name="numerator">The numerator, carrying the sign of the quotient.</param>
+	/// <param name="denominator">The denominator, which must be positive.</param>
+	/// <param name="exponent">The exponent the quotient's significand sits at.</param>
+	/// <param name="significantDigits">The number of significant digits to produce.</param>
+	/// <returns>The rounded quotient.</returns>
+	private static PreciseNumber DivideToPrecision(BigInteger numerator, BigInteger denominator, int exponent, int significantDigits)
+	{
+		// A quotient has either digits(numerator) - digits(denominator) digits or one more, so
+		// scaling by this much leaves at least one digit past the ones being kept: the digit the
+		// rounding decision is made on.
+		int scale = significantDigits + 1 - CountDigits(numerator) + CountDigits(denominator);
+		BigInteger scaled = scale > 0 ? numerator * Pow10(scale) : numerator;
+		int scaledExponent = exponent - Math.Max(scale, 0);
+
+		BigInteger quotient = scaled / denominator;
+		int excess = CountDigits(quotient) - significantDigits;
+
+		if (excess <= 0)
+		{
+			return new PreciseNumber(scaledExponent, quotient);
+		}
+
+		BigInteger divisor = Pow10(excess);
+		BigInteger kept = BigInteger.DivRem(quotient, divisor, out BigInteger dropped);
+
+		// Round half away from zero. Whatever the division above discarded is worth less than one
+		// unit of the dropped digits, so it can never carry the comparison across the halfway mark;
+		// at most it turns an exact tie into something above it, which rounds the same way.
+		if (BigInteger.Abs(dropped) * 2 >= divisor)
+		{
+			kept += quotient.Sign;
+		}
+
+		return new PreciseNumber(scaledExponent + excess, kept);
 	}
 
 	/// <summary>
