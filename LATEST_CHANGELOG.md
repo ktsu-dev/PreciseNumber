@@ -1,6 +1,6 @@
-## v1.9.0 (minor)
+## v2.0.0 (major)
 
-Changes since v1.8.0:
+Changes since v1.9.0:
 
-- Divide exactly, or to a chosen precision ([@Claude](https://github.com/Claude))
+- [major] Make PreciseNumber a value type ([@matt-edmondson](https://github.com/matt-edmondson))
 
