@@ -1,4 +1,30 @@
-## v1.7.36
+## v1.8.0 (minor)
 
-No significant changes detected since v1.7.36.
+Changes since v1.7.0:
+
+- Fix script injection in the benchmark workflow ([@Claude](https://github.com/Claude))
+- Grow the power of ten cache on demand ([@Claude](https://github.com/Claude))
+- Add a BenchmarkDotNet suite for the library's hot paths ([@Claude](https://github.com/Claude))
+- Optimize hot paths: comparisons, multiply, pow, digit counting, formatting ([@Claude](https://github.com/Claude))
+- ci: make the SonarQube quality gate opt in [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- ci: adopt the unified dotnet workflow [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- chore: store icon.png in LFS as .gitattributes declares ([@matt-edmondson](https://github.com/matt-edmondson))
+- docs: scope build badge to the default branch ([@matt-edmondson](https://github.com/matt-edmondson))
+- docs: correct README, DESCRIPTION and TAGS metadata ([@matt-edmondson](https://github.com/matt-edmondson))
+- Stop Update SDKs failing when there is nothing to update ([@matt-edmondson](https://github.com/matt-edmondson))
+- Fix build against ktsu.Sdk 2.27.0 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .editorconfig ([@KtsuTools](https://github.com/KtsuTools))
+- Sync global.json ([@KtsuTools](https://github.com/KtsuTools))
+- chore: update ktsu.Sdk to 2.21.1 [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- chore: remove SourceLink package versions from central props ([@matt-edmondson](https://github.com/matt-edmondson))
+- chore: remove SourceLink package references ([@matt-edmondson](https://github.com/matt-edmondson))
+- Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor CI pipeline to clone KtsuBuild at latest tag and streamline release logic ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove legacy build scripts ([@matt-edmondson](https://github.com/matt-edmondson))
+- Refactor input handling in PreciseNumber creation methods ([@matt-edmondson](https://github.com/matt-edmondson))
+- migrate to dotnet 10 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update sdk ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update configuration files and scripts for improved build and test processes ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove obsolete build configuration files and update PreciseNumber class for improved variable declarations and copyright information. ([@matt-edmondson](https://github.com/matt-edmondson))
+- Update README and project files ([@matt-edmondson](https://github.com/matt-edmondson))
 
