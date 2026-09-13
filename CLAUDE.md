@@ -33,7 +33,8 @@ dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*' --job s
 ### Key Design Patterns
 
 - Factory methods `CreateFromInteger<T>()` and `CreateFromFloatingPoint<T>()` handle type-specific conversion logic
-- Arithmetic operations use `MakeCommonized()` to align exponents before calculation
+- Addition, subtraction and modulus align exponents before calculating; multiplication and division work on the significands directly
+- `Divide` is exact when the quotient terminates, and otherwise rounds to a precision that never falls below the wider operand or `MinimumDivisionPrecision`. `Exp` and non-integer `Pow` still route through `double`
 - The `sanitize` constructor parameter controls whether trailing zeros are removed (default: true)
 - Constants (`Zero`, `One`, `Pi`, `E`, `Tau`) are pre-computed static instances
 

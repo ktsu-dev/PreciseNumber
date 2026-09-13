@@ -351,9 +351,17 @@ You can control precision using:
 
 - **ReduceSignificance()**: Reduces to a specific number of significant digits  
 
+- **Divide(left, right, significantDigits)**: Chooses the precision of a quotient  
+
+Division produces a terminating quotient exactly, however many digits that takes — `1 / 8` is
+`0.125`, and `1 / 2^64` keeps all 64 decimal places. A repeating quotient is produced to the
+precision of the wider operand, never fewer than `MinimumDivisionPrecision` (50) significant
+digits, with the last digit rounded half away from zero. Pass an explicit precision to the
+three-argument overload when you want something other than that.  
+
 ## Limitations  
 
-- Operations that inherently require approximation (like certain roots or logarithms) fall back to `double` precision for calculation  
+- `Exp()`, and `Pow()` with a non-integer power, are computed through `double` and are therefore limited to its precision. Addition, subtraction, multiplication and division are not  
 
 - Conversion to standard types may throw `OverflowException` if the value is too large  
 

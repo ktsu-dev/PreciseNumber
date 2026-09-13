@@ -16,6 +16,12 @@
          internal copy here through InternalsVisibleTo - referencing it again would make
          every polyfilled member ambiguous. -->
     <NoWarn>$(NoWarn);KTSU0001</NoWarn>
+    <!-- Benchmarks are tooling: not shipped, and not something unit tests cover. Telling the
+         Sonar scanner so here keeps the coverage gate off this project's back without any
+         workflow needing to know benchmarks exist. The equivalent workflow-level exclusion
+         would have to be repeated in every repository that gains a benchmark project, and
+         re-applied whenever the shared .NET workflow is resynced. -->
+    <SonarQubeExclude>true</SonarQubeExclude>
   </PropertyGroup>
 
   <ItemGroup>

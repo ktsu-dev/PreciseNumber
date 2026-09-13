@@ -1031,8 +1031,10 @@ public class PreciseNumberTests
 		PreciseNumber number1 = PreciseNumber.CreateFromComponents(-2, 12345);
 		PreciseNumber number2 = PreciseNumber.CreateFromComponents(-3, 678);
 		PreciseNumber result = number1 / number2;
-		Assert.AreEqual(BigInteger.Parse("18207964601769911504"), result.Significand);
-		Assert.AreEqual(-17, result.Exponent);
+		// 123.45 / 0.678 does not terminate, so it comes out at the default precision.
+		Assert.AreEqual(BigInteger.Parse("18207964601769911504424778761061946902654867256637"), result.Significand);
+		Assert.AreEqual(-47, result.Exponent);
+		Assert.AreEqual(PreciseNumber.MinimumDivisionPrecision, result.SignificantDigits);
 	}
 
 	[TestMethod]
@@ -1603,7 +1605,11 @@ public class PreciseNumberTests
 	public void TestExpWithNegativePower()
 	{
 		PreciseNumber result = PreciseNumber.Exp(-1.ToPreciseNumber());
-		PreciseNumber expected = PreciseNumber.One / PreciseNumber.E; // e^-1 = 1/e
+
+		// Exp routes through a double, so 1/e is taken to the precision Exp actually delivers
+		// rather than the full precision Divide is now capable of.
+		PreciseNumber expected = PreciseNumber.Divide(PreciseNumber.One, PreciseNumber.E, result.SignificantDigits);
+
 		Assert.AreEqual(expected, result);
 	}
 
@@ -2001,6 +2007,122 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
+	public void TestDivideIsExactWhenTheQuotientTerminates()
+	{
+		// A quotient terminates exactly when the reduced denominator is a product of twos and
+		// fives, and those come out exact however many digits that takes.
+		(int Numerator, int Denominator, string Expected)[] cases =
+		[
+			(1, 2, "0.5"),
+			(1, 4, "0.25"),
+			(1, 5, "0.2"),
+			(1, 8, "0.125"),
+			(1, 10, "0.1"),
+			(1, 16, "0.0625"),
+			(1, 20, "0.05"),
+			(1, 25, "0.04"),
+			(3, 8, "0.375"),
+			(-3, 8, "-0.375"),
+			(7, 1, "7"),
+		];
+
+		foreach ((int numerator, int denominator, string expected) in cases)
+		{
+			PreciseNumber quotient = numerator.ToPreciseNumber() / denominator.ToPreciseNumber();
+			Assert.AreEqual(expected, quotient.ToString(CultureInfo.InvariantCulture), $"{numerator}/{denominator}");
+		}
+	}
+
+	[TestMethod]
+	public void TestDivideKeepsEveryDigitOfALongTerminatingQuotient()
+	{
+		// 2^-64 terminates, but only after 64 decimal places - far more than the default
+		// precision would allow, and far more than a double could carry.
+		PreciseNumber quotient = PreciseNumber.One / PreciseNumber.CreateFromComponents(0, BigInteger.Pow(2, 64));
+
+		Assert.AreEqual(
+			"0.0000000000000000000542101086242752217003726400434970855712890625",
+			quotient.ToString(CultureInfo.InvariantCulture));
+
+		// Exact means exact: multiplying back reproduces the dividend.
+		Assert.AreEqual(PreciseNumber.One, quotient * PreciseNumber.CreateFromComponents(0, BigInteger.Pow(2, 64)));
+	}
+
+	[TestMethod]
+	public void TestDivideProducesTheRequestedPrecisionWhenTheQuotientRepeats()
+	{
+		PreciseNumber one = PreciseNumber.One;
+		PreciseNumber three = 3.ToPreciseNumber();
+
+		Assert.AreEqual("0.3", PreciseNumber.Divide(one, three, 1).ToString(CultureInfo.InvariantCulture));
+		Assert.AreEqual("0.333", PreciseNumber.Divide(one, three, 3).ToString(CultureInfo.InvariantCulture));
+		Assert.AreEqual(20, PreciseNumber.Divide(one, three, 20).SignificantDigits);
+		Assert.AreEqual(200, PreciseNumber.Divide(one, three, 200).SignificantDigits);
+	}
+
+	[TestMethod]
+	public void TestDivideRoundsHalfAwayFromZero()
+	{
+		PreciseNumber two = 2.ToPreciseNumber();
+		PreciseNumber three = 3.ToPreciseNumber();
+		PreciseNumber five = 5.ToPreciseNumber();
+		PreciseNumber nine = 9.ToPreciseNumber();
+
+		// 0.666... rounds up, 0.333... rounds down, and the sign does not change which way.
+		Assert.AreEqual("0.667", PreciseNumber.Divide(two, three, 3).ToString(CultureInfo.InvariantCulture));
+		Assert.AreEqual("0.333", PreciseNumber.Divide(PreciseNumber.One, three, 3).ToString(CultureInfo.InvariantCulture));
+		Assert.AreEqual("-0.667", PreciseNumber.Divide(-two, three, 3).ToString(CultureInfo.InvariantCulture));
+		Assert.AreEqual("-0.333", PreciseNumber.Divide(-PreciseNumber.One, three, 3).ToString(CultureInfo.InvariantCulture));
+
+		// 0.555... cut after one digit sits just above the halfway mark, so it rounds away.
+		Assert.AreEqual("0.6", PreciseNumber.Divide(five, nine, 1).ToString(CultureInfo.InvariantCulture));
+		Assert.AreEqual("-0.6", PreciseNumber.Divide(-five, nine, 1).ToString(CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
+	public void TestDivideNeverReducesTheOperandsPrecision()
+	{
+		// An operand carrying more digits than the floor pulls the quotient up to match it.
+		PreciseNumber wide = PreciseNumber.Parse(new string('7', 120), CultureInfo.InvariantCulture);
+		PreciseNumber three = 3.ToPreciseNumber();
+
+		Assert.AreEqual(120, (wide / three).SignificantDigits);
+		Assert.AreEqual(120, (three / wide).SignificantDigits);
+		Assert.AreEqual(PreciseNumber.MinimumDivisionPrecision, (three / 7.ToPreciseNumber()).SignificantDigits);
+	}
+
+	[TestMethod]
+	public void TestDivideRejectsNonPositivePrecision()
+	{
+		PreciseNumber one = PreciseNumber.One;
+		PreciseNumber three = 3.ToPreciseNumber();
+
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Divide(one, three, 0));
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Divide(one, three, -1));
+	}
+
+	[TestMethod]
+	public void TestDivideZeroDividend()
+	{
+		Assert.AreEqual(PreciseNumber.Zero, PreciseNumber.Zero / 3.ToPreciseNumber());
+		Assert.AreEqual(PreciseNumber.Zero, PreciseNumber.Zero / PreciseNumber.NegativeOne);
+	}
+
+	[TestMethod]
+	public void TestDivideRoundTripsThroughMultiplication()
+	{
+		// For a terminating quotient the round trip is exact, which is the strongest statement
+		// that can be made about a division.
+		foreach (int denominator in new[] { 2, 4, 5, 8, 10, 16, 20, 25, 32, 50, 64, 100, 125, 128 })
+		{
+			PreciseNumber divisor = denominator.ToPreciseNumber();
+			PreciseNumber quotient = 123456789.ToPreciseNumber() / divisor;
+
+			Assert.AreEqual(123456789.ToPreciseNumber(), quotient * divisor, $"123456789/{denominator}");
+		}
+	}
+
+	[TestMethod]
 	public void TestPow10IsCorrectAcrossCacheBoundaries()
 	{
 		// The cache starts at 128 entries, grows on demand up to 1024, and computes anything
@@ -2057,7 +2179,7 @@ public class PreciseNumberTests
 
 		PreciseNumber result = left / right;
 
-		Assert.AreEqual("2.3333333333333333", result.ToString(CultureInfo.InvariantCulture));
+		Assert.AreEqual("2.3333333333333333333333333333333333333333333333333", result.ToString(CultureInfo.InvariantCulture));
 	}
 
 	[TestMethod]
