@@ -1,6 +1,4 @@
-## v2.0.0 (major)
+## v2.0.0
 
-Changes since v1.9.0:
-
-- [major] Make PreciseNumber a value type ([@matt-edmondson](https://github.com/matt-edmondson))
+No significant changes detected since v2.0.0.
 
