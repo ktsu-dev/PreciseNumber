@@ -48,13 +48,19 @@ jobs:
             **/Directory.Packages.props
             **/global.json
 
+      # The inputs go through the environment rather than being interpolated into the script.
+      # `filter` is free-form text supplied by whoever dispatches the workflow, and expanding it
+      # into the script body would let it run as shell.
       - name: Run Benchmarks
         shell: bash
+        env:
+          BENCHMARK_FILTER: ${{ inputs.filter }}
+          BENCHMARK_JOB: ${{ inputs.job }}
         run: |
           set -euo pipefail
-          args=(--filter "${{ inputs.filter }}")
-          if [ "${{ inputs.job }}" != "default" ]; then
-            args+=(--job "${{ inputs.job }}")
+          args=(--filter "$BENCHMARK_FILTER")
+          if [ "$BENCHMARK_JOB" != "default" ]; then
+            args+=(--job "$BENCHMARK_JOB")
           fi
           dotnet run -c Release --project PreciseNumber.Benchmarks -- "${args[@]}"
 

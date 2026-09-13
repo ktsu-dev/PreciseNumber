@@ -40,6 +40,11 @@ public record PreciseNumber
 	private const double Log10Of2 = 0.3010299956639812;
 
 	/// <summary>
+	/// The message carried by the <see cref="FormatException"/> that parsing throws.
+	/// </summary>
+	private const string InvalidFormatMessage = "Input string was not in a correct format.";
+
+	/// <summary>
 	/// Pre-computed powers of ten, grown on demand. Declared before any other static state so
 	/// that the static constants below can rely on it while they are being initialized.
 	/// </summary>
@@ -934,7 +939,7 @@ public record PreciseNumber
 	{
 		if (s.IsEmpty)
 		{
-			throw new FormatException("Input string was not in a correct format.");
+			throw new FormatException(InvalidFormatMessage);
 		}
 
 		if (s.Length == 1 && s[0] == '0')
@@ -965,7 +970,7 @@ public record PreciseNumber
 				{
 					if (hasDecimal)
 					{
-						throw new FormatException("Input string was not in a correct format.");
+						throw new FormatException(InvalidFormatMessage);
 					}
 
 					hasDecimal = true;
@@ -980,7 +985,7 @@ public record PreciseNumber
 
 				if (c is < '0' or > '9')
 				{
-					throw new FormatException("Input string was not in a correct format.");
+					throw new FormatException(InvalidFormatMessage);
 				}
 
 				if (hasDecimal)
@@ -993,7 +998,7 @@ public record PreciseNumber
 
 			if (digitCount == 0)
 			{
-				throw new FormatException("Input string was not in a correct format.");
+				throw new FormatException(InvalidFormatMessage);
 			}
 
 			BigInteger significand = BigInteger.Parse(digits[..digitCount], NumberStyles.None, InvariantCulture);
