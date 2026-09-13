@@ -40,7 +40,7 @@ public static class PreciseNumberExtensions
 
 	private static NumberKind ClassifyType(Type type)
 	{
-		if (type == typeof(PreciseNumber) || type.IsSubclassOf(typeof(PreciseNumber)))
+		if (type == typeof(PreciseNumber))
 		{
 			return NumberKind.PreciseNumber;
 		}
@@ -85,7 +85,7 @@ public static class PreciseNumberExtensions
 			return alreadyPrecise;
 		}
 
-		return TryCreate(input, out PreciseNumber? preciseNumber)
+		return TryCreate(input, out PreciseNumber preciseNumber)
 			? preciseNumber
 			: throw new NotSupportedException();
 	}
@@ -95,9 +95,9 @@ public static class PreciseNumberExtensions
 	/// </summary>
 	/// <typeparam name="TInput">The type of the input number.</typeparam>
 	/// <param name="input">The input number to create a <see cref="PreciseNumber"/> from.</param>
-	/// <param name="preciseNumber">The created <see cref="PreciseNumber"/> if successful, otherwise null.</param>
+	/// <param name="preciseNumber">The created <see cref="PreciseNumber"/> if successful, otherwise zero.</param>
 	/// <returns>True if the creation was successful, otherwise false.</returns>
-	internal static bool TryCreate<TInput>([NotNullWhen(true)] TInput input, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber? preciseNumber)
+	internal static bool TryCreate<TInput>([NotNullWhen(true)] TInput input, out PreciseNumber preciseNumber)
 		where TInput : INumber<TInput>
 	{
 		if (input is PreciseNumber alreadyPrecise)
@@ -117,7 +117,7 @@ public static class PreciseNumberExtensions
 				return true;
 
 			default:
-				preciseNumber = null;
+				preciseNumber = default;
 				return false;
 		}
 	}

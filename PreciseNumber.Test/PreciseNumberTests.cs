@@ -409,43 +409,43 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestTryConvertFromChecked()
 	{
-		PreciseNumber one = PreciseNumber.One;
-		Assert.ThrowsExactly<NotSupportedException>(() => PreciseNumber.TryConvertFromChecked(one, out PreciseNumber? result));
+		Assert.IsTrue(PreciseNumber.TryConvertFromChecked(42, out PreciseNumber result), "int should be a supported source");
+		Assert.AreEqual(42.ToPreciseNumber(), result);
 	}
 
 	[TestMethod]
 	public void TestTryConvertFromSaturating()
 	{
-		PreciseNumber one = PreciseNumber.One;
-		Assert.ThrowsExactly<NotSupportedException>(() => PreciseNumber.TryConvertFromSaturating(one, out PreciseNumber? result));
+		Assert.IsTrue(PreciseNumber.TryConvertFromSaturating(2.5, out PreciseNumber result), "double should be a supported source");
+		Assert.AreEqual(2.5.ToPreciseNumber(), result);
 	}
 
 	[TestMethod]
 	public void TestTryConvertFromTruncating()
 	{
-		PreciseNumber one = PreciseNumber.One;
-		Assert.ThrowsExactly<NotSupportedException>(() => PreciseNumber.TryConvertFromTruncating(one, out PreciseNumber? result));
+		Assert.IsTrue(PreciseNumber.TryConvertFromTruncating(2.5m, out PreciseNumber result), "decimal should be a supported source");
+		Assert.AreEqual(2.5m.ToPreciseNumber(), result);
 	}
 
 	[TestMethod]
 	public void TestTryConvertToChecked()
 	{
-		PreciseNumber one = PreciseNumber.One;
-		Assert.ThrowsExactly<NotSupportedException>(() => PreciseNumber.TryConvertToChecked(one, out PreciseNumber result));
+		Assert.IsTrue(PreciseNumber.TryConvertToChecked(PreciseNumber.One, out int result), "int should be a supported destination");
+		Assert.AreEqual(1, result);
 	}
 
 	[TestMethod]
 	public void TestTryConvertToSaturating()
 	{
-		PreciseNumber one = PreciseNumber.One;
-		Assert.ThrowsExactly<NotSupportedException>(() => PreciseNumber.TryConvertToSaturating(one, out PreciseNumber result));
+		Assert.IsTrue(PreciseNumber.TryConvertToSaturating(PreciseNumber.One, out double result), "double should be a supported destination");
+		Assert.AreEqual(1.0, result);
 	}
 
 	[TestMethod]
 	public void TestTryConvertToTruncating()
 	{
-		PreciseNumber one = PreciseNumber.One;
-		Assert.ThrowsExactly<NotSupportedException>(() => PreciseNumber.TryConvertToTruncating(one, out PreciseNumber result));
+		Assert.IsTrue(PreciseNumber.TryConvertToTruncating(PreciseNumber.One, out PreciseNumber result), "PreciseNumber should convert to itself");
+		Assert.AreEqual(PreciseNumber.One, result);
 	}
 
 	[TestMethod]
@@ -1739,7 +1739,7 @@ public class PreciseNumberTests
 	{
 		ReadOnlySpan<char> input = "1.23E4".AsSpan();
 		PreciseNumber expected = 1.23e4.ToPreciseNumber();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
+		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber result);
 		Assert.IsTrue(success, "TryParse should succeed with valid input");
 		Assert.AreEqual(expected, result);
 
@@ -1753,7 +1753,7 @@ public class PreciseNumberTests
 	{
 		ReadOnlySpan<char> input = "-5.67E-2".AsSpan();
 		PreciseNumber expected = -5.67e-2.ToPreciseNumber();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
+		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber result);
 		Assert.IsTrue(success, "TryParse should succeed with negative input");
 		Assert.AreEqual(expected, result);
 	}
@@ -1762,7 +1762,7 @@ public class PreciseNumberTests
 	public void TestTryParseWithInvalidInput()
 	{
 		ReadOnlySpan<char> input = "invalid".AsSpan();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
+		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber result);
 		Assert.IsFalse(success, "TryParse should fail with invalid input");
 		Assert.AreEqual(default, result);
 	}
@@ -1772,7 +1772,7 @@ public class PreciseNumberTests
 	{
 		string input = "1.23E4";
 		PreciseNumber expected = 1.23e4.ToPreciseNumber();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
+		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber result);
 		Assert.IsTrue(success, "TryParse should succeed with valid string input");
 		Assert.AreEqual(expected, result);
 
@@ -1786,7 +1786,7 @@ public class PreciseNumberTests
 	{
 		string input = "-5.67E-2";
 		PreciseNumber expected = -5.67e-2.ToPreciseNumber();
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
+		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber result);
 		Assert.IsTrue(success, "TryParse should succeed with negative string input");
 		Assert.AreEqual(expected, result);
 	}
@@ -1795,7 +1795,7 @@ public class PreciseNumberTests
 	public void TestTryParseStringWithInvalidInput()
 	{
 		string input = "invalid";
-		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber? result);
+		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber result);
 		Assert.IsFalse(success, "TryParse should fail with invalid string input");
 		Assert.AreEqual(default, result);
 	}
@@ -1880,11 +1880,10 @@ public class PreciseNumberTests
 		int input = 42;
 
 		// Act
-		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
+		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber preciseNumber);
 
 		// Assert
 		Assert.IsTrue(result, "TryCreate should succeed with integer input");
-		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(input, preciseNumber.To<int>());
 	}
 
@@ -1895,11 +1894,10 @@ public class PreciseNumberTests
 		double input = 42.42;
 
 		// Act
-		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
+		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber preciseNumber);
 
 		// Assert
 		Assert.IsTrue(result, "TryCreate should succeed with floating point input");
-		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(input, preciseNumber.To<double>());
 	}
 
@@ -1910,11 +1908,10 @@ public class PreciseNumberTests
 		PreciseNumber input = new(2, new BigInteger(12345));
 
 		// Act
-		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
+		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber preciseNumber);
 
 		// Assert
 		Assert.IsTrue(result, "TryCreate should succeed when input is PreciseNumber");
-		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(input, preciseNumber);
 	}
 
@@ -1925,7 +1922,7 @@ public class PreciseNumberTests
 		PreciseNumber input = PreciseNumber.One;
 
 		// Act
-		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
+		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber preciseNumber);
 
 		// Assert
 		Assert.IsTrue(result, "TryCreate should succeed with PreciseNumber input");
@@ -1939,11 +1936,10 @@ public class PreciseNumberTests
 		int input = 42;
 
 		// Act
-		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
+		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber preciseNumber);
 
 		// Assert
 		Assert.IsTrue(result, "TryCreate should succeed with binary integer input");
-		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(PreciseNumber.CreateFromInteger(input), preciseNumber);
 	}
 
@@ -1954,40 +1950,11 @@ public class PreciseNumberTests
 		double input = 3.14;
 
 		// Act
-		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber? preciseNumber);
+		bool result = PreciseNumberExtensions.TryCreate(input, out PreciseNumber preciseNumber);
 
 		// Assert
 		Assert.IsTrue(result, "TryCreate should succeed with floating point input");
-		Assert.IsNotNull(preciseNumber);
 		Assert.AreEqual(PreciseNumber.CreateFromFloatingPoint(input), preciseNumber);
-	}
-
-	[TestMethod]
-	public void As_WithSameInputAndOutputType_ReturnsInput()
-	{
-		// Arrange
-		PreciseNumber input = new(2, new BigInteger(123));
-
-		// Act
-		PreciseNumber result = input.As<PreciseNumber>();
-
-		// Assert
-		Assert.AreSame(input, result);
-	}
-
-	[TestMethod]
-	public void As_WithConvertibleInputAndOutputType_ReturnsConvertedInstance()
-	{
-		// Arrange
-		PreciseNumber input = new(2, new BigInteger(123));
-
-		// Act
-		DerivedPreciseNumber result = input.As<DerivedPreciseNumber>();
-
-		// Assert
-		Assert.IsNotNull(result);
-		Assert.AreEqual(input.Exponent, result.Exponent);
-		Assert.AreEqual(input.Significand, result.Significand);
 	}
 
 	[TestMethod]
@@ -2251,12 +2218,5 @@ public class PreciseNumberTests
 		PreciseNumber parsed = PreciseNumber.Parse(text, CultureInfo.InvariantCulture);
 
 		Assert.AreEqual(text, parsed.ToString(CultureInfo.InvariantCulture));
-	}
-
-	public record DerivedPreciseNumber : PreciseNumber
-	{
-		public DerivedPreciseNumber(PreciseNumber original) : base(original)
-		{
-		}
 	}
 }

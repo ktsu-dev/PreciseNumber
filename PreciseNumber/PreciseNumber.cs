@@ -10,10 +10,14 @@ using System.Globalization;
 using System.Numerics;
 
 /// <summary>
-/// Represents a precise number.
+/// Represents a decimal number of arbitrary precision as <c>significand × 10^exponent</c>.
 /// </summary>
+/// <remarks>
+/// A value type. Its <see langword="default"/> value is <see cref="Zero"/>, so an uninitialized field or
+/// array element is a valid number rather than a hazard.
+/// </remarks>
 [DebuggerDisplay("{Significand}e{Exponent}")]
-public record PreciseNumber
+public readonly partial record struct PreciseNumber
 	: INumber<PreciseNumber>
 {
 	private const int Base10 = 10;
@@ -192,34 +196,21 @@ public record PreciseNumber
 	}
 
 	/// <summary>
-	/// Initializes a new instance of the <see cref="PreciseNumber"/> record by copying the values from an existing instance.
-	/// </summary>
-	/// <param name="original">The <see cref="PreciseNumber"/> instance to copy.</param>
-	/// <exception cref="ArgumentNullException">Thrown when the <paramref name="original"/> is <c>null</c>.</exception>
-	public PreciseNumber(PreciseNumber original)
-	{
-		Ensure.NotNull(original);
-		Exponent = original.Exponent;
-		Significand = original.Significand;
-		SignificantDigits = original.SignificantDigits;
-	}
-
-	/// <summary>
-	/// Initializes a new instance of the <see cref="PreciseNumber"/> record.
+	/// Initializes a new instance of the <see cref="PreciseNumber"/> struct.
 	/// </summary>
 	/// <param name="exponent">The exponent of the number.</param>
 	/// <param name="significand">The significand of the number.</param>
-	protected internal PreciseNumber(int exponent, BigInteger significand)
+	internal PreciseNumber(int exponent, BigInteger significand)
 		: this(exponent, significand, true)
 	{ }
 
 	/// <summary>
-	/// Initializes a new instance of the <see cref="PreciseNumber"/> record.
+	/// Initializes a new instance of the <see cref="PreciseNumber"/> struct.
 	/// </summary>
 	/// <param name="exponent">The exponent of the number.</param>
 	/// <param name="significand">The significand of the number.</param>
 	/// <param name="sanitize">If true, trailing zeros in the significand will be removed.</param>
-	protected internal PreciseNumber(int exponent, BigInteger significand, bool sanitize)
+	internal PreciseNumber(int exponent, BigInteger significand, bool sanitize)
 	{
 		if (significand.IsZero)
 		{
@@ -298,7 +289,7 @@ public record PreciseNumber
 	/// <summary>
 	/// Gets the invariant culture information.
 	/// </summary>
-	protected internal static CultureInfo InvariantCulture { get; } = CultureInfo.InvariantCulture;
+	internal static CultureInfo InvariantCulture { get; } = CultureInfo.InvariantCulture;
 
 	private const int BinaryRadix = 2;
 
@@ -312,8 +303,8 @@ public record PreciseNumber
 	public static PreciseNumber MultiplicativeIdentity => One;
 
 	/// <inheritdoc/>
-	public virtual bool Equals(PreciseNumber? other) =>
-		other is not null && Equal(this, other);
+	public bool Equals(PreciseNumber other) =>
+		Equal(this, other);
 
 	/// <inheritdoc/>
 	public override int GetHashCode() => HashCode.Combine(Exponent, Significand);
@@ -336,8 +327,6 @@ public record PreciseNumber
 	/// <returns>A string representation of the current instance.</returns>
 	public static string ToString(PreciseNumber number, string? format, IFormatProvider? formatProvider)
 	{
-		Ensure.NotNull(number);
-
 		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(formatProvider ?? InvariantCulture);
 
 		// Digits, plus the padding zeros implied by the exponent, plus the sign, the decimal
@@ -601,11 +590,8 @@ public record PreciseNumber
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
 	/// <returns>The lower of the decimal digit counts of the two numbers.</returns>
-	protected internal static int LowestDecimalDigits(PreciseNumber left, PreciseNumber right)
+	internal static int LowestDecimalDigits(PreciseNumber left, PreciseNumber right)
 	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
 		int leftDecimalDigits = left.CountDecimalDigits();
 		int rightDecimalDigits = right.CountDecimalDigits();
 
@@ -623,11 +609,8 @@ public record PreciseNumber
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
 	/// <returns>The lower of the significant digit counts of the two numbers.</returns>
-	protected internal static int LowestSignificantDigits(PreciseNumber left, PreciseNumber right)
+	internal static int LowestSignificantDigits(PreciseNumber left, PreciseNumber right)
 	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
 		int leftSignificantDigits = left.SignificantDigits;
 		int rightSignificantDigits = right.SignificantDigits;
 
@@ -643,7 +626,7 @@ public record PreciseNumber
 	/// Counts the number of decimal digits in the current instance.
 	/// </summary>
 	/// <returns>The number of decimal digits in the current instance.</returns>
-	protected internal int CountDecimalDigits() =>
+	internal int CountDecimalDigits() =>
 		Exponent > 0
 		? 0
 		: int.Abs(Exponent);
@@ -678,7 +661,7 @@ public record PreciseNumber
 	/// <param name="left">The left <see cref="PreciseNumber"/> instance.</param>
 	/// <param name="right">The right <see cref="PreciseNumber"/> instance.</param>
 	/// <returns>A tuple containing the commonized <see cref="PreciseNumber"/> instances.</returns>
-	protected internal static (PreciseNumber, PreciseNumber) MakeCommonized(PreciseNumber left, PreciseNumber right)
+	internal static (PreciseNumber, PreciseNumber) MakeCommonized(PreciseNumber left, PreciseNumber right)
 	{
 		(PreciseNumber commonLeft, PreciseNumber commonRight, int _) = MakeCommonizedWithExponent(left, right);
 		return (commonLeft, commonRight);
@@ -692,11 +675,8 @@ public record PreciseNumber
 	/// <returns>
 	/// A tuple containing the commonized <see cref="PreciseNumber"/> instances and the common exponent.
 	/// </returns>
-	protected internal static (PreciseNumber, PreciseNumber, int) MakeCommonizedWithExponent(PreciseNumber left, PreciseNumber right)
+	internal static (PreciseNumber, PreciseNumber, int) MakeCommonizedWithExponent(PreciseNumber left, PreciseNumber right)
 	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
 		int smallestExponent = left.Exponent < right.Exponent ? left.Exponent : right.Exponent;
 		int exponentDifferenceLeft = Math.Abs(left.Exponent - smallestExponent);
 		int exponentDifferenceRight = Math.Abs(right.Exponent - smallestExponent);
@@ -717,9 +697,6 @@ public record PreciseNumber
 	/// <returns>The scaled significands and the exponent they share.</returns>
 	private static (BigInteger Left, BigInteger Right, int Exponent) CommonizeSignificands(PreciseNumber left, PreciseNumber right)
 	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
 		int leftExponent = left.Exponent;
 		int rightExponent = right.Exponent;
 
@@ -746,9 +723,6 @@ public record PreciseNumber
 	/// </remarks>
 	private static int Compare(PreciseNumber left, PreciseNumber right)
 	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
 		int leftSign = left.Significand.Sign;
 		int rightSign = right.Significand.Sign;
 
@@ -778,8 +752,8 @@ public record PreciseNumber
 	}
 
 	/// <inheritdoc/>
-	public int CompareTo(PreciseNumber? other) =>
-		other is null ? 1 : Compare(this, other);
+	public int CompareTo(PreciseNumber other) =>
+		Compare(this, other);
 
 	/// <summary>
 	/// Compares the current instance with another number of a specified type.
@@ -804,7 +778,7 @@ public record PreciseNumber
 	/// </item>
 	/// </list>
 	/// </returns>
-	/// <exception cref="ArgumentNullException">Thrown if <paramref name="obj"/> is <c>null</c>.</exception>
+	/// <remarks>Every value is greater than <see langword="null"/>.</remarks>
 	public int CompareTo<TNumber>(INumber<TNumber>? obj)
 		where TNumber : INumber<TNumber>
 	{
@@ -817,13 +791,22 @@ public record PreciseNumber
 		return CompareTo(other);
 	}
 
-	/// <inheritdoc/>
-	public int CompareTo(object? obj)
-	{
-		return obj is PreciseNumber preciseNumber
-			? CompareTo(preciseNumber)
-			: throw new NotSupportedException();
-	}
+	/// <summary>
+	/// Compares the current instance with an object.
+	/// </summary>
+	/// <param name="obj">The object to compare with, which must be a <see cref="PreciseNumber"/> or <see langword="null"/>.</param>
+	/// <returns>
+	/// A negative value, zero, or a positive value as the current instance is less than, equal to, or greater
+	/// than <paramref name="obj"/>. Every value is greater than <see langword="null"/>.
+	/// </returns>
+	/// <exception cref="NotSupportedException"><paramref name="obj"/> is not a <see cref="PreciseNumber"/>.</exception>
+	public int CompareTo(object? obj) =>
+		obj switch
+		{
+			null => 1,
+			PreciseNumber preciseNumber => Compare(this, preciseNumber),
+			_ => throw new NotSupportedException(),
+		};
 
 	/// <summary>
 	/// Compares the current instance with another number.
@@ -843,11 +826,8 @@ public record PreciseNumber
 	}
 
 	/// <inheritdoc/>
-	public static PreciseNumber Abs(PreciseNumber value)
-	{
-		Ensure.NotNull(value);
-		return value.Significand.Sign < 0 ? -value : value;
-	}
+	public static PreciseNumber Abs(PreciseNumber value) =>
+		value.Significand.Sign < 0 ? -value : value;
 
 	/// <inheritdoc/>
 	public static bool IsCanonical(PreciseNumber value) => true;
@@ -868,11 +848,8 @@ public record PreciseNumber
 	public static bool IsInfinity(PreciseNumber value) => !IsFinite(value);
 
 	/// <inheritdoc/>
-	public static bool IsInteger(PreciseNumber value)
-	{
-		Ensure.NotNull(value);
-		return value.Exponent >= 0;
-	}
+	public static bool IsInteger(PreciseNumber value) =>
+		value.Exponent >= 0;
 
 	/// <inheritdoc/>
 	public static bool IsNaN(PreciseNumber value) => false;
@@ -894,11 +871,8 @@ public record PreciseNumber
 	public static bool IsOddInteger(PreciseNumber value) => IsInteger(value) && !value.Significand.IsEven;
 
 	/// <inheritdoc/>
-	public static bool IsPositive(PreciseNumber value)
-	{
-		Ensure.NotNull(value);
-		return value.Significand >= 0;
-	}
+	public static bool IsPositive(PreciseNumber value) =>
+		value.Significand >= 0;
 
 	/// <inheritdoc/>
 	public static bool IsPositiveInfinity(PreciseNumber value) => IsInfinity(value) && IsPositive(value);
@@ -910,32 +884,19 @@ public record PreciseNumber
 	public static bool IsSubnormal(PreciseNumber value) => !IsNormal(value);
 
 	/// <inheritdoc/>
-	public static bool IsZero(PreciseNumber value)
-	{
-		Ensure.NotNull(value);
-		return value.Significand == 0;
-	}
+	public static bool IsZero(PreciseNumber value) =>
+		value.Significand == 0;
 
 	/// <inheritdoc/>
-	public static PreciseNumber MaxMagnitude(PreciseNumber x, PreciseNumber y)
-	{
-		Ensure.NotNull(x);
-		Ensure.NotNull(y);
-
-		return x.Abs() >= y.Abs() ? x : y;
-	}
+	public static PreciseNumber MaxMagnitude(PreciseNumber x, PreciseNumber y) =>
+		x.Abs() >= y.Abs() ? x : y;
 
 	/// <inheritdoc/>
 	public static PreciseNumber MaxMagnitudeNumber(PreciseNumber x, PreciseNumber y) => MaxMagnitude(x, y);
 
 	/// <inheritdoc/>
-	public static PreciseNumber MinMagnitude(PreciseNumber x, PreciseNumber y)
-	{
-		Ensure.NotNull(x);
-		Ensure.NotNull(y);
-
-		return x.Abs() <= y.Abs() ? x : y;
-	}
+	public static PreciseNumber MinMagnitude(PreciseNumber x, PreciseNumber y) =>
+		x.Abs() <= y.Abs() ? x : y;
 
 	/// <inheritdoc/>
 	public static PreciseNumber MinMagnitudeNumber(PreciseNumber x, PreciseNumber y) => MinMagnitude(x, y);
@@ -1040,7 +1001,7 @@ public record PreciseNumber
 		Parse(s, NumberStyles.Any, provider);
 
 	/// <inheritdoc/>
-	public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider, [MaybeNullWhen(false)][NotNullWhen(true)] out PreciseNumber result)
+	public static bool TryParse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider, out PreciseNumber result)
 	{
 		try
 		{
@@ -1055,15 +1016,15 @@ public record PreciseNumber
 	}
 
 	/// <inheritdoc/>
-	public static bool TryParse([NotNullWhen(true)] string? s, NumberStyles style, IFormatProvider? provider, [NotNullWhen(true)] out PreciseNumber? result) =>
+	public static bool TryParse([NotNullWhen(true)] string? s, NumberStyles style, IFormatProvider? provider, out PreciseNumber result) =>
 		TryParse(s.AsSpan(), style, provider, out result);
 
 	/// <inheritdoc/>
-	public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, [NotNullWhen(true)] out PreciseNumber? result) =>
+	public static bool TryParse([NotNullWhen(true)] string? s, IFormatProvider? provider, out PreciseNumber result) =>
 		TryParse(s.AsSpan(), NumberStyles.Any, provider, out result);
 
 	/// <inheritdoc/>
-	public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, [NotNullWhen(true)] out PreciseNumber? result) =>
+	public static bool TryParse(ReadOnlySpan<char> s, IFormatProvider? provider, out PreciseNumber result) =>
 		TryParse(s, NumberStyles.Any, provider, out result);
 
 	/// <inheritdoc/>
@@ -1182,48 +1143,13 @@ public record PreciseNumber
 		return true;
 	}
 
-	/// <inheritdoc/>
-	public static bool TryConvertFromChecked<TOther>(TOther value, out PreciseNumber result)
-		where TOther : INumberBase<TOther>
-		=> throw new NotSupportedException();
-
-	/// <inheritdoc/>
-	public static bool TryConvertFromSaturating<TOther>(TOther value, out PreciseNumber result)
-		where TOther : INumberBase<TOther>
-		=> throw new NotSupportedException();
-
-	/// <inheritdoc/>
-	public static bool TryConvertFromTruncating<TOther>(TOther value, out PreciseNumber result)
-		where TOther : INumberBase<TOther>
-		=> throw new NotSupportedException();
-
-	/// <inheritdoc/>
-	public static bool TryConvertToChecked<TOther>(PreciseNumber value, out TOther result)
-		where TOther : INumberBase<TOther>
-		=> throw new NotSupportedException();
-
-	/// <inheritdoc/>
-	public static bool TryConvertToSaturating<TOther>(PreciseNumber value, out TOther result)
-		where TOther : INumberBase<TOther>
-		=> throw new NotSupportedException();
-
-	/// <inheritdoc/>
-	public static bool TryConvertToTruncating<TOther>(PreciseNumber value, out TOther result)
-		where TOther : INumberBase<TOther>
-		=> throw new NotSupportedException();
-
 	/// <summary>
 	/// Asserts that the exponents of two numbers match.
 	/// </summary>
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
-	protected internal static void AssertExponentsMatch(PreciseNumber left, PreciseNumber right)
-	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
+	internal static void AssertExponentsMatch(PreciseNumber left, PreciseNumber right) =>
 		Debug.Assert(left.Exponent == right.Exponent, $"{nameof(AssertExponentsMatch)}: {left.Exponent} == {right.Exponent}");
-	}
 
 	/// <summary>
 	/// Negates a number.
@@ -1232,7 +1158,6 @@ public record PreciseNumber
 	/// <returns>The negated number.</returns>
 	public static PreciseNumber Negate(PreciseNumber value)
 	{
-		Ensure.NotNull(value);
 		return value.Significand.IsZero
 			? value
 			: new(value.Exponent, -value.Significand);
@@ -1270,9 +1195,6 @@ public record PreciseNumber
 	/// <returns>The result of the multiplication.</returns>
 	public static PreciseNumber Multiply(PreciseNumber left, PreciseNumber right)
 	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
 		if (left.Significand.IsZero || right.Significand.IsZero)
 		{
 			return Zero;
@@ -1307,9 +1229,6 @@ public record PreciseNumber
 	/// </remarks>
 	public static PreciseNumber Divide(PreciseNumber left, PreciseNumber right)
 	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
 		// Dividing must not silently discard precision the operands already carry.
 		int significantDigits = Math.Max(
 			Math.Max(left.SignificantDigits, right.SignificantDigits),
@@ -1332,9 +1251,6 @@ public record PreciseNumber
 	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
 	public static PreciseNumber Divide(PreciseNumber left, PreciseNumber right, int significantDigits)
 	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
 		if (significantDigits < 1)
 		{
 			throw new ArgumentOutOfRangeException(nameof(significantDigits), significantDigits, "At least one significant digit is required.");
@@ -1361,7 +1277,7 @@ public record PreciseNumber
 			denominator = -denominator;
 		}
 
-		return TryDivideExactly(numerator, denominator, exponent, out PreciseNumber? exact)
+		return TryDivideExactly(numerator, denominator, exponent, out PreciseNumber exact)
 			? exact
 			: DivideToPrecision(numerator, denominator, exponent, significantDigits);
 	}
@@ -1374,7 +1290,7 @@ public record PreciseNumber
 	/// <param name="exponent">The exponent the quotient's significand sits at.</param>
 	/// <param name="result">The exact quotient, when there is one.</param>
 	/// <returns><c>true</c> if the quotient terminates and <paramref name="result"/> is exact; otherwise <c>false</c>.</returns>
-	private static bool TryDivideExactly(BigInteger numerator, BigInteger denominator, int exponent, [NotNullWhen(true)] out PreciseNumber? result)
+	private static bool TryDivideExactly(BigInteger numerator, BigInteger denominator, int exponent, out PreciseNumber result)
 	{
 		// A fraction terminates in base ten exactly when its denominator is 2^twos * 5^fives. Most
 		// denominators are rejected by the first remainder test, which is why this is worth trying
@@ -1391,7 +1307,7 @@ public record PreciseNumber
 
 		if (!remaining.IsOne)
 		{
-			result = null;
+			result = default;
 			return false;
 		}
 
@@ -1450,9 +1366,6 @@ public record PreciseNumber
 	/// <returns>The modulus of the two numbers.</returns>
 	public static PreciseNumber Mod(PreciseNumber left, PreciseNumber right)
 	{
-		Ensure.NotNull(left);
-		Ensure.NotNull(right);
-
 		if (right.Significand.IsZero)
 		{
 			throw new DivideByZeroException();
@@ -1569,11 +1482,8 @@ public record PreciseNumber
 	/// <param name="min">The minimum value.</param>
 	/// <param name="max">The maximum value.</param>
 	/// <returns>The clamped number.</returns>
-	public static PreciseNumber Clamp(PreciseNumber value, PreciseNumber min, PreciseNumber max)
-	{
-		Ensure.NotNull(value);
-		return value.Clamp(min, max);
-	}
+	public static PreciseNumber Clamp(PreciseNumber value, PreciseNumber min, PreciseNumber max) =>
+		value.Clamp(min, max);
 
 	/// <summary>
 	/// Rounds a number to the specified number of decimal digits.
@@ -1581,11 +1491,8 @@ public record PreciseNumber
 	/// <param name="value">The number to round.</param>
 	/// <param name="decimalDigits">The number of decimal digits to round to.</param>
 	/// <returns>The rounded number.</returns>
-	public static PreciseNumber Round(PreciseNumber value, int decimalDigits)
-	{
-		Ensure.NotNull(value);
-		return value.Round(decimalDigits);
-	}
+	public static PreciseNumber Round(PreciseNumber value, int decimalDigits) =>
+		value.Round(decimalDigits);
 
 	/// <summary>
 	/// Returns the square of the current number.
@@ -1606,8 +1513,6 @@ public record PreciseNumber
 	/// <returns>A new instance of <see cref="PreciseNumber"/> that is the result of raising the current instance to the specified power.</returns>
 	public PreciseNumber Pow(PreciseNumber power)
 	{
-		Ensure.NotNull(power);
-
 		if (power.Significand.IsZero)
 		{
 			return One;
@@ -1655,8 +1560,6 @@ public record PreciseNumber
 	/// <returns>A new instance of <see cref="PreciseNumber"/> that is the result of raising e to the specified power.</returns>
 	public static PreciseNumber Exp(PreciseNumber power)
 	{
-		Ensure.NotNull(power);
-
 		if (power.Significand.IsZero)
 		{
 			return One;
@@ -1722,17 +1625,6 @@ public record PreciseNumber
 		Increment(value);
 
 	/// <summary>
-	/// Caches the <see cref="PreciseNumber"/> copy constructor of a derived type so that
-	/// <see cref="As{TOutput}"/> only reflects over each type once.
-	/// </summary>
-	private static class CopyConstructorOf<TOutput>
-		where TOutput : PreciseNumber
-	{
-		internal static readonly System.Reflection.ConstructorInfo? Constructor =
-			typeof(TOutput).GetConstructor([typeof(PreciseNumber)]);
-	}
-
-	/// <summary>
 	/// Asserts that a type implements a specified generic interface.
 	/// </summary>
 	/// <param name="type">The type to check.</param>
@@ -1763,36 +1655,17 @@ public record PreciseNumber
 	/// <typeparam name="TOutput">The type to convert to. Must implement <see cref="INumber{TOutput}"/>.</typeparam>
 	/// <returns>The converted value of the number as type <typeparamref name="TOutput"/>.</returns>
 	/// <exception cref="OverflowException">
-	/// Thrown if the conversion cannot be performed. This may occur if the target type cannot represent
-	/// the value of the number.
+	/// Thrown if the target type is an integer type or <see cref="decimal"/> and cannot represent the value.
 	/// </exception>
+	/// <remarks>
+	/// Built-in numeric types and <see cref="BigInteger"/> convert as
+	/// <see cref="TryConvertToChecked{TOther}(PreciseNumber, out TOther)"/> describes: integer types truncate
+	/// toward zero, and binary floating point types are correctly rounded. Any other type is built from
+	/// the significand and a <see cref="double"/> power of ten, and is limited to that precision.
+	/// </remarks>
 	public TOutput To<TOutput>()
 		where TOutput : INumber<TOutput> =>
-		typeof(TOutput) == typeof(PreciseNumber)
-		? (TOutput)(object)this
+		TryConvertTo<TOutput>(this, ConversionMode.Checked, out TOutput? result)
+		? result
 		: TOutput.CreateChecked(Significand) * TOutput.CreateChecked(Math.Pow(Base10, Exponent));
-
-	/// <summary>
-	/// Converts the current instance to the specified derived type of <see cref="PreciseNumber"/>.
-	/// </summary>
-	/// <typeparam name="TOutput">The type to convert to. Must derive from <see cref="PreciseNumber"/>.</typeparam>
-	/// <returns>
-	/// An instance of type <typeparamref name="TOutput"/> representing the current instance.
-	/// </returns>
-	/// <exception cref="NotSupportedException">
-	/// Thrown if the conversion cannot be performed. This may occur if the target type does not have a constructor
-	/// that accepts a <see cref="PreciseNumber"/> as a parameter.
-	/// </exception>
-	public TOutput As<TOutput>()
-	where TOutput : PreciseNumber
-	{
-		if (typeof(TOutput) == typeof(PreciseNumber))
-		{
-			return (TOutput)(object)this;
-		}
-
-		System.Reflection.ConstructorInfo? constructor = CopyConstructorOf<TOutput>.Constructor;
-		return (TOutput)(constructor?.Invoke([this]) ??
-		throw new NotSupportedException($"Cannot convert {GetType()} to {typeof(TOutput)}"));
-	}
 }
