@@ -2001,6 +2001,32 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
+	public void TestPow10IsCorrectAcrossCacheBoundaries()
+	{
+		// The cache starts at 128 entries, grows on demand up to 1024, and computes anything
+		// beyond that per call. Every one of those transitions must produce the same value.
+		foreach (int exponent in new[] { 0, 1, 127, 128, 129, 255, 256, 257, 1023, 1024, 1025, 2048 })
+		{
+			Assert.AreEqual(BigInteger.Pow(10, exponent), PreciseNumber.Pow10(exponent), $"10^{exponent}");
+		}
+
+		// Ascending and descending, to exercise both a grown cache and one grown past the request.
+		for (int exponent = 0; exponent <= 300; exponent++)
+		{
+			Assert.AreEqual(BigInteger.Pow(10, exponent), PreciseNumber.Pow10(exponent), $"10^{exponent}");
+		}
+
+		for (int exponent = 300; exponent >= 0; exponent--)
+		{
+			Assert.AreEqual(BigInteger.Pow(10, exponent), PreciseNumber.Pow10(exponent), $"10^{exponent}");
+		}
+	}
+
+	[TestMethod]
+	public void TestPow10RejectsNegativeExponents() =>
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Pow10(-1));
+
+	[TestMethod]
 	public void TestSanitizeStripsLongRunsOfTrailingZeros()
 	{
 		BigInteger significand = BigInteger.Parse("1234567", CultureInfo.InvariantCulture) * BigInteger.Pow(10, 200);

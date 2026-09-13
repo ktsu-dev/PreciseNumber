@@ -24,9 +24,15 @@ public record PreciseNumber
 	private const int MaxStackAllocChars = 256;
 
 	/// <summary>
-	/// Number of powers of ten that are pre-computed. Exponents at or above this are computed on demand.
+	/// Number of powers of ten pre-computed when the type is first used.
 	/// </summary>
-	private const int Pow10CacheSize = 128;
+	private const int Pow10InitialCacheSize = 128;
+
+	/// <summary>
+	/// Ceiling on the power of ten cache. Beyond this, powers are computed per call rather than
+	/// retained, so that one extreme exponent cannot leave a large cache behind.
+	/// </summary>
+	private const int Pow10MaxCacheSize = 1024;
 
 	/// <summary>
 	/// log10(2), used to derive a decimal digit count from a binary bit length.
@@ -34,16 +40,31 @@ public record PreciseNumber
 	private const double Log10Of2 = 0.3010299956639812;
 
 	/// <summary>
-	/// Pre-computed powers of ten. Declared before any other static state so that the
-	/// static constants below can rely on it while they are being initialized.
+	/// Pre-computed powers of ten, grown on demand. Declared before any other static state so
+	/// that the static constants below can rely on it while they are being initialized.
 	/// </summary>
-	private static readonly BigInteger[] Pow10Cache = BuildPow10Cache();
+	/// <remarks>
+	/// Growing replaces the array rather than filling the existing one. A <see cref="BigInteger"/>
+	/// is a multi-field struct, so writing one into a shared array is not atomic and a concurrent
+	/// reader could observe it half written. Publishing an already populated array through a
+	/// single reference assignment cannot tear, and two threads growing at once simply build two
+	/// correct arrays, one of which wins.
+	/// </remarks>
+	private static BigInteger[] pow10Cache = BuildPow10Cache(Pow10InitialCacheSize, []);
 
-	private static BigInteger[] BuildPow10Cache()
+	/// <summary>
+	/// Builds a power of ten cache of the given size, reusing the entries already computed.
+	/// </summary>
+	/// <param name="size">The number of powers the new cache should hold.</param>
+	/// <param name="existing">The entries to carry over, which must be a prefix of the new cache.</param>
+	/// <returns>The populated cache.</returns>
+	private static BigInteger[] BuildPow10Cache(int size, BigInteger[] existing)
 	{
-		BigInteger[] cache = new BigInteger[Pow10CacheSize];
-		BigInteger value = BigInteger.One;
-		for (int i = 0; i < Pow10CacheSize; i++)
+		BigInteger[] cache = new BigInteger[size];
+		existing.CopyTo(cache, 0);
+
+		BigInteger value = existing.Length == 0 ? BigInteger.One : existing[^1] * Base10;
+		for (int i = existing.Length; i < size; i++)
 		{
 			cache[i] = value;
 			value *= Base10;
@@ -53,14 +74,41 @@ public record PreciseNumber
 	}
 
 	/// <summary>
-	/// Raises ten to the specified non-negative power, serving small exponents from a cache.
+	/// Raises ten to the specified non-negative power, serving it from a cache.
 	/// </summary>
 	/// <param name="exponent">The power to raise ten to.</param>
 	/// <returns>Ten raised to <paramref name="exponent"/>.</returns>
-	internal static BigInteger Pow10(int exponent) =>
-		(uint)exponent < Pow10CacheSize
-		? Pow10Cache[exponent]
-		: BigInteger.Pow(Base10, exponent);
+	internal static BigInteger Pow10(int exponent)
+	{
+		BigInteger[] cache = pow10Cache;
+		return (uint)exponent < (uint)cache.Length
+			? cache[exponent]
+			: GrowCacheAndGetPow10(exponent, cache);
+	}
+
+	/// <summary>
+	/// Extends the power of ten cache to cover an exponent it does not yet reach.
+	/// </summary>
+	/// <param name="exponent">The power to raise ten to.</param>
+	/// <param name="current">The cache as it was read by the caller.</param>
+	/// <returns>Ten raised to <paramref name="exponent"/>.</returns>
+	/// <remarks>
+	/// Every digit count and every exponent alignment needs a power of ten, so a value wider than
+	/// the cache would otherwise pay for a fresh <see cref="BigInteger.Pow"/> on every single
+	/// operation. That produced a cliff at the cache boundary rather than a gradual slope.
+	/// </remarks>
+	private static BigInteger GrowCacheAndGetPow10(int exponent, BigInteger[] current)
+	{
+		if (exponent is < 0 or > Pow10MaxCacheSize)
+		{
+			return BigInteger.Pow(Base10, exponent);
+		}
+
+		int size = Math.Min(Math.Max(current.Length * 2, exponent + 1), Pow10MaxCacheSize + 1);
+		BigInteger[] grown = BuildPow10Cache(size, current);
+		pow10Cache = grown;
+		return grown[exponent];
+	}
 
 	/// <summary>
 	/// Counts the decimal digits in the absolute value of a <see cref="BigInteger"/>.

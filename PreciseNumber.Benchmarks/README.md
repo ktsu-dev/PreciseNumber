@@ -57,6 +57,12 @@ operation returns a new instance, so a change that avoids an intermediate value 
 `Allocated` column before it shows up in `Mean`. A comparison that allocates at all is a
 regression — none of them should.
 
+One entry is easy to misread. `Divide` barely moves between 8 and 200 digits, and at 200 digits
+it comes out faster than `Add`. That is not division being efficient — it computes its fractional
+part through a `double`, so it discards everything past roughly the 17th significant digit and
+the result it constructs is small no matter how large the operands were. Read it as a measure of
+how much precision the operation throws away, not how fast it is.
+
 Benchmark operands come from a fixed digit pattern rather than a random source, so two runs on
 the same machine measure the same work. Numbers are still only comparable within a single run on
 a single machine; a cloud CI runner in particular is too noisy to compare against a previous run
