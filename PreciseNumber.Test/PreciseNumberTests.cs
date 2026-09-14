@@ -403,7 +403,9 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number = 1.2345.ToPreciseNumber();
 		PreciseNumber result = PreciseNumber.Round(number, 2);
-		Assert.AreEqual(1.24.ToPreciseNumber(), result);
+
+		// The dropped digits are 45, below half of 100, so this rounds down.
+		Assert.AreEqual(1.23.ToPreciseNumber(), result);
 	}
 
 	[TestMethod]
@@ -963,9 +965,72 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number = PreciseNumber.CreateFromComponents(0, 12345);
 		PreciseNumber result = number.ReduceSignificance(3);
-		Assert.AreEqual(124, result.Significand);
+
+		// The dropped digits are 45, below half of 100, so this rounds down.
+		Assert.AreEqual(123, result.Significand);
 		Assert.AreEqual(2, result.Exponent);
 		Assert.AreEqual(number, number.ReduceSignificance(5));
+	}
+
+	[TestMethod]
+	public void TestReduceSignificanceRoundsHalfAwayFromZeroOnTheDroppedDigits()
+	{
+		static PreciseNumber P(string text) => PreciseNumber.Parse(text, CultureInfo.InvariantCulture);
+
+		(string Input, int Digits, string Expected)[] cases =
+		[
+			("123.456", 3, "123"),
+			("123.5", 3, "124"),
+			("123.449", 3, "123"),
+			("123.4999999", 3, "123"),
+			("123.5000001", 3, "124"),
+			("999.5", 3, "1000"),
+			("-123.456", 3, "-123"),
+			("-123.5", 3, "-124"),
+			("-123.449", 3, "-123"),
+			("-999.96", 3, "-1000"),
+
+			// One dropped digit, where the old rounding was already right.
+			("123.45", 4, "123.5"),
+			("123.44", 4, "123.4"),
+			("-123.45", 4, "-123.5"),
+		];
+
+		foreach ((string input, int digits, string expected) in cases)
+		{
+			Assert.AreEqual(P(expected), P(input).ReduceSignificance(digits), $"{input} to {digits} significant digits");
+		}
+	}
+
+	[TestMethod]
+	public void TestRoundRoundsHalfAwayFromZeroOnTheDroppedDigits()
+	{
+		static PreciseNumber P(string text) => PreciseNumber.Parse(text, CultureInfo.InvariantCulture);
+
+		(string Input, int Decimals, string Expected)[] cases =
+		[
+			("1.2345", 2, "1.23"),
+			("1.235", 2, "1.24"),
+			("1.2349", 2, "1.23"),
+			("1.2349999", 2, "1.23"),
+			("1.2350001", 2, "1.24"),
+			("9.995", 2, "10"),
+			("0.0049", 2, "0"),
+			("0.005", 2, "0.01"),
+			("-1.2345", 2, "-1.23"),
+			("-1.235", 2, "-1.24"),
+			("-1.2349", 2, "-1.23"),
+
+			// One dropped digit, where the old rounding was already right.
+			("1.234", 2, "1.23"),
+			("1.225", 2, "1.23"),
+			("-1.225", 2, "-1.23"),
+		];
+
+		foreach ((string input, int decimals, string expected) in cases)
+		{
+			Assert.AreEqual(P(expected), P(input).Round(decimals), $"{input} to {decimals} decimal places");
+		}
 	}
 
 	[TestMethod]
@@ -1606,11 +1671,12 @@ public class PreciseNumberTests
 	{
 		PreciseNumber result = PreciseNumber.Exp(-1.ToPreciseNumber());
 
-		// Exp routes through a double, so 1/e is taken to the precision Exp actually delivers
-		// rather than the full precision Divide is now capable of.
-		PreciseNumber expected = PreciseNumber.Divide(PreciseNumber.One, PreciseNumber.E, result.SignificantDigits);
+		// Exp routes through a double, and the result keeps every digit that double needs to round-trip.
+		// Its 17th digit comes from binary rounding, so it's 3 where 1/e continues 0.36787944117144232159.
+		PreciseNumber expected = PreciseNumber.Parse("0.36787944117144233", CultureInfo.InvariantCulture);
 
 		Assert.AreEqual(expected, result);
+		Assert.AreEqual(Math.Exp(-1), result.To<double>());
 	}
 
 	[TestMethod]
@@ -1798,6 +1864,21 @@ public class PreciseNumberTests
 		bool success = PreciseNumber.TryParse(input, NumberStyles.Any, null, out PreciseNumber result);
 		Assert.IsFalse(success, "TryParse should fail with invalid string input");
 		Assert.AreEqual(default, result);
+	}
+
+	[TestMethod]
+	public void TestParseRejectsExponentsOutsideIntRange()
+	{
+		foreach (string input in new[] { "1e99999999999", "1e-99999999999", "1.5E-2147483648", "10E2147483647" })
+		{
+			Assert.ThrowsExactly<OverflowException>(() => PreciseNumber.Parse(input, CultureInfo.InvariantCulture), input);
+			bool success = PreciseNumber.TryParse(input, null, out PreciseNumber result);
+			Assert.IsFalse(success, input);
+			Assert.AreEqual(PreciseNumber.Zero, result, input);
+		}
+
+		Assert.AreEqual(int.MinValue, PreciseNumber.Parse("1E-2147483648", CultureInfo.InvariantCulture).Exponent);
+		Assert.AreEqual(int.MaxValue, PreciseNumber.Parse("1E2147483647", CultureInfo.InvariantCulture).Exponent);
 	}
 
 	[TestMethod]

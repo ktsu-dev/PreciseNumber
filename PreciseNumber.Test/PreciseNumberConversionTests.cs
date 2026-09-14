@@ -45,8 +45,11 @@ public class PreciseNumberConversionTests
 
 	private static void AssertToInAllModes<TTo>(string value, TTo expected)
 		where TTo : INumberBase<TTo>
+		=> AssertToInAllModes(P(value), expected);
+
+	private static void AssertToInAllModes<TTo>(PreciseNumber number, TTo expected)
+		where TTo : INumberBase<TTo>
 	{
-		PreciseNumber number = P(value);
 		Assert.AreEqual(expected, Checked<TTo, PreciseNumber>(number), $"Checked to {typeof(TTo).Name}");
 		Assert.AreEqual(expected, Saturating<TTo, PreciseNumber>(number), $"Saturating to {typeof(TTo).Name}");
 		Assert.AreEqual(expected, Truncating<TTo, PreciseNumber>(number), $"Truncating to {typeof(TTo).Name}");
@@ -294,5 +297,85 @@ public class PreciseNumberConversionTests
 		Assert.AreEqual(
 			double.Parse("3.14159265358979323846264338327950288419716939937510582097494", NumberStyles.Float, CultureInfo.InvariantCulture),
 			P("3.14159265358979323846264338327950288419716939937510582097494").To<double>());
+	}
+
+	[TestMethod]
+	public void FromBinaryFloatingPointKeepsShortestRoundTripDigits()
+	{
+		AssertFromInAllModes(double.MaxValue, "1.7976931348623157e308");
+		AssertFromInAllModes(double.MinValue, "-1.7976931348623157e308");
+		AssertFromInAllModes(0.1 + 0.2, "0.30000000000000004");
+		AssertFromInAllModes(float.MaxValue, "3.4028235e38");
+		AssertFromInAllModes(1.0f / 3, "0.33333334");
+		AssertFromInAllModes(0.3048, "0.3048");
+		AssertFromInAllModes(0.1f, "0.1");
+	}
+
+	[TestMethod]
+	public void BinaryFloatingPointRoundTripsThroughPreciseNumber()
+	{
+		foreach (double value in new[] { double.MaxValue, double.MinValue, double.Epsilon, -double.Epsilon, 2.2250738585072014e-308, 0.1 + 0.2, 1.0 / 3 })
+		{
+			Assert.AreEqual(value, Checked<double, PreciseNumber>(Checked<PreciseNumber, double>(value)), value.ToString("R", CultureInfo.InvariantCulture));
+		}
+
+		foreach (float value in new[] { float.MaxValue, float.MinValue, float.Epsilon, 1.0f / 3, 16777216f, 0.1f })
+		{
+			Assert.AreEqual(value, Checked<float, PreciseNumber>(Checked<PreciseNumber, float>(value)), value.ToString("R", CultureInfo.InvariantCulture));
+		}
+
+		foreach (Half value in new[] { Half.MaxValue, Half.MinValue, Half.Epsilon, (Half)0.1 })
+		{
+			Assert.AreEqual(value, Checked<Half, PreciseNumber>(Checked<PreciseNumber, Half>(value)), value.ToString(CultureInfo.InvariantCulture));
+		}
+	}
+
+	[TestMethod]
+	public void ToFloatingPointWithOverAThousandFractionDigitsIsCorrectlyRounded()
+	{
+		// The .NET 7 and 8 parsers clamp an exponent above 1000 while still counting every digit before
+		// the 'E', so rendering the whole significand ahead of the exponent turned these values into zero.
+		string oneWithLongTail = "1." + new string('0', 1000) + "1";
+		AssertToInAllModes(oneWithLongTail, 1.0);
+		AssertToInAllModes(oneWithLongTail, 1.0f);
+		AssertToInAllModes(oneWithLongTail, Half.One);
+		AssertToInAllModes(oneWithLongTail, 1m);
+		AssertToInAllModes("0.1" + new string('0', 1100) + "1", 0.1m);
+
+		// Halfway cases round to even, so the nonzero digit far past the halfway point has to be seen to round up.
+		AssertToInAllModes("9007199254740993." + new string('0', 1500) + "1", 9007199254740994.0);
+		AssertToInAllModes("16777217." + new string('0', 1200) + "1", 16777218f);
+
+		string manyDigits = "1." + string.Concat(Enumerable.Repeat("2345678901", 150));
+		string smallWithManyDigits = "0." + new string('0', 300) + "1" + string.Concat(Enumerable.Repeat("2345678901", 120));
+		foreach (string text in new[] { manyDigits, "-" + manyDigits, smallWithManyDigits })
+		{
+			AssertToInAllModes(text, double.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
+			AssertToInAllModes(text, float.Parse(text, NumberStyles.Float, CultureInfo.InvariantCulture));
+		}
+	}
+
+	[TestMethod]
+	public void SmallestExponentConvertsToZero()
+	{
+		PreciseNumber[] values =
+		[
+			P("1E-2147483648"),
+			PreciseNumber.CreateFromComponents(int.MinValue, BigInteger.Parse("-123456789012345678901234567890", CultureInfo.InvariantCulture)),
+		];
+
+		foreach (PreciseNumber value in values)
+		{
+			AssertToInAllModes(value, 0.0);
+			AssertToInAllModes(value, 0.0f);
+			AssertToInAllModes(value, Half.Zero);
+			AssertToInAllModes(value, 0m);
+			AssertToInAllModes(value, 0);
+			AssertToInAllModes(value, 0L);
+			AssertToInAllModes(value, (byte)0);
+			AssertToInAllModes(value, Int128.Zero);
+			AssertToInAllModes(value, UInt128.Zero);
+			AssertToInAllModes(value, BigInteger.Zero);
+		}
 	}
 }
