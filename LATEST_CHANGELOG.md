@@ -1,6 +1,4 @@
-## v2.0.3 (patch)
+## v2.0.3
 
-Changes since v2.0.2:
-
-- Write benchmark results where the workflow looks for them [patch] ([@Claude](https://github.com/Claude))
+No significant changes detected since v2.0.3.
 
