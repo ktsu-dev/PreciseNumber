@@ -1,6 +1,6 @@
-## v2.0.1 (patch)
+## v2.0.2 (patch)
 
-Changes since v2.0.0:
+Changes since v2.0.1:
 
-- ci: adopt the consolidated .NET workflow [patch] ([@Claude](https://github.com/Claude))
+- [patch] Fix conversion edge cases found in review ([@matt-edmondson](https://github.com/matt-edmondson))
 
