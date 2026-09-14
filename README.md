@@ -80,7 +80,7 @@ A high-precision numeric type for .NET that provides arbitrary precision arithme
 
 - **Full .NET Integration**: Implements `INumber<T>`, including `CreateChecked`, `CreateSaturating`, and `CreateTruncating` in both directions, so generic math code can create and convert values.  
 
-- **Value Type**: A `readonly record struct` whose `default` value is zero. Adding, subtracting, multiplying, and comparing values whose significands fit in an `int` allocates nothing.  
+- **Value Type**: A `readonly record struct` whose `default` value is zero. Adding, subtracting, multiplying, and comparing allocate nothing when the operands and every intermediate and final significand fit in an `int`. Exponent alignment counts, so `1 + 0.0000000001` allocates because it scales 1 by 10^10, and `99999 * 99999` allocates because its product is 9,999,800,001.  
 
 - **Comprehensive Mathematical Support**: Includes advanced mathematical functions like exponential operations (Pow, Exp, Squared, Cubed), constant values (Pi, E, Tau) with high precision, absolute value operations, and specialized numerical checks (isOdd, isEven, etc.)—all with arbitrary precision.  
 
@@ -374,9 +374,9 @@ This representation allows for:
 
 You can control precision using:  
 
-- **Round()**: Rounds to a specific number of decimal places  
+- **Round()**: Rounds to a specific number of decimal places, half away from zero  
 
-- **ReduceSignificance()**: Reduces to a specific number of significant digits  
+- **ReduceSignificance()**: Reduces to a specific number of significant digits, half away from zero  
 
 - **Divide(left, right, significantDigits)**: Chooses the precision of a quotient  
 
@@ -392,7 +392,7 @@ three-argument overload when you want something other than that.
 
 - A checked conversion to an integer type or `decimal` throws `OverflowException` when the value is out of range. Conversion to `double`, `float`, or `Half` overflows to infinity instead, as it does for every built-in type  
 
-- Converting from `double` keeps 16 significant digits, and from `float` 8. A binary value that needs all 17 digits to round-trip, such as the result of `0.1 + 0.2` in `double`, arrives rounded  
+- Converting from `double`, `float`, or `Half` keeps the shortest digits that round-trip, so converting back gives the original value, and `0.3048` stays exactly 0.3048. The result of `0.1 + 0.2` in `double` arrives as 0.30000000000000004, because that's the value the `double` holds  
 
 ## Performance  
 

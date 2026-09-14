@@ -85,8 +85,9 @@ public readonly partial record struct PreciseNumber
 	/// <remarks>
 	/// Integers, <see cref="BigInteger"/> and <see cref="decimal"/> convert exactly. Binary floating point
 	/// values convert through their decimal text, so <c>0.3048</c> becomes exactly 0.3048 rather than the
-	/// binary fraction nearest to it. A <see cref="double"/> keeps 16 significant digits and a
-	/// <see cref="float"/> 8, which is the same rounding <see cref="PreciseNumberExtensions.ToPreciseNumber{TInput}(TInput)"/> applies.
+	/// binary fraction nearest to it. The text is the shortest that round-trips, so converting the result back
+	/// gives the original value, even for <see cref="double.MaxValue"/>. It's the same text
+	/// <see cref="PreciseNumberExtensions.ToPreciseNumber{TInput}(TInput)"/> uses.
 	/// </remarks>
 	public static bool TryConvertFromChecked<TOther>(TOther value, out PreciseNumber result)
 		where TOther : INumberBase<TOther>
@@ -382,8 +383,9 @@ public readonly partial record struct PreciseNumber
 			return Significand * Pow10(Exponent);
 		}
 
-		// Every digit sits after the decimal point, so the integral part is zero.
-		return -Exponent >= SignificantDigits
+		// Every digit sits after the decimal point, so the integral part is zero. Widened, because
+		// negating int.MinValue wraps.
+		return -(long)Exponent >= SignificantDigits
 			? BigInteger.Zero
 			: BigInteger.Divide(Significand, Pow10(-Exponent));
 	}
@@ -392,7 +394,8 @@ public readonly partial record struct PreciseNumber
 	{
 		// Clinger's fast path: when the significand and the power of ten are both exact doubles, one
 		// multiplication or division is correctly rounded by IEEE 754 itself.
-		if (int.Abs(Exponent) <= MaxExactDoublePowerOfTen && BigInteger.Abs(Significand) <= MaxExactDoubleSignificand)
+		// A range pattern rather than int.Abs, which throws for int.MinValue.
+		if (Exponent is >= -MaxExactDoublePowerOfTen and <= MaxExactDoublePowerOfTen && BigInteger.Abs(Significand) <= MaxExactDoubleSignificand)
 		{
 			double significand = (double)Significand;
 			return Exponent >= 0
@@ -405,7 +408,7 @@ public readonly partial record struct PreciseNumber
 
 	private float ToSingle()
 	{
-		if (int.Abs(Exponent) <= MaxExactSinglePowerOfTen && BigInteger.Abs(Significand) <= MaxExactSingleSignificand)
+		if (Exponent is >= -MaxExactSinglePowerOfTen and <= MaxExactSinglePowerOfTen && BigInteger.Abs(Significand) <= MaxExactSingleSignificand)
 		{
 			float significand = (float)Significand;
 			return Exponent >= 0
@@ -444,17 +447,30 @@ public readonly partial record struct PreciseNumber
 	}
 
 	/// <summary>
-	/// Renders the number as <c>significand E exponent</c> and parses it as <typeparamref name="TNumber"/>.
+	/// Renders the number in normalized scientific notation, <c>d.ddd…E±n</c>, and parses it as <typeparamref name="TNumber"/>.
 	/// </summary>
 	/// <remarks>
 	/// The runtime's parsers round correctly however many digits they are given, which is what makes this
-	/// exact where multiplying by <c>Math.Pow(10, exponent)</c> is not.
+	/// exact where multiplying by <c>Math.Pow(10, exponent)</c> is not. Every digit is rendered, because a
+	/// value just past a halfway point can differ from it only in a digit far beyond what the destination
+	/// holds. Only one digit goes before the point because the .NET 7 and 8 parsers clamp an exponent above
+	/// 1000 to 9999 and still offset it by every digit ahead of the point, so a rendered integer significand
+	/// with more than 1000 fraction digits parsed as zero. In normalized form, any value within the range of
+	/// the destination has an exponent well inside that limit.
 	/// </remarks>
 	private TNumber ParseAs<TNumber>()
 		where TNumber : INumberBase<TNumber>
 	{
-		// The significand's digits, its sign, the 'E', and an exponent of up to eleven characters.
-		int length = SignificantDigits + 13;
+		if (Significand.IsZero)
+		{
+			return TNumber.Zero;
+		}
+
+		// Widened, because an exponent near int.MinValue or int.MaxValue would otherwise wrap.
+		long scientificExponent = (long)Exponent + SignificantDigits - 1;
+
+		// The significand's digits, its sign, the decimal point, the 'E', and an exponent of up to twenty characters.
+		int length = SignificantDigits + 23;
 		char[]? rented = length > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent(length) : null;
 		Span<char> stackBuffer = stackalloc char[MaxStackAllocChars];
 		Span<char> buffer = rented is null ? stackBuffer : rented.AsSpan();
@@ -466,9 +482,19 @@ public readonly partial record struct PreciseNumber
 				throw new InvalidOperationException("The significand did not fit the buffer sized for it.");
 			}
 
+			int leadingDigit = Significand.Sign < 0 ? 1 : 0;
+			int trailingDigits = written - leadingDigit - 1;
+			if (trailingDigits > 0)
+			{
+				// CopyTo handles the overlap, shifting every digit after the leading one right by one place.
+				buffer.Slice(leadingDigit + 1, trailingDigits).CopyTo(buffer[(leadingDigit + 2)..]);
+				buffer[leadingDigit + 1] = '.';
+				written++;
+			}
+
 			buffer[written++] = 'E';
 
-			if (!Exponent.TryFormat(buffer[written..], out int exponentWritten, default, InvariantCulture))
+			if (!scientificExponent.TryFormat(buffer[written..], out int exponentWritten, default, InvariantCulture))
 			{
 				throw new InvalidOperationException("The exponent did not fit the buffer sized for it.");
 			}

@@ -40,7 +40,7 @@ dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*' --job s
 - The `sanitize` constructor parameter controls whether trailing zeros are removed (default: true)
 - Constants (`Zero`, `One`, `Pi`, `E`, `Tau`) are pre-computed static instances
 - As a value type it can't be null or inherited. Don't add null checks for `PreciseNumber` parameters, and don't reintroduce `protected` members
-- Conversions to integer types go through `BigInteger`, so range checks, clamping, and wrapping follow its conventions. Conversions to `double`, `float`, `Half`, and `decimal` render `significand E exponent` and parse it, because the runtime parsers round correctly, with Clinger's fast path for small values. NaN and infinity coming in follow `BigInteger` too
+- Conversions to integer types go through `BigInteger`, so range checks, clamping, and wrapping follow its conventions. Conversions to `double`, `float`, `Half`, and `decimal` render normalized scientific notation (`d.ddd…E±n`) and parse it, because the runtime parsers round correctly, with Clinger's fast path for small values. Keep one digit before the point. The .NET 7 and 8 parsers clamp an exponent above 1000 and still offset it by every digit ahead of the point, so a long significand rendered as an integer parses as zero there. Conversions from `double`, `float`, and `Half` use the shortest text that round-trips (`"R"`). NaN and infinity coming in follow `BigInteger` too
 
 ### Test Structure
 
@@ -58,8 +58,10 @@ Most classes are parameterised by `Digits` (8, 30, 200). That axis is the point:
 
 Allocation is reported alongside time and matters just as much. The number is a value type, so the
 only allocations are `BigInteger` digit arrays, and avoiding an intermediate shows up in `Allocated`
-before it shows up in `Mean`. Comparisons, and addition, subtraction, and multiplication of
-significands that fit in an `int`, should allocate nothing at all.
+before it shows up in `Mean`. Comparison, addition, subtraction, and multiplication should allocate
+nothing when the operands and every intermediate and final significand fit in an `int`. Exponent
+alignment counts, so `1 + 0.0000000001` allocates because it scales 1 by 10^10, and `99999 * 99999`
+allocates because its product is 9,999,800,001.
 
 Run the relevant benchmarks before and after any change to the library's internals. See
 `PreciseNumber.Benchmarks/README.md` for details.

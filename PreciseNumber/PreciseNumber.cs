@@ -229,7 +229,7 @@ public readonly partial record struct PreciseNumber
 			if (trailingZeros > 0)
 			{
 				significand /= Pow10(trailingZeros);
-				exponent += trailingZeros;
+				exponent = checked(exponent + trailingZeros);
 				significantDigits -= trailingZeros;
 			}
 		}
@@ -370,14 +370,14 @@ public readonly partial record struct PreciseNumber
 	/// </summary>
 	/// <param name="decimalDigits">The number of decimal digits to round to.</param>
 	/// <returns>A new instance of <see cref="PreciseNumber"/> rounded to the specified number of decimal digits.</returns>
+	/// <remarks>Rounds half away from zero, so 1.235 becomes 1.24 and 1.2349 becomes 1.23.</remarks>
 	public PreciseNumber Round(int decimalDigits)
 	{
 		int currentDecimalDigits = CountDecimalDigits();
 		int decimalDifference = int.Abs(decimalDigits - currentDecimalDigits);
 		if (currentDecimalDigits > decimalDigits && decimalDifference > 0)
 		{
-			BigInteger roundingFactor = BigInteger.CopySign(CreateRepeatingDigits(5, decimalDifference), Significand);
-			BigInteger newSignificand = (Significand + roundingFactor) / Pow10(decimalDifference);
+			BigInteger newSignificand = DropDigitsRoundingHalfAwayFromZero(Significand, decimalDifference);
 			int newExponent = Exponent - int.CopySign(decimalDifference, Exponent);
 			return new PreciseNumber(newExponent, newSignificand);
 		}
@@ -510,16 +510,16 @@ public readonly partial record struct PreciseNumber
 		}
 	}
 
+	/// <summary>
+	/// Gets the format that renders a floating point value as the shortest text that round-trips.
+	/// </summary>
+	/// <remarks>
+	/// A fixed precision such as <c>E15</c> rounds values that need 17 digits, which turns
+	/// <see cref="double.MaxValue"/> into a number that converts back to infinity.
+	/// </remarks>
 	internal static string GetStringFormatForFloatType<TFloat>()
 		where TFloat : INumber<TFloat>
-	{
-		return typeof(TFloat) switch
-		{
-			_ when typeof(TFloat) == typeof(float) => "E7",
-			_ when typeof(TFloat) == typeof(double) => "E15",
-			_ => "R",
-		};
-	}
+		=> "R";
 
 	/// <summary>
 	/// Creates a <see cref="PreciseNumber"/> from an integer value.
@@ -570,6 +570,31 @@ public readonly partial record struct PreciseNumber
 
 		// digit * (10^n - 1) / 9 is the repunit of length n scaled by the digit.
 		return digit * (Pow10(numberOfRepeats) - BigInteger.One) / 9;
+	}
+
+	/// <summary>
+	/// Removes the lowest digits of a significand, rounding half away from zero on the exact value of
+	/// the digits removed.
+	/// </summary>
+	/// <param name="significand">The significand to shorten.</param>
+	/// <param name="droppedDigits">How many of the lowest digits to remove. Must be positive.</param>
+	/// <returns>The rounded significand, with <paramref name="droppedDigits"/> fewer digits.</returns>
+	/// <remarks>
+	/// Adding a run of fives before truncating is only exact when one digit is dropped. With more, the
+	/// fives past the first carry a remainder such as 45 over the halfway mark.
+	/// </remarks>
+	private static BigInteger DropDigitsRoundingHalfAwayFromZero(BigInteger significand, int droppedDigits)
+	{
+		BigInteger divisor = Pow10(droppedDigits);
+
+		// DivRem truncates toward zero and gives the remainder the sign of the significand.
+		BigInteger kept = BigInteger.DivRem(significand, divisor, out BigInteger dropped);
+		if (BigInteger.Abs(dropped) * 2 >= divisor)
+		{
+			kept += significand.Sign;
+		}
+
+		return kept;
 	}
 
 	/// <summary>
@@ -636,6 +661,7 @@ public readonly partial record struct PreciseNumber
 	/// </summary>
 	/// <param name="significantDigits">The number of significant digits to reduce to.</param>
 	/// <returns>A new instance of <see cref="PreciseNumber"/> reduced to the specified number of significant digits.</returns>
+	/// <remarks>Rounds half away from zero, so 123.5 becomes 124 and 123.456 becomes 123 at three digits.</remarks>
 	public PreciseNumber ReduceSignificance(int significantDigits)
 	{
 		int significantDifference = significantDigits < SignificantDigits
@@ -650,8 +676,7 @@ public readonly partial record struct PreciseNumber
 		int newExponent = Exponent == 0
 			? significantDifference
 			: Exponent + significantDifference;
-		BigInteger roundingFactor = BigInteger.CopySign(CreateRepeatingDigits(5, significantDifference), Significand);
-		BigInteger newSignificand = (Significand + roundingFactor) / Pow10(significantDifference);
+		BigInteger newSignificand = DropDigitsRoundingHalfAwayFromZero(Significand, significantDifference);
 		return new(newExponent, newSignificand);
 	}
 
@@ -946,6 +971,7 @@ public readonly partial record struct PreciseNumber
 
 				if (c is 'e' or 'E')
 				{
+					// An exponent outside the range of int throws OverflowException, which TryParse reports as failure.
 					exponent = int.Parse(s[(i + 1)..], InvariantCulture);
 					break;
 				}
@@ -970,7 +996,7 @@ public readonly partial record struct PreciseNumber
 
 			BigInteger significand = BigInteger.Parse(digits[..digitCount], NumberStyles.None, InvariantCulture);
 
-			exponent -= decimalDigits;
+			exponent = checked(exponent - decimalDigits);
 
 			if (isNegative)
 			{
@@ -1008,7 +1034,7 @@ public readonly partial record struct PreciseNumber
 			result = Parse(s, style, provider);
 			return true;
 		}
-		catch (FormatException)
+		catch (Exception ex) when (ex is FormatException or OverflowException)
 		{
 			result = default;
 			return false;
