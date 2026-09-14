@@ -62,6 +62,11 @@ jobs:
           if [ "$BENCHMARK_JOB" != "default" ]; then
             args+=(--job "$BENCHMARK_JOB")
           fi
+          # --artifacts is what decides where the reports land. Without it BenchmarkDotNet
+          # writes them below the working directory, which `dotnet run --project` leaves at the
+          # repository root rather than moving to the project -- so the later steps looked under
+          # PreciseNumber.Benchmarks/ and found nothing, and every run uploaded no artifact.
+          args+=(--artifacts "$GITHUB_WORKSPACE/BenchmarkDotNet.Artifacts")
           dotnet run -c Release --project PreciseNumber.Benchmarks -- "${args[@]}"
 
       # The Markdown reports are the readable artifact; the JSON is what a later comparison
@@ -71,7 +76,7 @@ jobs:
         shell: bash
         run: |
           shopt -s nullglob
-          reports=(PreciseNumber.Benchmarks/BenchmarkDotNet.Artifacts/results/*-report-github.md)
+          reports=(BenchmarkDotNet.Artifacts/results/*-report-github.md)
           if [ ${#reports[@]} -eq 0 ]; then
             echo "No benchmark reports were produced." >> "$GITHUB_STEP_SUMMARY"
             exit 0
@@ -86,6 +91,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: benchmark-results-${{ github.sha }}
-          path: PreciseNumber.Benchmarks/BenchmarkDotNet.Artifacts/results/*
+          path: BenchmarkDotNet.Artifacts/results/*
           retention-days: 30
-          if-no-files-found: warn
+          if-no-files-found: error
