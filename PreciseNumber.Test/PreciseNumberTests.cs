@@ -947,8 +947,8 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number1 = PreciseNumber.CreateFromComponents(-2, 12345);
 		PreciseNumber number2 = PreciseNumber.CreateFromComponents(-3, 678);
-		int result = PreciseNumber.LowestDecimalDigits(number1, number2);
-		Assert.AreEqual(2, result);
+		long result = PreciseNumber.LowestDecimalDigits(number1, number2);
+		Assert.AreEqual(2L, result);
 	}
 
 	[TestMethod]
@@ -2299,5 +2299,86 @@ public class PreciseNumberTests
 		PreciseNumber parsed = PreciseNumber.Parse(text, CultureInfo.InvariantCulture);
 
 		Assert.AreEqual(text, parsed.ToString(CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
+	public void TestCountDecimalDigitsAtExtremeExponents()
+	{
+		PreciseNumber tiny = PreciseNumber.CreateFromComponents(int.MinValue, BigInteger.One);
+		Assert.AreEqual(-(long)int.MinValue, tiny.CountDecimalDigits());
+
+		PreciseNumber huge = PreciseNumber.CreateFromComponents(int.MaxValue, BigInteger.One);
+		Assert.AreEqual(0L, huge.CountDecimalDigits());
+	}
+
+	[TestMethod]
+	public void TestTryFormatAtExtremeExponentsReturnsFalse()
+	{
+		// The text these need is longer than any int, so the only correct answer for a
+		// destination this size is false, not an exception.
+		Span<char> buffer = stackalloc char[64];
+		foreach (int exponent in new[] { int.MinValue, int.MaxValue })
+		{
+			PreciseNumber number = PreciseNumber.CreateFromComponents(exponent, BigInteger.One);
+
+			bool result = number.TryFormat(buffer, out int charsWritten, "G".AsSpan(), CultureInfo.InvariantCulture);
+
+			Assert.IsFalse(result, $"TryFormat should fail for an exponent of {exponent}");
+			Assert.AreEqual(0, charsWritten);
+		}
+	}
+
+	[TestMethod]
+	public void TestToStringAtExtremeExponentsThrowsOverflow()
+	{
+		// Neither value can exist as a string in fixed point notation, so the failure should say
+		// so rather than surface as an allocation or negation error.
+		foreach (int exponent in new[] { int.MinValue, int.MaxValue })
+		{
+			PreciseNumber number = PreciseNumber.CreateFromComponents(exponent, BigInteger.One);
+
+			Assert.ThrowsExactly<OverflowException>(
+				() => number.ToString(CultureInfo.InvariantCulture),
+				$"ToString should overflow for an exponent of {exponent}");
+		}
+	}
+
+	[TestMethod]
+	public void TestParseThenFormatAtExtremeExponentsRoundTrips()
+	{
+		// Parse accepts any exponent that fits an int, so formatting has to answer for one.
+		PreciseNumber tiny = PreciseNumber.Parse("1E-2147483648", NumberStyles.Float, CultureInfo.InvariantCulture);
+		Assert.AreEqual(int.MinValue, tiny.Exponent);
+		Assert.ThrowsExactly<OverflowException>(() => tiny.ToString(CultureInfo.InvariantCulture));
+
+		PreciseNumber huge = PreciseNumber.Parse("1E2147483647", NumberStyles.Float, CultureInfo.InvariantCulture);
+		Assert.AreEqual(int.MaxValue, huge.Exponent);
+		Assert.ThrowsExactly<OverflowException>(() => huge.ToString(CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
+	public void TestRoundAtExtremeNegativeExponentGivesZero()
+	{
+		// Every significant digit sits far below the requested place, so the value rounds away.
+		PreciseNumber tiny = PreciseNumber.CreateFromComponents(int.MinValue, BigInteger.One);
+
+		Assert.AreEqual(PreciseNumber.Zero, tiny.Round(2));
+	}
+
+	[TestMethod]
+	public void TestFormatAtLargeButRepresentableExponents()
+	{
+		// Still fixed point, and still the full run of zeros, but a length a string can hold.
+		PreciseNumber tiny = PreciseNumber.CreateFromComponents(-1000, BigInteger.One);
+		string tinyText = tiny.ToString(CultureInfo.InvariantCulture);
+		Assert.AreEqual(1002, tinyText.Length);
+		Assert.AreEqual("0.", tinyText[..2]);
+		Assert.AreEqual('1', tinyText[^1]);
+
+		PreciseNumber huge = PreciseNumber.CreateFromComponents(1000, BigInteger.One);
+		string hugeText = huge.ToString(CultureInfo.InvariantCulture);
+		Assert.AreEqual(1001, hugeText.Length);
+		Assert.AreEqual('1', hugeText[0]);
+		Assert.AreEqual(new string('0', 1000), hugeText[1..]);
 	}
 }

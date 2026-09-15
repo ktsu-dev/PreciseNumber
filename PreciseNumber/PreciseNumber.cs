@@ -330,14 +330,21 @@ public readonly partial record struct PreciseNumber
 		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(formatProvider ?? InvariantCulture);
 
 		// Digits, plus the padding zeros implied by the exponent, plus the sign, the decimal
-		// separator and a possible leading "0".
-		int desiredAlloc = number.SignificantDigits
-			+ int.Abs(number.Exponent)
+		// separator and a possible leading "0". Widened, because an exponent of int.MinValue has
+		// no negation that fits an int and one near int.MaxValue would wrap the sum.
+		long desiredAlloc = number.SignificantDigits
+			+ long.Abs(number.Exponent)
 			+ numberFormat.NegativeSign.Length
 			+ numberFormat.NumberDecimalSeparator.Length
 			+ 1;
 
-		char[]? rentedBuffer = desiredAlloc > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent(desiredAlloc) : null;
+		if (desiredAlloc > Array.MaxLength)
+		{
+			throw new OverflowException(
+				$"An exponent of {number.Exponent.ToString(InvariantCulture)} needs more characters in fixed point notation than a string can hold.");
+		}
+
+		char[]? rentedBuffer = desiredAlloc > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent((int)desiredAlloc) : null;
 		Span<char> stackBuffer = stackalloc char[MaxStackAllocChars];
 		Span<char> buffer = rentedBuffer is null ? stackBuffer : rentedBuffer.AsSpan();
 
@@ -373,12 +380,18 @@ public readonly partial record struct PreciseNumber
 	/// <remarks>Rounds half away from zero, so 1.235 becomes 1.24 and 1.2349 becomes 1.23.</remarks>
 	public PreciseNumber Round(int decimalDigits)
 	{
-		int currentDecimalDigits = CountDecimalDigits();
-		int decimalDifference = int.Abs(decimalDigits - currentDecimalDigits);
+		long currentDecimalDigits = CountDecimalDigits();
+		long decimalDifference = long.Abs(decimalDigits - currentDecimalDigits);
 		if (currentDecimalDigits > decimalDigits && decimalDifference > 0)
 		{
-			BigInteger newSignificand = DropDigitsRoundingHalfAwayFromZero(Significand, decimalDifference);
-			int newExponent = Exponent - int.CopySign(decimalDifference, Exponent);
+			// Dropping one digit more than the significand holds always leaves zero, so there is
+			// never a reason to raise ten to a wider power than that, however far below the
+			// requested place the value sits.
+			int droppedDigits = (int)long.Min(decimalDifference, SignificantDigits + 1);
+			BigInteger newSignificand = DropDigitsRoundingHalfAwayFromZero(Significand, droppedDigits);
+			int newExponent = newSignificand.IsZero
+				? 0
+				: Exponent - int.CopySign(droppedDigits, Exponent);
 			return new PreciseNumber(newExponent, newSignificand);
 		}
 
@@ -615,10 +628,10 @@ public readonly partial record struct PreciseNumber
 	/// <param name="left">The first number.</param>
 	/// <param name="right">The second number.</param>
 	/// <returns>The lower of the decimal digit counts of the two numbers.</returns>
-	internal static int LowestDecimalDigits(PreciseNumber left, PreciseNumber right)
+	internal static long LowestDecimalDigits(PreciseNumber left, PreciseNumber right)
 	{
-		int leftDecimalDigits = left.CountDecimalDigits();
-		int rightDecimalDigits = right.CountDecimalDigits();
+		long leftDecimalDigits = left.CountDecimalDigits();
+		long rightDecimalDigits = right.CountDecimalDigits();
 
 		leftDecimalDigits = left.HasInfinitePrecision ? rightDecimalDigits : leftDecimalDigits;
 		rightDecimalDigits = right.HasInfinitePrecision ? leftDecimalDigits : rightDecimalDigits;
@@ -651,10 +664,14 @@ public readonly partial record struct PreciseNumber
 	/// Counts the number of decimal digits in the current instance.
 	/// </summary>
 	/// <returns>The number of decimal digits in the current instance.</returns>
-	internal int CountDecimalDigits() =>
+	/// <remarks>
+	/// Widened, because an exponent of <see cref="int.MinValue"/> implies one more decimal digit
+	/// than an <see cref="int"/> can count.
+	/// </remarks>
+	internal long CountDecimalDigits() =>
 		Exponent > 0
 		? 0
-		: int.Abs(Exponent);
+		: -(long)Exponent;
 
 	/// <summary>
 	/// Reduces the significance of the current instance to a specified number of significant digits.
@@ -1114,9 +1131,12 @@ public readonly partial record struct PreciseNumber
 			sign = numberFormat.NegativeSign;
 		}
 
+		// Every length below is widened, because the padding zeros an extreme exponent implies can
+		// outnumber anything an int holds. Past that point no destination is large enough, so the
+		// comparison against its length is what answers, rather than an overflow.
 		if (Exponent >= 0)
 		{
-			int wholeLength = sign.Length + digits.Length + Exponent;
+			long wholeLength = (long)sign.Length + digits.Length + Exponent;
 			if (destination.Length < wholeLength)
 			{
 				return false;
@@ -1125,47 +1145,50 @@ public readonly partial record struct PreciseNumber
 			sign.CopyTo(destination);
 			digits.CopyTo(destination[sign.Length..]);
 			destination.Slice(sign.Length + digits.Length, Exponent).Fill('0');
-			charsWritten = wholeLength;
+			charsWritten = (int)wholeLength;
 			return true;
 		}
 
 		ReadOnlySpan<char> separator = numberFormat.NumberDecimalSeparator;
-		int fractionalDigits = -Exponent;
-		int integralDigits = digits.Length - fractionalDigits;
+		long fractionalDigits = -(long)Exponent;
+		long integralDigits = digits.Length - fractionalDigits;
 
 		// When the exponent consumes every digit the integral part is a single "0" and the
 		// fractional part is padded out to the full width with leading zeros.
-		int integralLength = integralDigits > 0 ? integralDigits : 1;
-		int required = sign.Length + integralLength + separator.Length + fractionalDigits;
+		long integralLength = integralDigits > 0 ? integralDigits : 1;
+		long required = sign.Length + integralLength + separator.Length + fractionalDigits;
 
 		if (destination.Length < required)
 		{
 			return false;
 		}
 
+		// The destination holds the whole rendering, so every length below fits an int.
 		int position = 0;
 		sign.CopyTo(destination);
 		position += sign.Length;
 
 		if (integralDigits > 0)
 		{
-			digits[..integralDigits].CopyTo(destination[position..]);
-			position += integralDigits;
+			int wholeDigits = (int)integralDigits;
+			digits[..wholeDigits].CopyTo(destination[position..]);
+			position += wholeDigits;
 			separator.CopyTo(destination[position..]);
 			position += separator.Length;
-			digits[integralDigits..].CopyTo(destination[position..]);
+			digits[wholeDigits..].CopyTo(destination[position..]);
 		}
 		else
 		{
+			int padding = (int)(fractionalDigits - digits.Length);
 			destination[position++] = '0';
 			separator.CopyTo(destination[position..]);
 			position += separator.Length;
-			destination.Slice(position, fractionalDigits - digits.Length).Fill('0');
-			position += fractionalDigits - digits.Length;
+			destination.Slice(position, padding).Fill('0');
+			position += padding;
 			digits.CopyTo(destination[position..]);
 		}
 
-		charsWritten = required;
+		charsWritten = (int)required;
 		return true;
 	}
 
