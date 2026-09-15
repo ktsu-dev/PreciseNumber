@@ -1,6 +1,8 @@
-## v2.0.3
+## v2.0.4 (patch)
 
-No significant changes detected since v2.0.3.
+Changes since v2.0.3:
+
+- fix: do the formatting length arithmetic in long [patch] ([@Claude](https://github.com/Claude))
 
 ## v2.0.3 (patch)
 
