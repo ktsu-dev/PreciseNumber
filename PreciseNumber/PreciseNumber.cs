@@ -4,6 +4,7 @@ namespace ktsu.PreciseNumber;
 
 using System;
 using System.Buffers;
+using System.Collections.Concurrent;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -250,26 +251,168 @@ public readonly partial record struct PreciseNumber
 	/// <inheritdoc/>
 	public static PreciseNumber Zero { get; } = new(0, 0);
 
-	private const int EExponent = -40;
+	/// <summary>
+	/// The number of significant digits carried by <see cref="E"/>, <see cref="Pi"/>,
+	/// <see cref="Tau"/>, <see cref="Ln2"/>, and <see cref="Ln10"/>.
+	/// </summary>
+	/// <remarks>
+	/// Chosen to match the 150 digits <c>ktsu.Semantics</c> standardizes on for the conversion
+	/// factors it derives from pi, so that the two libraries cannot disagree about pi. It is also
+	/// well above <see cref="MinimumDivisionPrecision"/>, so an expression mixing a constant with a
+	/// quotient is no longer capped at the constant's precision.
+	/// <para>
+	/// Argument reduction cannot be more accurate than the constant it reduces by: reducing an angle
+	/// of magnitude 10^d modulo tau to n correct digits spends roughly d of the constant's digits
+	/// before it starts on the answer. 150 leaves room for that.
+	/// </para>
+	/// </remarks>
+	public const int ConstantPrecision = 150;
+
+	private const int EExponent = -149;
 
 	/// <summary>
-	/// Gets the value of e for the type.
+	/// Gets the value of e for the type, correctly rounded to <see cref="ConstantPrecision"/>
+	/// significant digits.
 	/// </summary>
-	public static PreciseNumber E { get; } = new(EExponent, BigInteger.Parse("27182818284590452353602874713526624977572", InvariantCulture));
+	/// <remarks>Its own literal, never computed from another constant, so that an error in one cannot reach the others.</remarks>
+	public static PreciseNumber E { get; } = new(EExponent, BigInteger.Parse("271828182845904523536028747135266249775724709369995957496696762772407663035354759457138217852516642742746639193200305992181741359662904357290033429526", InvariantCulture));
 
-	private const int PiExponent = -25;
+	private const int PiExponent = -149;
 
 	/// <summary>
-	/// Gets the value of pi for the type.
+	/// Gets the value of pi for the type, correctly rounded to <see cref="ConstantPrecision"/>
+	/// significant digits.
 	/// </summary>
-	public static PreciseNumber Pi { get; } = new(PiExponent, BigInteger.Parse("31415926535897932384626433", InvariantCulture));
+	/// <remarks>Its own literal, never computed from another constant, so that an error in one cannot reach the others.</remarks>
+	public static PreciseNumber Pi { get; } = new(PiExponent, BigInteger.Parse("314159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940813", InvariantCulture));
 
-	private const int TauExponent = -24;
+	private const int TauExponent = -149;
 
 	/// <summary>
-	/// Gets the value of tau for the type.
+	/// Gets the value of tau for the type, correctly rounded to <see cref="ConstantPrecision"/>
+	/// significant digits.
 	/// </summary>
-	public static PreciseNumber Tau { get; } = new(TauExponent, BigInteger.Parse("6283185307179586476925287", InvariantCulture));
+	/// <remarks>
+	/// Its own literal, never computed from another constant, so that an error in one cannot reach
+	/// the others. It nonetheless agrees exactly with <see cref="Pi"/> doubled, which
+	/// <c>TestTauIsExactlyPiDoubled</c> pins so that the two cannot drift apart.
+	/// </remarks>
+	public static PreciseNumber Tau { get; } = new(TauExponent, BigInteger.Parse("628318530717958647692528676655900576839433879875021164194988918461563281257241799725606965068423413596429617302656461329418768921910116446345071881626", InvariantCulture));
+
+	private const int Ln2Exponent = -150;
+
+	/// <summary>
+	/// Gets the natural logarithm of two, correctly rounded to <see cref="ConstantPrecision"/>
+	/// significant digits.
+	/// </summary>
+	/// <remarks>Its own literal, never computed from another constant, so that an error in one cannot reach the others.</remarks>
+	public static PreciseNumber Ln2 { get; } = new(Ln2Exponent, BigInteger.Parse("693147180559945309417232121458176568075500134360255254120680009493393621969694715605863326996418687542001481020570685733685520235758130557032670751635", InvariantCulture));
+
+	private const int Ln10Exponent = -149;
+
+	/// <summary>
+	/// Gets the natural logarithm of ten, correctly rounded to <see cref="ConstantPrecision"/>
+	/// significant digits.
+	/// </summary>
+	/// <remarks>
+	/// Its own literal, never computed from another constant, so that an error in one cannot reach
+	/// the others. Its 150th significant digit is a zero, which the constructor removes along with
+	/// any other trailing zero, so it stores 149 digits for the same value.
+	/// </remarks>
+	public static PreciseNumber Ln10 { get; } = new(Ln10Exponent, BigInteger.Parse("230258509299404568401799145468436420760110148862877297603332790096757260967735248023599720508959829834196778404228624863340952546508280675666628736910", InvariantCulture));
+
+	/// <summary>
+	/// Reduced forms of the constants above, keyed by the constant and the number of significant
+	/// digits asked of it.
+	/// </summary>
+	/// <remarks>
+	/// Multiplication is exact, so any product involving a <see cref="ConstantPrecision"/> digit
+	/// constant carries at least that many digits. A caller that only wants fifteen pays for all of
+	/// them unless it asks for fifteen, and asking repeatedly should not re-round every time.
+	/// </remarks>
+	private static readonly ConcurrentDictionary<(PreciseNumber Constant, int SignificantDigits), PreciseNumber> constantCache = new();
+
+	/// <summary>
+	/// Gets the value of e reduced to the specified number of significant digits.
+	/// </summary>
+	/// <param name="significantDigits">The number of significant digits to produce.</param>
+	/// <returns>
+	/// <see cref="E"/> rounded to <paramref name="significantDigits"/> significant digits, or
+	/// <see cref="E"/> itself when that is no fewer digits than it carries.
+	/// </returns>
+	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	public static PreciseNumber ETo(int significantDigits) =>
+		ConstantTo(E, significantDigits);
+
+	/// <summary>
+	/// Gets the value of pi reduced to the specified number of significant digits.
+	/// </summary>
+	/// <param name="significantDigits">The number of significant digits to produce.</param>
+	/// <returns>
+	/// <see cref="Pi"/> rounded to <paramref name="significantDigits"/> significant digits, or
+	/// <see cref="Pi"/> itself when that is no fewer digits than it carries.
+	/// </returns>
+	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	public static PreciseNumber PiTo(int significantDigits) =>
+		ConstantTo(Pi, significantDigits);
+
+	/// <summary>
+	/// Gets the value of tau reduced to the specified number of significant digits.
+	/// </summary>
+	/// <param name="significantDigits">The number of significant digits to produce.</param>
+	/// <returns>
+	/// <see cref="Tau"/> rounded to <paramref name="significantDigits"/> significant digits, or
+	/// <see cref="Tau"/> itself when that is no fewer digits than it carries.
+	/// </returns>
+	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	public static PreciseNumber TauTo(int significantDigits) =>
+		ConstantTo(Tau, significantDigits);
+
+	/// <summary>
+	/// Gets the natural logarithm of two reduced to the specified number of significant digits.
+	/// </summary>
+	/// <param name="significantDigits">The number of significant digits to produce.</param>
+	/// <returns>
+	/// <see cref="Ln2"/> rounded to <paramref name="significantDigits"/> significant digits, or
+	/// <see cref="Ln2"/> itself when that is no fewer digits than it carries.
+	/// </returns>
+	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	public static PreciseNumber Ln2To(int significantDigits) =>
+		ConstantTo(Ln2, significantDigits);
+
+	/// <summary>
+	/// Gets the natural logarithm of ten reduced to the specified number of significant digits.
+	/// </summary>
+	/// <param name="significantDigits">The number of significant digits to produce.</param>
+	/// <returns>
+	/// <see cref="Ln10"/> rounded to <paramref name="significantDigits"/> significant digits, or
+	/// <see cref="Ln10"/> itself when that is no fewer digits than it carries.
+	/// </returns>
+	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	public static PreciseNumber Ln10To(int significantDigits) =>
+		ConstantTo(Ln10, significantDigits);
+
+	/// <summary>
+	/// Reduces one of the constants to the specified number of significant digits, serving it from
+	/// a cache.
+	/// </summary>
+	/// <param name="constant">The full precision constant.</param>
+	/// <param name="significantDigits">The number of significant digits to produce.</param>
+	/// <returns>The constant at the requested precision, rounded half away from zero.</returns>
+	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	private static PreciseNumber ConstantTo(PreciseNumber constant, int significantDigits)
+	{
+		if (significantDigits < 1)
+		{
+			throw new ArgumentOutOfRangeException(nameof(significantDigits), significantDigits, "At least one significant digit is required.");
+		}
+
+		return significantDigits >= constant.SignificantDigits
+			? constant
+			: constantCache.GetOrAdd(
+				(constant, significantDigits),
+				static key => key.Constant.ReduceSignificance(key.SignificantDigits));
+	}
 
 	/// <summary>
 	/// Gets the exponent of the number.
