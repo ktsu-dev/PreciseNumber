@@ -1,6 +1,8 @@
-## v2.0.4
+## v2.0.5 (patch)
 
-No significant changes detected since v2.0.4.
+Changes since v2.0.4:
+
+- Gate Dependabot auto-merge on CI actually being green ([@Claude](https://github.com/Claude))
 
 ## v2.0.4 (patch)
 
