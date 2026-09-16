@@ -206,9 +206,8 @@ internal static partial class BenchmarkHistory
 		string cpu = "";
 		string runtime = "";
 
-		foreach (string report in reports)
+		foreach (JsonNode document in reports.Select(report => JsonNode.Parse(File.ReadAllText(report))!))
 		{
-			JsonNode document = JsonNode.Parse(File.ReadAllText(report))!;
 			if (cpu.Length == 0 && document["HostEnvironmentInfo"] is JsonNode environment)
 			{
 				cpu = (environment["ProcessorName"]?.GetValue<string>() ?? "").Trim();
