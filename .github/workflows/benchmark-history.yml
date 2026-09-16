@@ -5,8 +5,15 @@ name: Benchmark History
 # which exists to get a full ad-hoc run on demand and publishes nothing.
 #
 # Two ways in:
-#   * a published release, which measures that version and adds one point;
-#   * a manual dispatch listing refs, which measures each of them in ONE job and backfills.
+#   * a published release, which measures that version from its own tag and adds one point;
+#   * a manual dispatch listing versions, which measures each published package in ONE job.
+#
+# A backfill measures packages rather than tags. Both are defensible until a benchmark is added: a
+# tag predating one cannot run it, so a new measurement could only ever start from the next release,
+# and AbstractionCostBenchmarks would have had no history at all. Measuring the published packages
+# with today's sources gives it the same history as everything else, and times every version by
+# identical code besides. ktsu.SignificantNumber and ktsu.Semantics do the same, so the three
+# charts are built the same way.
 #
 # The backfill running as a single job is the point rather than an optimisation. Separate runs land
 # on different CI hosts, and the difference between an x86-64-v3 and a v4 runner is larger than
@@ -18,15 +25,10 @@ on:
     types: [published]
   workflow_dispatch:
     inputs:
-      refs:
-        description: "Space-separated refs to backfill, oldest first (tags, branches, or SHAs)"
+      versions:
+        description: "Space-separated released versions to backfill, oldest first"
         required: false
-        default: "cd9a8227793bbd6ea791be7f6c0579ae1242eec5 v2.0.0 v2.0.1 v2.0.2 v2.0.3 v2.0.4"
-        type: string
-      labels:
-        description: "Optional space-separated version labels matching refs, when a ref is not a version"
-        required: false
-        default: "1.9.0 2.0.0 2.0.1 2.0.2 2.0.3 2.0.4"
+        default: "1.8.0 1.9.0 2.0.0 2.0.1 2.0.2 2.0.3 2.0.4 2.0.5"
         type: string
 
 permissions:
@@ -52,6 +54,7 @@ env:
     *ConstructionBenchmarks.Sanitizing
     *TextBenchmarks.Parse
     *ConversionBenchmarks.ToDouble
+    *AbstractionCostBenchmarks.*
   # Short runs: three iterations is enough for a trend line, and a release should not tie up a
   # runner for half an hour. benchmarks.yml is still there for a full-length run.
   BENCHMARK_JOB: short
@@ -121,51 +124,55 @@ jobs:
 
           git worktree remove --force "$work"
 
-      - name: Measure each backfill ref
+      - name: Measure each backfill version
         if: github.event_name == 'workflow_dispatch'
         shell: bash
         env:
-          REFS: ${{ inputs.refs }}
-          LABELS: ${{ inputs.labels }}
+          VERSIONS: ${{ inputs.versions }}
           BASELINE_NS: ${{ steps.baseline.outputs.ns }}
         run: |
           set -euo pipefail
-          read -ra refs <<< "$REFS"
-          read -ra labels <<< "$LABELS"
+          read -ra versions <<< "$VERSIONS"
 
-          for index in "${!refs[@]}"; do
-            ref="${refs[$index]}"
-            label="${labels[$index]:-${ref#v}}"
-            work="${RUNNER_TEMP}/bench-$label"
-
-            echo "::group::$label ($ref)"
-            rm -rf "$work"
-            git worktree add --detach "$work" "$ref"
-
-            if [ ! -f "$work/PreciseNumber.Benchmarks/PreciseNumber.Benchmarks.csproj" ]; then
-              echo "::warning::$ref has no benchmark project; skipping"
-              git worktree remove --force "$work"
+          for version in "${versions[@]}"; do
+            echo "::group::$version"
+            # Through the environment rather than a -p: switch, because BenchmarkDotNet generates
+            # and builds a project of its own per run, which a property passed on the command line
+            # does not reach. MSBuild reads environment variables as properties in every project.
+            #
+            # A version whose API the current benchmarks cannot express is reported and skipped,
+            # rather than failing the whole backfill after the ones before it have been measured.
+            if ! BenchmarkAgainstVersion="$version" dotnet run -c Release --project PreciseNumber.Benchmarks -- \
+                 --filter $HEADLINE_FILTER \
+                 --job "$BENCHMARK_JOB" \
+                 --artifacts "$GITHUB_WORKSPACE/$RUNS/$version"; then
+              echo "::warning::$version could not be benchmarked by the current suite; skipping"
               echo "::endgroup::"
               continue
             fi
 
-            # Each ref is measured by its own benchmark sources. Between 2.0.0 and now those
-            # sources are unchanged, so this compares library versions rather than harnesses.
-            (cd "$work" && dotnet run -c Release --project PreciseNumber.Benchmarks -- \
-              --filter $HEADLINE_FILTER \
-              --job "$BENCHMARK_JOB" \
-              --artifacts "$GITHUB_WORKSPACE/$RUNS/$label")
+            tag="v$version"
+            commit=""
+            date=""
+            if git rev-parse -q --verify "$tag^{commit}" >/dev/null; then
+              commit="$(git rev-parse --short "$tag^{commit}")"
+              date="$(git log -1 --format=%cs "$tag")"
+            fi
 
-            dotnet run scripts/benchmark-history.cs -- ingest \
-              --history "$HISTORY" \
-              --results "$RUNS/$label" \
-              --version "$label" \
-              --commit "$(git rev-parse --short "$ref^{commit}")" \
-              --date "$(git log -1 --format=%cs "$ref")" \
-              --run-id "${{ github.run_id }}" \
-              --baseline-ns "$BASELINE_NS"
-
-            git worktree remove --force "$work"
+            # Skipped here too, and for the same reason: a package can build against these
+            # benchmarks and still throw from every one of them at run time, which BenchmarkDotNet
+            # reports as a table of NA rather than as a failure. Ingest refuses such a run, and
+            # the backfill carries on to the next version.
+            if ! dotnet run scripts/benchmark-history.cs -- ingest \
+                 --history "$HISTORY" \
+                 --results "$RUNS/$version" \
+                 --version "$version" \
+                 --commit "$commit" \
+                 --date "$date" \
+                 --run-id "${{ github.run_id }}" \
+                 --baseline-ns "$BASELINE_NS"; then
+              echo "::warning::$version produced no usable measurement; skipping"
+            fi
             echo "::endgroup::"
           done
 
