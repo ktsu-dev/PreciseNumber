@@ -1,7 +1,6 @@
-## v2.2.0 (minor)
+## v2.2.1 (patch)
 
-Changes since v2.1.0:
+Changes since v2.2.0:
 
-- Use Assert.IsGreaterThanOrEqualTo for the precision floor [patch] ([@Claude](https://github.com/Claude))
-- Carry Pi, Tau and E at 150 correctly rounded digits, and add Ln2 and Ln10 [minor] ([@Claude](https://github.com/Claude))
+- Measure this type against a bare double, and chart it per release [patch] ([@Claude](https://github.com/Claude))
 
