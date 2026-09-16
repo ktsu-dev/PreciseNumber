@@ -421,6 +421,14 @@ precision of the wider operand, never fewer than `MinimumDivisionPrecision` (50)
 digits, with the last digit rounded half away from zero. Pass an explicit precision to the
 three-argument overload when you want something other than that.  
 
+`Pi`, `Tau`, `E`, `Ln2` and `Ln10` are each carried to `ConstantPrecision` (150) significant
+digits, correctly rounded, and each is its own literal rather than being computed from a sibling.
+150 matches what `ktsu.Semantics` standardises on for the factors it derives from pi, and leaves
+room for argument reduction, which cannot be more accurate than the constant it reduces by.
+Multiplication is exact, so any product involving one of them carries at least 150 digits; a
+caller that only needs fifteen should ask for fifteen with `PiTo(15)` and its siblings, which
+round half away from zero and cache per requested precision.  
+
 ## Limitations  
 
 - `Exp()`, and `Pow()` with a non-integer power, are computed through `double` and are therefore limited to its precision. Addition, subtraction, multiplication and division are not  
@@ -433,7 +441,9 @@ three-argument overload when you want something other than that.
 
 ### PreciseNumber Class  
 
-- **Constants**: `Zero`, `One`, `NegativeOne`, `Pi`, `E`, `Tau`  
+- **Constants**: `Zero`, `One`, `NegativeOne`, `Pi`, `E`, `Tau`, `Ln2`, `Ln10`  
+
+- **Constants at a chosen precision**: `PiTo()`, `ETo()`, `TauTo()`, `Ln2To()`, `Ln10To()`  
 
 - **Arithmetic**: `+`, `-`, `*`, `/`, `%`, `++`, `--`  
 

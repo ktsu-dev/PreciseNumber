@@ -1881,37 +1881,8 @@ public class PreciseNumberTests
 		Assert.AreEqual(int.MaxValue, PreciseNumber.Parse("1E2147483647", CultureInfo.InvariantCulture).Exponent);
 	}
 
-	[TestMethod]
-	public void TestEValue()
-	{
-		BigInteger expectedSignificand = BigInteger.Parse("27182818284590452353602874713526624977572", CultureInfo.InvariantCulture);
-		int expectedExponent = -40;
-		PreciseNumber eValue = PreciseNumber.E;
-
-		Assert.AreEqual(expectedSignificand, eValue.Significand);
-		Assert.AreEqual(expectedExponent, eValue.Exponent);
-	}
-
-	[TestMethod]
-	public void TestTauValue()
-	{
-		BigInteger expectedSignificand = BigInteger.Parse("6283185307179586476925287", CultureInfo.InvariantCulture);
-		int expectedExponent = -24;
-		PreciseNumber tauValue = PreciseNumber.Tau;
-
-		Assert.AreEqual(expectedSignificand, tauValue.Significand);
-		Assert.AreEqual(expectedExponent, tauValue.Exponent);
-	}
-
-	[TestMethod]
-	public void TestPiValue()
-	{
-		BigInteger expectedSignificand = BigInteger.Parse("31415926535897932384626433", CultureInfo.InvariantCulture);
-		int expectedExponent = -25;
-		PreciseNumber piValue = PreciseNumber.Pi;
-		Assert.AreEqual(expectedSignificand, piValue.Significand);
-		Assert.AreEqual(expectedExponent, piValue.Exponent);
-	}
+	// E, Tau and Pi are pinned by PreciseNumberConstantTests, which checks each of them digit for
+	// digit against an independent computation rather than against a second copy of the literal.
 
 	[TestMethod]
 	public void TestNotEqual()
