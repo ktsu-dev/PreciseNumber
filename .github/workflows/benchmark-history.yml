@@ -39,6 +39,8 @@ concurrency:
 env:
   DOTNET_VERSION: "10.0"
   HISTORY: docs/benchmarks/history.json
+  # Already ignored, and ktsu.Sdk regenerates .gitignore on build so a new entry would not last.
+  RUNS: BenchmarkDotNet.Artifacts
   CHART: docs/benchmarks/performance.svg
   # The set drawn in the README. Name globs rather than a [BenchmarkCategory], because the backfill
   # runs this same filter against older checkouts that predate any attribute added today.
@@ -87,15 +89,8 @@ jobs:
           dotnet run -c Release --project PreciseNumber.Benchmarks -- \
             --filter '*BaselineBenchmarks.ReferenceWork' \
             --job "$BENCHMARK_JOB" \
-            --artifacts "$GITHUB_WORKSPACE/bench/baseline"
-          ns=$(python3 - <<'PY'
-          import glob, json
-          path = glob.glob("bench/baseline/results/*BaselineBenchmarks-report-full.json")[0]
-          with open(path, encoding="utf-8-sig") as handle:
-              document = json.load(handle)
-          print(round(document["Benchmarks"][0]["Statistics"]["Mean"], 4))
-          PY
-          )
+            --artifacts "$GITHUB_WORKSPACE/$RUNS/baseline"
+          ns=$(dotnet run scripts/benchmark-history.cs -- baseline --results "$RUNS/baseline")
           echo "Reference workload: $ns ns"
           echo "ns=$ns" >> "$GITHUB_OUTPUT"
 
@@ -107,17 +102,17 @@ jobs:
         run: |
           set -euo pipefail
           version="${VERSION#v}"
-          work="$GITHUB_WORKSPACE/backfill/$version"
+          work="${RUNNER_TEMP}/bench-$version"
           git worktree add --detach "$work" "$VERSION"
 
           (cd "$work" && dotnet run -c Release --project PreciseNumber.Benchmarks -- \
             --filter $HEADLINE_FILTER \
             --job "$BENCHMARK_JOB" \
-            --artifacts "$GITHUB_WORKSPACE/bench/$version")
+            --artifacts "$GITHUB_WORKSPACE/$RUNS/$version")
 
-          python3 scripts/benchmark_history.py ingest \
+          dotnet run scripts/benchmark-history.cs -- ingest \
             --history "$HISTORY" \
-            --results "bench/$version" \
+            --results "$RUNS/$version" \
             --version "$version" \
             --commit "$(git rev-parse --short "$VERSION^{commit}")" \
             --date "$(git log -1 --format=%cs "$VERSION")" \
@@ -141,7 +136,7 @@ jobs:
           for index in "${!refs[@]}"; do
             ref="${refs[$index]}"
             label="${labels[$index]:-${ref#v}}"
-            work="$GITHUB_WORKSPACE/backfill/$label"
+            work="${RUNNER_TEMP}/bench-$label"
 
             echo "::group::$label ($ref)"
             rm -rf "$work"
@@ -159,11 +154,11 @@ jobs:
             (cd "$work" && dotnet run -c Release --project PreciseNumber.Benchmarks -- \
               --filter $HEADLINE_FILTER \
               --job "$BENCHMARK_JOB" \
-              --artifacts "$GITHUB_WORKSPACE/bench/$label")
+              --artifacts "$GITHUB_WORKSPACE/$RUNS/$label")
 
-            python3 scripts/benchmark_history.py ingest \
+            dotnet run scripts/benchmark-history.cs -- ingest \
               --history "$HISTORY" \
-              --results "bench/$label" \
+              --results "$RUNS/$label" \
               --version "$label" \
               --commit "$(git rev-parse --short "$ref^{commit}")" \
               --date "$(git log -1 --format=%cs "$ref")" \
@@ -176,7 +171,7 @@ jobs:
 
       - name: Redraw the chart
         shell: bash
-        run: python3 scripts/benchmark_history.py render --history "$HISTORY" --out "$CHART"
+        run: dotnet run scripts/benchmark-history.cs -- render --history "$HISTORY" --out "$CHART"
 
       - name: Commit the history and the chart
         shell: bash
@@ -204,6 +199,6 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: benchmark-history-${{ github.run_id }}
-          path: bench/
+          path: ${{ env.RUNS }}/
           retention-days: 30
           if-no-files-found: warn
