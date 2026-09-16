@@ -1,6 +1,4 @@
-## v2.2.1 (patch)
+## v2.2.1
 
-Changes since v2.2.0:
-
-- Measure this type against a bare double, and chart it per release [patch] ([@Claude](https://github.com/Claude))
+No significant changes detected since v2.2.1.
 
