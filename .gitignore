@@ -58,10 +58,6 @@ dlldata.c
 # Benchmark Results
 BenchmarkDotNet.Artifacts/
 
-# Scratch directories the Benchmark History workflow writes its runs into.
-bench/
-backfill/
-
 # .NET Core
 project.lock.json
 project.fragment.lock.json

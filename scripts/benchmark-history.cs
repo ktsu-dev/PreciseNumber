@@ -489,7 +489,9 @@ internal static partial class BenchmarkHistory
 		List<string> ticks = [];
 		for (int index = 0; index < labels.Length; index++)
 		{
-			if (labels.Length > 6 && index > 0 && index < labels.Length - 1 && index % 2 == 1)
+			// Every label while they fit. Thinning them reads as the whole list, which would say
+			// there were fewer releases than there were.
+			if (labels.Length > 12 && index > 0 && index < labels.Length - 1 && index % 2 == 1)
 			{
 				continue;
 			}
