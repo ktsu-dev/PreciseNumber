@@ -141,9 +141,10 @@ public class PreciseNumberConstantTests
 			PreciseNumber.Ln10,
 		})
 		{
-			Assert.IsTrue(
-				constant.SignificantDigits >= PreciseNumber.MinimumDivisionPrecision,
-				$"{constant.SignificantDigits} significant digits is fewer than MinimumDivisionPrecision");
+			Assert.IsGreaterThanOrEqualTo(
+				PreciseNumber.MinimumDivisionPrecision,
+				constant.SignificantDigits,
+				$"a constant carries only {constant.SignificantDigits} significant digits");
 		}
 	}
 
