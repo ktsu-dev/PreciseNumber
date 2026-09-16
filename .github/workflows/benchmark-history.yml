@@ -1,0 +1,209 @@
+name: Benchmark History
+
+# Measures a small, fixed set of benchmarks once per release, appends the numbers to a committed
+# history file, and redraws the chart the README shows. Deliberately separate from benchmarks.yml,
+# which exists to get a full ad-hoc run on demand and publishes nothing.
+#
+# Two ways in:
+#   * a published release, which measures that version and adds one point;
+#   * a manual dispatch listing refs, which measures each of them in ONE job and backfills.
+#
+# The backfill running as a single job is the point rather than an optimisation. Separate runs land
+# on different CI hosts, and the difference between an x86-64-v3 and a v4 runner is larger than
+# most releases are, so points gathered in separate jobs are not comparable as raw times. Within
+# one job they are. Across jobs, BaselineBenchmarks is what ties them together -- see its remarks.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      refs:
+        description: "Space-separated refs to backfill, oldest first (tags, branches, or SHAs)"
+        required: false
+        default: "cd9a8227793bbd6ea791be7f6c0579ae1242eec5 v2.0.0 v2.0.1 v2.0.2 v2.0.3 v2.0.4"
+        type: string
+      labels:
+        description: "Optional space-separated version labels matching refs, when a ref is not a version"
+        required: false
+        default: "1.9.0 2.0.0 2.0.1 2.0.2 2.0.3 2.0.4"
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: benchmark-history
+  cancel-in-progress: false
+
+env:
+  DOTNET_VERSION: "10.0"
+  HISTORY: docs/benchmarks/history.json
+  CHART: docs/benchmarks/performance.svg
+  # The set drawn in the README. Name globs rather than a [BenchmarkCategory], because the backfill
+  # runs this same filter against older checkouts that predate any attribute added today.
+  HEADLINE_FILTER: >-
+    *ArithmeticBenchmarks.Add
+    *ArithmeticBenchmarks.Multiply
+    *ArithmeticBenchmarks.Divide
+    *ComparisonBenchmarks.CompareTo
+    *ConstructionBenchmarks.Sanitizing
+    *TextBenchmarks.Parse
+    *ConversionBenchmarks.ToDouble
+  # Short runs: three iterations is enough for a trend line, and a release should not tie up a
+  # runner for half an hour. benchmarks.yml is still there for a full-length run.
+  BENCHMARK_JOB: short
+
+jobs:
+  measure:
+    name: Measure and chart
+    runs-on: ubuntu-latest
+    timeout-minutes: 180
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v7
+        with:
+          # The default branch, not the released tag. The results are committed back here, and a
+          # release event would otherwise leave the checkout detached at the tag, so the push at
+          # the end would be asking the default branch to move backwards. The tag itself is
+          # measured through a worktree below, exactly as a backfill ref is.
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Setup .NET SDK ${{ env.DOTNET_VERSION }}
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: ${{ env.DOTNET_VERSION }}.x
+
+      # Measured from this checkout, and stamped onto every entry this job produces. Older refs do
+      # not carry BaselineBenchmarks, and do not need to: everything measured in this job shares
+      # one runner, so one reading of that runner describes all of them.
+      - name: Measure the reference workload
+        id: baseline
+        shell: bash
+        run: |
+          set -euo pipefail
+          dotnet run -c Release --project PreciseNumber.Benchmarks -- \
+            --filter '*BaselineBenchmarks.ReferenceWork' \
+            --job "$BENCHMARK_JOB" \
+            --artifacts "$GITHUB_WORKSPACE/bench/baseline"
+          ns=$(python3 - <<'PY'
+          import glob, json
+          path = glob.glob("bench/baseline/results/*BaselineBenchmarks-report-full.json")[0]
+          with open(path, encoding="utf-8-sig") as handle:
+              document = json.load(handle)
+          print(round(document["Benchmarks"][0]["Statistics"]["Mean"], 4))
+          PY
+          )
+          echo "Reference workload: $ns ns"
+          echo "ns=$ns" >> "$GITHUB_OUTPUT"
+
+      - name: Measure the released version
+        if: github.event_name == 'release'
+        shell: bash
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
+        run: |
+          set -euo pipefail
+          version="${VERSION#v}"
+          work="$GITHUB_WORKSPACE/backfill/$version"
+          git worktree add --detach "$work" "$VERSION"
+
+          (cd "$work" && dotnet run -c Release --project PreciseNumber.Benchmarks -- \
+            --filter $HEADLINE_FILTER \
+            --job "$BENCHMARK_JOB" \
+            --artifacts "$GITHUB_WORKSPACE/bench/$version")
+
+          python3 scripts/benchmark_history.py ingest \
+            --history "$HISTORY" \
+            --results "bench/$version" \
+            --version "$version" \
+            --commit "$(git rev-parse --short "$VERSION^{commit}")" \
+            --date "$(git log -1 --format=%cs "$VERSION")" \
+            --run-id "${{ github.run_id }}" \
+            --baseline-ns "${{ steps.baseline.outputs.ns }}"
+
+          git worktree remove --force "$work"
+
+      - name: Measure each backfill ref
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          REFS: ${{ inputs.refs }}
+          LABELS: ${{ inputs.labels }}
+          BASELINE_NS: ${{ steps.baseline.outputs.ns }}
+        run: |
+          set -euo pipefail
+          read -ra refs <<< "$REFS"
+          read -ra labels <<< "$LABELS"
+
+          for index in "${!refs[@]}"; do
+            ref="${refs[$index]}"
+            label="${labels[$index]:-${ref#v}}"
+            work="$GITHUB_WORKSPACE/backfill/$label"
+
+            echo "::group::$label ($ref)"
+            rm -rf "$work"
+            git worktree add --detach "$work" "$ref"
+
+            if [ ! -f "$work/PreciseNumber.Benchmarks/PreciseNumber.Benchmarks.csproj" ]; then
+              echo "::warning::$ref has no benchmark project; skipping"
+              git worktree remove --force "$work"
+              echo "::endgroup::"
+              continue
+            fi
+
+            # Each ref is measured by its own benchmark sources. Between 2.0.0 and now those
+            # sources are unchanged, so this compares library versions rather than harnesses.
+            (cd "$work" && dotnet run -c Release --project PreciseNumber.Benchmarks -- \
+              --filter $HEADLINE_FILTER \
+              --job "$BENCHMARK_JOB" \
+              --artifacts "$GITHUB_WORKSPACE/bench/$label")
+
+            python3 scripts/benchmark_history.py ingest \
+              --history "$HISTORY" \
+              --results "bench/$label" \
+              --version "$label" \
+              --commit "$(git rev-parse --short "$ref^{commit}")" \
+              --date "$(git log -1 --format=%cs "$ref")" \
+              --run-id "${{ github.run_id }}" \
+              --baseline-ns "$BASELINE_NS"
+
+            git worktree remove --force "$work"
+            echo "::endgroup::"
+          done
+
+      - name: Redraw the chart
+        shell: bash
+        run: python3 scripts/benchmark_history.py render --history "$HISTORY" --out "$CHART"
+
+      - name: Commit the history and the chart
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          # Staged first, then compared against the index: on the first run these files are new,
+          # and `git diff` alone does not see an untracked file, so the run would push nothing and
+          # still report success.
+          git add "$HISTORY" "${CHART%.svg}"*.svg
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          # [skip ci] so that committing results does not start the pipeline over again.
+          git commit -m "[bot][skip ci] Update benchmark history"
+          branch="${{ github.event.repository.default_branch }}"
+          # Another release may have landed while this job was measuring.
+          git pull --rebase origin "$branch"
+          git push origin "HEAD:$branch"
+
+      - name: Upload the raw reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: benchmark-history-${{ github.run_id }}
+          path: bench/
+          retention-days: 30
+          if-no-files-found: warn
