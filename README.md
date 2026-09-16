@@ -82,7 +82,7 @@ A high-precision numeric type for .NET that provides arbitrary precision arithme
 
 - **Value Type**: A `readonly record struct` whose `default` value is zero. Adding, subtracting, multiplying, and comparing allocate nothing when the operands and every intermediate and final significand fit in an `int`. Exponent alignment counts, so `1 + 0.0000000001` allocates because it scales 1 by 10^10, and `99999 * 99999` allocates because its product is 9,999,800,001.  
 
-- **Comprehensive Mathematical Support**: Includes advanced mathematical functions like exponential operations (Pow, Exp, Squared, Cubed), constant values (Pi, E, Tau) with high precision, absolute value operations, and specialized numerical checks (isOdd, isEven, etc.)—all with arbitrary precision.  
+- **Comprehensive Mathematical Support**: Includes advanced mathematical functions like exponential operations (Pow, Exp, Squared, Cubed), roots (Sqrt, Cbrt, RootN, Hypot) through `IRootFunctions<T>`, constant values (Pi, E, Tau) with high precision, absolute value operations, and specialized numerical checks (isOdd, isEven, etc.)—all with arbitrary precision.  
 
 - **Balanced Performance**: The design prioritizes accuracy and precision while maintaining reasonable performance. For calculations where extreme precision matters more than raw speed, PreciseNumber delivers excellent results, though built-in numeric types remain faster for standard precision needs.  
 
@@ -278,6 +278,16 @@ var e = PreciseNumber.E;
 // Exponential function  
 var expValue = PreciseNumber.Exp(1.ToPreciseNumber()); // e^1 = e  
 
+// Roots. A value whose root is exact gets it exactly, whatever precision was asked for  
+var root = PreciseNumber.Sqrt(2.ToPreciseNumber());        // 1.4142135623730950488016887242096980785696718753769  
+var exactRoot = PreciseNumber.Sqrt(144.ToPreciseNumber()); // 12  
+var cubeRoot = PreciseNumber.Cbrt((-8).ToPreciseNumber()); // -2, an odd root of a negative value being real  
+var fifthRoot = PreciseNumber.RootN(7.ToPreciseNumber(), 5);  
+var hypotenuse = PreciseNumber.Hypot(3.ToPreciseNumber(), 4.ToPreciseNumber()); // 5  
+
+// Or choose the precision, the same way Divide does  
+var shortRoot = PreciseNumber.Sqrt(2.ToPreciseNumber(), 10); // 1.414213562  
+
 // Rounding and precision control  
 var roundedValue = number.Round(1);  // 2.5 (already at 1 decimal place)  
 var reducedValue = number.ReduceSignificance(1); // 3 (reduced to 1 significant digit)  
@@ -415,6 +425,8 @@ You can control precision using:
 
 - **Divide(left, right, significantDigits)**: Chooses the precision of a quotient  
 
+- **Sqrt(value, significantDigits)**, and the same overload on `Cbrt`, `RootN` and `Hypot`: Chooses the precision of a root  
+
 Division produces a terminating quotient exactly, however many digits that takes — `1 / 8` is
 `0.125`, and `1 / 2^64` keeps all 64 decimal places. A repeating quotient is produced to the
 precision of the wider operand, never fewer than `MinimumDivisionPrecision` (50) significant
@@ -429,9 +441,17 @@ Multiplication is exact, so any product involving one of them carries at least 1
 caller that only needs fifteen should ask for fifteen with `PiTo(15)` and its siblings, which
 round half away from zero and cache per requested precision.  
 
+`Sqrt`, `Cbrt`, `RootN` and `Hypot` follow the same rule as division: a value whose root is exact
+gets that root exactly whatever precision was asked for, and anything else is produced to the
+significant digits of the operand, never fewer than `MinimumDivisionPrecision`. None of them goes
+through `double`, so a value outside its range — `1e400`, or `1e-400` — roots as accurately as any
+other.  
+
 ## Limitations  
 
-- `Exp()`, and `Pow()` with a non-integer power, are computed through `double` and are therefore limited to its precision. Addition, subtraction, multiplication and division are not  
+- `Exp()`, and `Pow()` with a non-integer power, are computed through `double` and are therefore limited to its precision. Addition, subtraction, multiplication, division and the roots are not  
+
+- There is no NaN, so `Sqrt()` of a negative value, and `RootN()` of a negative value at an even degree, throw `ArgumentOutOfRangeException` where a `double` would return NaN and carry on  
 
 - A checked conversion to an integer type or `decimal` throws `OverflowException` when the value is out of range. Conversion to `double`, `float`, or `Half` overflows to infinity instead, as it does for every built-in type  
 
@@ -450,6 +470,8 @@ round half away from zero and cache per requested precision.
 - **Comparison**: `==`, `!=`, `<`, `>`, `<=`, `>=`  
 
 - **Functions**: `Abs()`, `Round()`, `Clamp()`, `Squared()`, `Cubed()`, `Pow()`, `Exp()`  
+
+- **Roots**: `Sqrt()`, `Cbrt()`, `RootN()`, `Hypot()`, each with an overload taking the significant digits to produce  
 
 - **Utility**: `ToString()`, `Parse()`, `TryParse()`, `To<T>()`  
 
