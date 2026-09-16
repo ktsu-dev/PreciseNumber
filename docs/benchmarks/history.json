@@ -1,0 +1,813 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "version": "1.8.0",
+      "commit": "b0564d7",
+      "date": "2026-09-13",
+      "cpu": "Intel Xeon Processor 2.80GHz",
+      "runtime": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+      "baselineNs": 454.8992,
+      "runId": "local-seed",
+      "benchmarks": {
+        "ArithmeticBenchmarks.Add": {
+          "Digits=8": {
+            "meanNs": 123.1859,
+            "allocatedBytes": 104
+          },
+          "Digits=30": {
+            "meanNs": 164.7113,
+            "allocatedBytes": 120
+          },
+          "Digits=200": {
+            "meanNs": 402.6075,
+            "allocatedBytes": 264
+          }
+        },
+        "ArithmeticBenchmarks.Divide": {
+          "Digits=8": {
+            "meanNs": 794.4781,
+            "allocatedBytes": 264
+          },
+          "Digits=30": {
+            "meanNs": 889.3647,
+            "allocatedBytes": 312
+          },
+          "Digits=200": {
+            "meanNs": 995.529,
+            "allocatedBytes": 456
+          }
+        },
+        "ArithmeticBenchmarks.Multiply": {
+          "Digits=8": {
+            "meanNs": 81.9846,
+            "allocatedBytes": 72
+          },
+          "Digits=30": {
+            "meanNs": 184.0505,
+            "allocatedBytes": 96
+          },
+          "Digits=200": {
+            "meanNs": 1050.0351,
+            "allocatedBytes": 232
+          }
+        },
+        "ComparisonBenchmarks.CompareTo": {
+          "Digits=8": {
+            "meanNs": 4.5,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 4.7745,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 5.1859,
+            "allocatedBytes": 0
+          }
+        },
+        "ConstructionBenchmarks.Sanitizing": {
+          "Digits=8": {
+            "meanNs": 35.0957,
+            "allocatedBytes": 40
+          },
+          "Digits=30": {
+            "meanNs": 76.4736,
+            "allocatedBytes": 40
+          },
+          "Digits=200": {
+            "meanNs": 254.6939,
+            "allocatedBytes": 40
+          }
+        },
+        "ConversionBenchmarks.ToDouble": {
+          "": {
+            "meanNs": 20.149,
+            "allocatedBytes": 0
+          }
+        },
+        "TextBenchmarks.Parse": {
+          "Digits=8": {
+            "meanNs": 199.5932,
+            "allocatedBytes": 40
+          },
+          "Digits=30": {
+            "meanNs": 480.1194,
+            "allocatedBytes": 80
+          },
+          "Digits=200": {
+            "meanNs": 2534.6838,
+            "allocatedBytes": 152
+          }
+        }
+      }
+    },
+    {
+      "version": "1.9.0",
+      "commit": "cd9a822",
+      "date": "2026-09-13",
+      "cpu": "Intel Xeon Processor 2.80GHz",
+      "runtime": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+      "baselineNs": 454.8992,
+      "runId": "local-seed",
+      "benchmarks": {
+        "ArithmeticBenchmarks.Add": {
+          "Digits=8": {
+            "meanNs": 114.0296,
+            "allocatedBytes": 104
+          },
+          "Digits=30": {
+            "meanNs": 156.3233,
+            "allocatedBytes": 120
+          },
+          "Digits=200": {
+            "meanNs": 428.4019,
+            "allocatedBytes": 264
+          }
+        },
+        "ArithmeticBenchmarks.Divide": {
+          "Digits=8": {
+            "meanNs": 403.9122,
+            "allocatedBytes": 192
+          },
+          "Digits=30": {
+            "meanNs": 613.6075,
+            "allocatedBytes": 240
+          },
+          "Digits=200": {
+            "meanNs": 2375.4439,
+            "allocatedBytes": 568
+          }
+        },
+        "ArithmeticBenchmarks.Multiply": {
+          "Digits=8": {
+            "meanNs": 84.6192,
+            "allocatedBytes": 72
+          },
+          "Digits=30": {
+            "meanNs": 179.2593,
+            "allocatedBytes": 96
+          },
+          "Digits=200": {
+            "meanNs": 1029.5614,
+            "allocatedBytes": 232
+          }
+        },
+        "ComparisonBenchmarks.CompareTo": {
+          "Digits=8": {
+            "meanNs": 4.55,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 4.7625,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 4.5483,
+            "allocatedBytes": 0
+          }
+        },
+        "ConstructionBenchmarks.Sanitizing": {
+          "Digits=8": {
+            "meanNs": 35.4251,
+            "allocatedBytes": 40
+          },
+          "Digits=30": {
+            "meanNs": 80.1594,
+            "allocatedBytes": 40
+          },
+          "Digits=200": {
+            "meanNs": 262.4124,
+            "allocatedBytes": 40
+          }
+        },
+        "ConversionBenchmarks.ToDouble": {
+          "": {
+            "meanNs": 20.7065,
+            "allocatedBytes": 0
+          }
+        },
+        "TextBenchmarks.Parse": {
+          "Digits=8": {
+            "meanNs": 205.5582,
+            "allocatedBytes": 40
+          },
+          "Digits=30": {
+            "meanNs": 490.8118,
+            "allocatedBytes": 80
+          },
+          "Digits=200": {
+            "meanNs": 2503.218,
+            "allocatedBytes": 152
+          }
+        }
+      }
+    },
+    {
+      "version": "2.0.0",
+      "commit": "da3aac6",
+      "date": "2026-09-13",
+      "cpu": "Intel Xeon Processor 2.80GHz",
+      "runtime": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+      "baselineNs": 454.8992,
+      "runId": "local-seed",
+      "benchmarks": {
+        "ArithmeticBenchmarks.Add": {
+          "Digits=8": {
+            "meanNs": 100.4854,
+            "allocatedBytes": 64
+          },
+          "Digits=30": {
+            "meanNs": 145.0197,
+            "allocatedBytes": 80
+          },
+          "Digits=200": {
+            "meanNs": 406.8626,
+            "allocatedBytes": 224
+          }
+        },
+        "ArithmeticBenchmarks.Divide": {
+          "Digits=8": {
+            "meanNs": 421.971,
+            "allocatedBytes": 152
+          },
+          "Digits=30": {
+            "meanNs": 649.0157,
+            "allocatedBytes": 200
+          },
+          "Digits=200": {
+            "meanNs": 2501.2133,
+            "allocatedBytes": 528
+          }
+        },
+        "ArithmeticBenchmarks.Multiply": {
+          "Digits=8": {
+            "meanNs": 70.0239,
+            "allocatedBytes": 32
+          },
+          "Digits=30": {
+            "meanNs": 175.1806,
+            "allocatedBytes": 56
+          },
+          "Digits=200": {
+            "meanNs": 1025.2062,
+            "allocatedBytes": 192
+          }
+        },
+        "ComparisonBenchmarks.CompareTo": {
+          "Digits=8": {
+            "meanNs": 3.1494,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 4.2118,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 3.589,
+            "allocatedBytes": 0
+          }
+        },
+        "ConstructionBenchmarks.Sanitizing": {
+          "Digits=8": {
+            "meanNs": 19.0883,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 63.0727,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 242.1056,
+            "allocatedBytes": 0
+          }
+        },
+        "ConversionBenchmarks.ToDouble": {
+          "": {
+            "meanNs": 5.749,
+            "allocatedBytes": 0
+          }
+        },
+        "TextBenchmarks.Parse": {
+          "Digits=8": {
+            "meanNs": 187.9601,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 479.94,
+            "allocatedBytes": 40
+          },
+          "Digits=200": {
+            "meanNs": 2528.7065,
+            "allocatedBytes": 112
+          }
+        }
+      }
+    },
+    {
+      "version": "2.0.1",
+      "commit": "b2427f0",
+      "date": "2026-09-14",
+      "cpu": "Intel Xeon Processor 2.80GHz",
+      "runtime": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+      "baselineNs": 454.8992,
+      "runId": "local-seed",
+      "benchmarks": {
+        "ArithmeticBenchmarks.Add": {
+          "Digits=8": {
+            "meanNs": 100.8056,
+            "allocatedBytes": 64
+          },
+          "Digits=30": {
+            "meanNs": 148.6598,
+            "allocatedBytes": 80
+          },
+          "Digits=200": {
+            "meanNs": 576.7779,
+            "allocatedBytes": 224
+          }
+        },
+        "ArithmeticBenchmarks.Divide": {
+          "Digits=8": {
+            "meanNs": 432.8415,
+            "allocatedBytes": 152
+          },
+          "Digits=30": {
+            "meanNs": 630.3228,
+            "allocatedBytes": 200
+          },
+          "Digits=200": {
+            "meanNs": 2408.9761,
+            "allocatedBytes": 528
+          }
+        },
+        "ArithmeticBenchmarks.Multiply": {
+          "Digits=8": {
+            "meanNs": 71.7227,
+            "allocatedBytes": 32
+          },
+          "Digits=30": {
+            "meanNs": 168.2777,
+            "allocatedBytes": 56
+          },
+          "Digits=200": {
+            "meanNs": 1036.3418,
+            "allocatedBytes": 192
+          }
+        },
+        "ComparisonBenchmarks.CompareTo": {
+          "Digits=8": {
+            "meanNs": 3.9038,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 4.1531,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 4.2655,
+            "allocatedBytes": 0
+          }
+        },
+        "ConstructionBenchmarks.Sanitizing": {
+          "Digits=8": {
+            "meanNs": 19.3621,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 63.2541,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 242.4946,
+            "allocatedBytes": 0
+          }
+        },
+        "ConversionBenchmarks.ToDouble": {
+          "": {
+            "meanNs": 5.0037,
+            "allocatedBytes": 0
+          }
+        },
+        "TextBenchmarks.Parse": {
+          "Digits=8": {
+            "meanNs": 186.071,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 486.0585,
+            "allocatedBytes": 40
+          },
+          "Digits=200": {
+            "meanNs": 2492.1256,
+            "allocatedBytes": 112
+          }
+        }
+      }
+    },
+    {
+      "version": "2.0.2",
+      "commit": "8bf324f",
+      "date": "2026-09-14",
+      "cpu": "Intel Xeon Processor 2.80GHz",
+      "runtime": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+      "baselineNs": 454.8992,
+      "runId": "local-seed",
+      "benchmarks": {
+        "ArithmeticBenchmarks.Add": {
+          "Digits=8": {
+            "meanNs": 101.1571,
+            "allocatedBytes": 64
+          },
+          "Digits=30": {
+            "meanNs": 147.8035,
+            "allocatedBytes": 80
+          },
+          "Digits=200": {
+            "meanNs": 397.9905,
+            "allocatedBytes": 224
+          }
+        },
+        "ArithmeticBenchmarks.Divide": {
+          "Digits=8": {
+            "meanNs": 421.5628,
+            "allocatedBytes": 152
+          },
+          "Digits=30": {
+            "meanNs": 648.9157,
+            "allocatedBytes": 200
+          },
+          "Digits=200": {
+            "meanNs": 2435.5906,
+            "allocatedBytes": 528
+          }
+        },
+        "ArithmeticBenchmarks.Multiply": {
+          "Digits=8": {
+            "meanNs": 74.7106,
+            "allocatedBytes": 32
+          },
+          "Digits=30": {
+            "meanNs": 169.6895,
+            "allocatedBytes": 56
+          },
+          "Digits=200": {
+            "meanNs": 1011.6622,
+            "allocatedBytes": 192
+          }
+        },
+        "ComparisonBenchmarks.CompareTo": {
+          "Digits=8": {
+            "meanNs": 4.0939,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 3.8344,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 3.6637,
+            "allocatedBytes": 0
+          }
+        },
+        "ConstructionBenchmarks.Sanitizing": {
+          "Digits=8": {
+            "meanNs": 20.3191,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 64.0998,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 244.0778,
+            "allocatedBytes": 0
+          }
+        },
+        "ConversionBenchmarks.ToDouble": {
+          "": {
+            "meanNs": 5.3519,
+            "allocatedBytes": 0
+          }
+        },
+        "TextBenchmarks.Parse": {
+          "Digits=8": {
+            "meanNs": 185.887,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 489.6898,
+            "allocatedBytes": 40
+          },
+          "Digits=200": {
+            "meanNs": 2449.7325,
+            "allocatedBytes": 112
+          }
+        }
+      }
+    },
+    {
+      "version": "2.0.3",
+      "commit": "6722ff9",
+      "date": "2026-09-14",
+      "cpu": "Intel Xeon Processor 2.80GHz",
+      "runtime": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+      "baselineNs": 454.8992,
+      "runId": "local-seed",
+      "benchmarks": {
+        "ArithmeticBenchmarks.Add": {
+          "Digits=8": {
+            "meanNs": 106.0063,
+            "allocatedBytes": 64
+          },
+          "Digits=30": {
+            "meanNs": 145.0424,
+            "allocatedBytes": 80
+          },
+          "Digits=200": {
+            "meanNs": 400.2685,
+            "allocatedBytes": 224
+          }
+        },
+        "ArithmeticBenchmarks.Divide": {
+          "Digits=8": {
+            "meanNs": 423.013,
+            "allocatedBytes": 152
+          },
+          "Digits=30": {
+            "meanNs": 641.3537,
+            "allocatedBytes": 200
+          },
+          "Digits=200": {
+            "meanNs": 3414.9285,
+            "allocatedBytes": 528
+          }
+        },
+        "ArithmeticBenchmarks.Multiply": {
+          "Digits=8": {
+            "meanNs": 67.2843,
+            "allocatedBytes": 32
+          },
+          "Digits=30": {
+            "meanNs": 168.3793,
+            "allocatedBytes": 56
+          },
+          "Digits=200": {
+            "meanNs": 1019.9757,
+            "allocatedBytes": 192
+          }
+        },
+        "ComparisonBenchmarks.CompareTo": {
+          "Digits=8": {
+            "meanNs": 4.4645,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 3.8372,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 3.5919,
+            "allocatedBytes": 0
+          }
+        },
+        "ConstructionBenchmarks.Sanitizing": {
+          "Digits=8": {
+            "meanNs": 19.6194,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 67.0253,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 247.2198,
+            "allocatedBytes": 0
+          }
+        },
+        "ConversionBenchmarks.ToDouble": {
+          "": {
+            "meanNs": 5.1391,
+            "allocatedBytes": 0
+          }
+        },
+        "TextBenchmarks.Parse": {
+          "Digits=8": {
+            "meanNs": 190.2204,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 485.4024,
+            "allocatedBytes": 40
+          },
+          "Digits=200": {
+            "meanNs": 2529.4197,
+            "allocatedBytes": 112
+          }
+        }
+      }
+    },
+    {
+      "version": "2.0.4",
+      "commit": "c265bdd",
+      "date": "2026-09-15",
+      "cpu": "Intel Xeon Processor 2.80GHz",
+      "runtime": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+      "baselineNs": 454.8992,
+      "runId": "local-seed",
+      "benchmarks": {
+        "ArithmeticBenchmarks.Add": {
+          "Digits=8": {
+            "meanNs": 103.5012,
+            "allocatedBytes": 64
+          },
+          "Digits=30": {
+            "meanNs": 147.654,
+            "allocatedBytes": 80
+          },
+          "Digits=200": {
+            "meanNs": 395.7874,
+            "allocatedBytes": 224
+          }
+        },
+        "ArithmeticBenchmarks.Divide": {
+          "Digits=8": {
+            "meanNs": 419.0343,
+            "allocatedBytes": 152
+          },
+          "Digits=30": {
+            "meanNs": 627.7278,
+            "allocatedBytes": 200
+          },
+          "Digits=200": {
+            "meanNs": 2440.4735,
+            "allocatedBytes": 528
+          }
+        },
+        "ArithmeticBenchmarks.Multiply": {
+          "Digits=8": {
+            "meanNs": 69.7283,
+            "allocatedBytes": 32
+          },
+          "Digits=30": {
+            "meanNs": 165.934,
+            "allocatedBytes": 56
+          },
+          "Digits=200": {
+            "meanNs": 1027.7703,
+            "allocatedBytes": 192
+          }
+        },
+        "ComparisonBenchmarks.CompareTo": {
+          "Digits=8": {
+            "meanNs": 3.5588,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 3.5576,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 3.6354,
+            "allocatedBytes": 0
+          }
+        },
+        "ConstructionBenchmarks.Sanitizing": {
+          "Digits=8": {
+            "meanNs": 19.7243,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 63.6485,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 241.9847,
+            "allocatedBytes": 0
+          }
+        },
+        "ConversionBenchmarks.ToDouble": {
+          "": {
+            "meanNs": 5.3881,
+            "allocatedBytes": 0
+          }
+        },
+        "TextBenchmarks.Parse": {
+          "Digits=8": {
+            "meanNs": 189.778,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 477.5123,
+            "allocatedBytes": 40
+          },
+          "Digits=200": {
+            "meanNs": 2512.168,
+            "allocatedBytes": 112
+          }
+        }
+      }
+    },
+    {
+      "version": "2.0.5",
+      "commit": "3857bac",
+      "date": "2026-09-16",
+      "cpu": "Intel Xeon Processor 2.80GHz",
+      "runtime": ".NET 10.0.12 (10.0.12, 10.0.1226.42308)",
+      "baselineNs": 454.8992,
+      "runId": "local-seed",
+      "benchmarks": {
+        "ArithmeticBenchmarks.Add": {
+          "Digits=8": {
+            "meanNs": 104.0341,
+            "allocatedBytes": 64
+          },
+          "Digits=30": {
+            "meanNs": 144.1285,
+            "allocatedBytes": 80
+          },
+          "Digits=200": {
+            "meanNs": 397.1837,
+            "allocatedBytes": 224
+          }
+        },
+        "ArithmeticBenchmarks.Divide": {
+          "Digits=8": {
+            "meanNs": 425.7019,
+            "allocatedBytes": 152
+          },
+          "Digits=30": {
+            "meanNs": 615.669,
+            "allocatedBytes": 200
+          },
+          "Digits=200": {
+            "meanNs": 3372.9288,
+            "allocatedBytes": 528
+          }
+        },
+        "ArithmeticBenchmarks.Multiply": {
+          "Digits=8": {
+            "meanNs": 68.7651,
+            "allocatedBytes": 32
+          },
+          "Digits=30": {
+            "meanNs": 167.7462,
+            "allocatedBytes": 56
+          },
+          "Digits=200": {
+            "meanNs": 1010.8013,
+            "allocatedBytes": 192
+          }
+        },
+        "ComparisonBenchmarks.CompareTo": {
+          "Digits=8": {
+            "meanNs": 4.2163,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 3.8202,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 3.5939,
+            "allocatedBytes": 0
+          }
+        },
+        "ConstructionBenchmarks.Sanitizing": {
+          "Digits=8": {
+            "meanNs": 19.1214,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 62.9138,
+            "allocatedBytes": 0
+          },
+          "Digits=200": {
+            "meanNs": 241.3521,
+            "allocatedBytes": 0
+          }
+        },
+        "ConversionBenchmarks.ToDouble": {
+          "": {
+            "meanNs": 4.8894,
+            "allocatedBytes": 0
+          }
+        },
+        "TextBenchmarks.Parse": {
+          "Digits=8": {
+            "meanNs": 194.2737,
+            "allocatedBytes": 0
+          },
+          "Digits=30": {
+            "meanNs": 476.8454,
+            "allocatedBytes": 40
+          },
+          "Digits=200": {
+            "meanNs": 2442.8716,
+            "allocatedBytes": 112
+          }
+        }
+      }
+    }
+  ]
+}

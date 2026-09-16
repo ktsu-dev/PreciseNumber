@@ -14,6 +14,8 @@ A high-precision numeric type for .NET that provides arbitrary precision arithme
 
 - [Features](#features)  
 
+- [Performance](#performance)  
+
 - [Getting Started](#getting-started)  
 
 - [Installation](#installation)  
@@ -56,8 +58,6 @@ A high-precision numeric type for .NET that provides arbitrary precision arithme
 
 - [Limitations](#limitations)  
 
-- [Performance](#performance)  
-
 - [API Reference](#api-reference)  
 
 - [PreciseNumber Class](#precisenumber-class)  
@@ -85,6 +85,41 @@ A high-precision numeric type for .NET that provides arbitrary precision arithme
 - **Comprehensive Mathematical Support**: Includes advanced mathematical functions like exponential operations (Pow, Exp, Squared, Cubed), constant values (Pi, E, Tau) with high precision, absolute value operations, and specialized numerical checks (isOdd, isEven, etc.)—all with arbitrary precision.  
 
 - **Balanced Performance**: The design prioritizes accuracy and precision while maintaining reasonable performance. For calculations where extreme precision matters more than raw speed, PreciseNumber delivers excellent results, though built-in numeric types remain faster for standard precision needs.  
+
+## Performance  
+
+Values are immutable value types. Every operation returns a new value, but that value lives inline
+in its variable, field, or array element, so the only heap allocation is the `BigInteger` digit
+array, and a significand that fits in an `int` doesn't need one. Cost therefore tracks the number
+of significant digits rather than the magnitude of the value, and allocation matters as much as
+raw speed.  
+
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/benchmarks/performance-dark.svg">
+  <img alt="Allocated bytes per operation, and time relative to a fixed reference workload, for each PreciseNumber release" src="docs/benchmarks/performance.svg">
+</picture>
+
+Every release measures a fixed set of benchmarks and adds a point to the chart above; the numbers
+behind it are in [`docs/benchmarks/history.json`](docs/benchmarks/history.json).  
+
+Read the two halves differently. **Allocation is exact** — the same code allocates the same bytes on
+any machine, so a step in the top row is always a real change. **Time is measured on shared CI
+runners**, where the host a job happens to land on varies more than most releases do, so each time
+is divided by a reference workload measured in the same job. That cancels most of the difference
+between machines; what is left is indicative rather than precise, and a small wobble between two
+releases is more likely the runner than the library.  
+
+The repository carries a [BenchmarkDotNet suite](PreciseNumber.Benchmarks/README.md) covering
+construction, comparison, arithmetic, rounding, text conversion and primitive conversion, each
+parameterised across 8, 30 and 200 significant digits:  
+
+```bash
+dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*ArithmeticBenchmarks*'
+```
+
+Run it before and after any change to the library's internals. A full run can also be started
+from the **Benchmarks** workflow in GitHub Actions, which archives the reports against the commit
+that produced them.  
 
 # Getting Started  
 
@@ -393,26 +428,6 @@ three-argument overload when you want something other than that.
 - A checked conversion to an integer type or `decimal` throws `OverflowException` when the value is out of range. Conversion to `double`, `float`, or `Half` overflows to infinity instead, as it does for every built-in type  
 
 - Converting from `double`, `float`, or `Half` keeps the shortest digits that round-trip, so converting back gives the original value, and `0.3048` stays exactly 0.3048. The result of `0.1 + 0.2` in `double` arrives as 0.30000000000000004, because that's the value the `double` holds  
-
-## Performance  
-
-Values are immutable value types. Every operation returns a new value, but that value lives inline
-in its variable, field, or array element, so the only heap allocation is the `BigInteger` digit
-array, and a significand that fits in an `int` doesn't need one. Cost therefore tracks the number
-of significant digits rather than the magnitude of the value, and allocation matters as much as
-raw speed.  
-
-The repository carries a [BenchmarkDotNet suite](PreciseNumber.Benchmarks/README.md) covering
-construction, comparison, arithmetic, rounding, text conversion and primitive conversion, each
-parameterised across 8, 30 and 200 significant digits:  
-
-```bash
-dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*ArithmeticBenchmarks*'
-```
-
-Run it before and after any change to the library's internals. A full run can also be started
-from the **Benchmarks** workflow in GitHub Actions, which archives the reports against the commit
-that produced them.  
 
 ## API Reference  
 
