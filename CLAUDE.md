@@ -37,6 +37,7 @@ dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*' --job s
 - Factory methods `CreateFromInteger<T>()` and `CreateFromFloatingPoint<T>()` handle type-specific conversion logic
 - Addition, subtraction and modulus align exponents before calculating; multiplication and division work on the significands directly
 - `Divide` is exact when the quotient terminates, and otherwise rounds to a precision that never falls below the wider operand or `MinimumDivisionPrecision`. `Exp` and non-integer `Pow` still route through `double`
+- Roots (`PreciseNumber/PreciseNumber.Roots.cs`, satisfying `IRootFunctions<PreciseNumber>`) follow `Divide`'s precision rule and do not route through `double`. Each scales the significand by a power of ten until the degree divides the exponent, then takes an integer Newton root of the significand, so an exact root stops on the exact answer rather than on a tolerance and no seed has to survive a value outside `double`'s range
 - The `sanitize` constructor parameter controls whether trailing zeros are removed (default: true)
 - Constants (`Zero`, `One`, `Pi`, `E`, `Tau`) are pre-computed static instances
 - As a value type it can't be null or inherited. Don't add null checks for `PreciseNumber` parameters, and don't reintroduce `protected` members
@@ -44,12 +45,12 @@ dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*' --job s
 
 ### Test Structure
 
-Tests use MSTest. `PreciseNumber.Test/PreciseNumberTests.cs` covers arithmetic, parsing, and formatting, `PreciseNumberConversionTests.cs` covers generic math conversion in every mode, and `PreciseNumberValueTypeTests.cs` pins `default` as zero and asserts that small-value addition, subtraction, multiplication, and comparison allocate nothing. The test project targets only .NET 10.0 while the main library multi-targets net7.0, net8.0, net9.0, and net10.0.
+Tests use MSTest. `PreciseNumber.Test/PreciseNumberTests.cs` covers arithmetic, parsing, and formatting, `PreciseNumberConversionTests.cs` covers generic math conversion in every mode, `PreciseNumberRootTests.cs` pins the roots against published digits and against squaring back, and `PreciseNumberValueTypeTests.cs` pins `default` as zero and asserts that small-value addition, subtraction, multiplication, and comparison allocate nothing. The test project targets only .NET 10.0 while the main library multi-targets net7.0, net8.0, net9.0, and net10.0.
 
 ### Benchmarks
 
 `PreciseNumber.Benchmarks` is a BenchmarkDotNet suite, one class per area (construction,
-comparison, arithmetic, pow, rounding, text, conversion). The library exposes its internals to it
+comparison, arithmetic, pow, roots, rounding, text, conversion). The library exposes its internals to it
 so construction can be measured directly.
 
 Most classes are parameterised by `Digits` (8, 30, 200). That axis is the point: digits live in a
