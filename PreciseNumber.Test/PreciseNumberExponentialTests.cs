@@ -3,6 +3,7 @@
 namespace ktsu.PreciseNumber.Test;
 
 using System.Globalization;
+using System.Linq;
 using System.Numerics;
 
 /// <summary>
@@ -89,6 +90,21 @@ public class PreciseNumberExponentialTests
 		Parse("1E300"),
 	];
 
+	/// <summary>
+	/// Arguments for the <c>M1</c>/<c>P1</c> inversion, spanning both signs on either side of the
+	/// magnitude at which those functions stop summing their own series and defer to
+	/// <c>Exp</c>/<c>Log</c>.
+	/// </summary>
+	private static PreciseNumber[] InversionSweep() =>
+	[
+		Parse("1E-30"),
+		Parse("-1E-30"),
+		Parse("0.25"),
+		Parse("-0.25"),
+		Parse("3"),
+		Parse("-3"),
+	];
+
 	[TestMethod]
 	public void TestLogMatchesPublishedDigits()
 	{
@@ -156,11 +172,11 @@ public class PreciseNumberExponentialTests
 	[TestMethod]
 	public void TestLogAndExpRoundTripAcrossASweep()
 	{
-		foreach (PreciseNumber value in Sweep())
+		// Log of an exponential, rather than the other way round, so the range reduction inside Exp
+		// is the thing being inverted. The sweep is projected to the exponents themselves, since
+		// the value it came from plays no further part.
+		foreach (PreciseNumber exponent in Sweep().Select(value => PreciseNumber.Log(value, 50)))
 		{
-			// Log of an exponential, rather than the other way round, so the range reduction inside
-			// Exp is the thing being inverted.
-			PreciseNumber exponent = PreciseNumber.Log(value, 50);
 			AssertAgreesTo(exponent, PreciseNumber.Log(PreciseNumber.Exp(exponent, 50), 50), 48, $"Log(Exp({exponent})) did not return its argument");
 		}
 	}
@@ -230,9 +246,8 @@ public class PreciseNumberExponentialTests
 	[TestMethod]
 	public void TestExpM1AndLogP1InvertEachOther()
 	{
-		foreach (string text in new[] { "1E-30", "-1E-30", "0.25", "-0.25", "3", "-3" })
+		foreach (PreciseNumber value in InversionSweep())
 		{
-			PreciseNumber value = Parse(text);
 			AssertAgreesTo(value, PreciseNumber.LogP1(PreciseNumber.ExpM1(value, 55), 55), 45, $"LogP1(ExpM1({value})) did not return its argument");
 		}
 	}
