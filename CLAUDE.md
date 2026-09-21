@@ -36,8 +36,10 @@ dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*' --job s
 
 - Factory methods `CreateFromInteger<T>()` and `CreateFromFloatingPoint<T>()` handle type-specific conversion logic
 - Addition, subtraction and modulus align exponents before calculating; multiplication and division work on the significands directly
-- `Divide` is exact when the quotient terminates, and otherwise rounds to a precision that never falls below the wider operand or `MinimumDivisionPrecision`. `Exp` and non-integer `Pow` still route through `double`
+- `Divide` is exact when the quotient terminates, and otherwise rounds to a precision that never falls below the wider operand or `MinimumDivisionPrecision`
 - Roots (`PreciseNumber/PreciseNumber.Roots.cs`, satisfying `IRootFunctions<PreciseNumber>`) follow `Divide`'s precision rule and do not route through `double`. Each scales the significand by a power of ten until the degree divides the exponent, then takes an integer Newton root of the significand, so an exact root stops on the exact answer rather than on a tolerance and no seed has to survive a value outside `double`'s range
+- Exponentials, logarithms and powers (`PreciseNumber/PreciseNumber.Exponentials.cs`, satisfying `IExponentialFunctions`, `ILogarithmicFunctions` and `IPowerFunctions`) follow the same precision rule and do not route through `double` either. `ln(m · 10^k)` is `ln m + k · ln 10` against the stored `Ln10`, with the mantissa centred on `[1/√10, √10)` and fed to the atanh series; `exp(v)` factors out `10^round(v / ln 10)` as an exponent shift and halves what is left before a Taylor sum. Nothing here is a free-standing decision: `Exp10`/`Log10` must not route through the natural log, because the exponent is the whole answer for a power of ten, and the `…M1`/`…P1` variants must not be computed as `Exp(x) - 1`/`Log(1 + x)`, because that cancels away the precision near zero they exist to keep
+- A fractional `Pow` is `exp(y · ln x)`, carried wider by the integer digits of `y · ln x` because `Exp`'s range reduction consumes them. The integer path stays exponentiation by squaring and is exact; tests pin that exactness rather than a tolerance
 - The `sanitize` constructor parameter controls whether trailing zeros are removed (default: true)
 - Constants (`Zero`, `One`, `Pi`, `E`, `Tau`) are pre-computed static instances
 - As a value type it can't be null or inherited. Don't add null checks for `PreciseNumber` parameters, and don't reintroduce `protected` members
@@ -45,7 +47,7 @@ dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*' --job s
 
 ### Test Structure
 
-Tests use MSTest. `PreciseNumber.Test/PreciseNumberTests.cs` covers arithmetic, parsing, and formatting, `PreciseNumberConversionTests.cs` covers generic math conversion in every mode, `PreciseNumberRootTests.cs` pins the roots against published digits and against squaring back, and `PreciseNumberValueTypeTests.cs` pins `default` as zero and asserts that small-value addition, subtraction, multiplication, and comparison allocate nothing. The test project targets only .NET 10.0 while the main library multi-targets net7.0, net8.0, net9.0, and net10.0.
+Tests use MSTest. `PreciseNumber.Test/PreciseNumberTests.cs` covers arithmetic, parsing, and formatting, `PreciseNumberConversionTests.cs` covers generic math conversion in every mode, `PreciseNumberRootTests.cs` pins the roots against published digits and against squaring back, `PreciseNumberExponentialTests.cs` does the same for the exponentials and logarithms and additionally pins the cases a `double` fallback cannot reach — fifty published digits of a fractional power, and `ExpM1`/`LogP1` of `1e-30` not collapsing to zero — and `PreciseNumberValueTypeTests.cs` pins `default` as zero and asserts that small-value addition, subtraction, multiplication, and comparison allocate nothing. The test project targets only .NET 10.0 while the main library multi-targets net7.0, net8.0, net9.0, and net10.0.
 
 ### Benchmarks
 
