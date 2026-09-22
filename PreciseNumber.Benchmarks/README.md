@@ -100,3 +100,29 @@ Benchmark operands come from a fixed digit pattern rather than a random source, 
 the same machine measure the same work. Numbers are still only comparable within a single run on
 a single machine; a cloud CI runner in particular is too noisy to compare against a previous run
 there.
+
+## Comparing two refs
+
+That last constraint is why the `Benchmarks` workflow takes a `baseline` input. Given a ref — a
+tag, a branch or a commit — it measures that ref through a worktree and then this checkout, both
+in one job, and heads the two result tables separately. Two separate dispatches cannot be
+compared: they can land on different CPU generations, and that difference is larger than most
+changes worth catching.
+
+Locally the same shape is a worktree and one `--artifacts` directory per ref, run one after the
+other rather than at the same time — two benchmark processes on one machine measure contention
+rather than the code:
+
+```bash
+git worktree add --detach /tmp/bench-baseline v1.9.0
+(cd /tmp/bench-baseline && dotnet run -c Release --project PreciseNumber.Benchmarks -- \
+  --filter '*ComparisonBenchmarks.Max' --job short --artifacts /tmp/bench/baseline)
+dotnet run -c Release --project PreciseNumber.Benchmarks -- \
+  --filter '*ComparisonBenchmarks.Max' --job short --artifacts /tmp/bench/head
+git worktree remove --force /tmp/bench-baseline
+```
+
+`--filter` takes several patterns as separate arguments (`--filter '*A.One' '*B.Two'`). It does
+not accept them `|`-separated in one argument: that matches nothing, and BenchmarkDotNet then
+prints the full benchmark list and exits 0 rather than failing, so a comparison script written
+that way looks like it ran.

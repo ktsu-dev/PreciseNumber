@@ -66,5 +66,9 @@ nothing when the operands and every intermediate and final significand fit in an
 alignment counts, so `1 + 0.0000000001` allocates because it scales 1 by 10^10, and `99999 * 99999`
 allocates because its product is 9,999,800,001.
 
-Run the relevant benchmarks before and after any change to the library's internals. See
-`PreciseNumber.Benchmarks/README.md` for details.
+Run the relevant benchmarks before and after any change to the library's internals. Compare two
+refs in one place rather than across two runs: the `Benchmarks` workflow's `baseline` input
+measures a given ref and this checkout on the same runner, and locally the same shape is a
+worktree plus one `--artifacts` directory per ref, run sequentially. Numbers from two separate
+runs are not comparable — a cloud runner in particular can change CPU generation between them.
+See `PreciseNumber.Benchmarks/README.md` for details.
