@@ -82,7 +82,7 @@ A high-precision numeric type for .NET that provides arbitrary precision arithme
 
 - **Value Type**: A `readonly record struct` whose `default` value is zero. Adding, subtracting, multiplying, and comparing allocate nothing when the operands and every intermediate and final significand fit in an `int`. Exponent alignment counts, so `1 + 0.0000000001` allocates because it scales 1 by 10^10, and `99999 * 99999` allocates because its product is 9,999,800,001.  
 
-- **Comprehensive Mathematical Support**: Includes advanced mathematical functions like exponential operations (Pow, Exp, Squared, Cubed), roots (Sqrt, Cbrt, RootN, Hypot) through `IRootFunctions<T>`, constant values (Pi, E, Tau) with high precision, absolute value operations, and specialized numerical checks (isOdd, isEven, etc.)—all with arbitrary precision.  
+- **Comprehensive Mathematical Support**: Includes advanced mathematical functions like exponential operations (Pow, Exp, Squared, Cubed), roots (Sqrt, Cbrt, RootN, Hypot) through `IRootFunctions<T>`, trigonometry (Sin, Cos, Tan, Asin, Acos, Atan, Atan2, and the half-turn family) through `ITrigonometricFunctions<T>`, constant values (Pi, E, Tau) with high precision, absolute value operations, and specialized numerical checks (isOdd, isEven, etc.)—all with arbitrary precision.  
 
 - **Balanced Performance**: The design prioritizes accuracy and precision while maintaining reasonable performance. For calculations where extreme precision matters more than raw speed, PreciseNumber delivers excellent results, though built-in numeric types remain faster for standard precision needs.  
 
@@ -458,9 +458,18 @@ The `…M1` and `…P1` variants — `ExpM1`, `LogP1` and their siblings — are
 than as `Exp(x) - 1` and `Log(1 + x)`, so they keep the digits of a small argument instead of
 cancelling them away: `ExpM1(1e-30)` is `1e-30`, not zero.  
 
+`Sin`, `Cos`, `Tan`, their inverses, and `Atan2` follow the same rule again, and the accuracy of
+each is the accuracy of the `π` it reduces by: reducing an angle of magnitude `10^d` to `n` correct
+digits reads `π` to roughly `d + n` digits, so a large angle stays meaningful — `Sin(1000000)` is
+correct to far more digits than a `double` holds. `SinCos` does that reduction once for a caller
+that needs both. The half-turn family — `SinPi`, `CosPi`, `TanPi` and the inverses — reduces on the
+argument before multiplying by `π`, so `SinPi(1e20)` is well-defined where `Sin(1e20 · π)` is not.
+`Atan2` is a bespoke static rather than an interface member, because `PreciseNumber` has no NaN or
+infinity to give `IFloatingPointIeee754<T>`'s edge cases meaning.  
+
 ## Limitations  
 
-- There is no NaN, so `Sqrt()` of a negative value, `RootN()` of a negative value at an even degree, `Log()` of a value that is not positive, and `Pow()` of a negative value with a fractional exponent, throw `ArgumentOutOfRangeException` where a `double` would return NaN and carry on  
+- There is no NaN, so `Sqrt()` of a negative value, `RootN()` of a negative value at an even degree, `Log()` of a value that is not positive, `Pow()` of a negative value with a fractional exponent, and `Asin()` or `Acos()` of a value outside `[-1, 1]`, throw `ArgumentOutOfRangeException` where a `double` would return NaN and carry on. `Tan()` and `TanPi()` throw `DivideByZeroException` where the cosine is exactly zero  
 
 - There is no infinity, so an exponential whose result needs a decimal exponent outside the range of an `int` throws `OverflowException` rather than saturating  
 
@@ -483,6 +492,8 @@ cancelling them away: `ExpM1(1e-30)` is `1e-30`, not zero.
 - **Functions**: `Abs()`, `Round()`, `Clamp()`, `Squared()`, `Cubed()`, `Pow()`, `Exp()`  
 
 - **Roots**: `Sqrt()`, `Cbrt()`, `RootN()`, `Hypot()`, each with an overload taking the significant digits to produce  
+
+- **Trigonometry**: `Sin()`, `Cos()`, `SinCos()`, `Tan()`, `Asin()`, `Acos()`, `Atan()`, `Atan2()`, the half-turn family (`SinPi()`, `CosPi()`, `SinCosPi()`, `TanPi()`, `AsinPi()`, `AcosPi()`, `AtanPi()`), and `DegreesToRadians()` / `RadiansToDegrees()`, each with an overload taking the significant digits to produce  
 
 - **Utility**: `ToString()`, `Parse()`, `TryParse()`, `To<T>()`  
 
