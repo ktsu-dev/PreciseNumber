@@ -1,6 +1,9 @@
-## v2.3.1
+## v2.4.0 (minor)
 
-No significant changes detected since v2.3.1.
+Changes since v2.3.0:
+
+- Project the test sweeps instead of remapping the iteration variable [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
+- Implement IExponentialFunctions, ILogarithmicFunctions and IPowerFunctions [minor] ([@matt-edmondson](https://github.com/matt-edmondson))
 
 ## v2.3.1 (patch)
 
