@@ -78,8 +78,9 @@ public class PreciseNumberHyperbolicTests
 		PreciseNumber difference = PreciseNumber.Abs(actual - expected);
 		PreciseNumber tolerance = PreciseNumber.Abs(expected) * Parse($"1E-{digits.ToString(CultureInfo.InvariantCulture)}");
 
-		Assert.IsTrue(
-			difference <= tolerance,
+		Assert.IsLessThanOrEqualTo(
+			tolerance,
+			difference,
 			$"{message}: expected {expected}, got {actual}, which differs by {difference}");
 	}
 
@@ -323,7 +324,7 @@ public class PreciseNumberHyperbolicTests
 	{
 		PreciseNumber tanh = PreciseNumber.Tanh(20.ToPreciseNumber(), 50);
 
-		Assert.IsTrue(tanh < PreciseNumber.One, "Tanh(20) reached one");
+		Assert.IsLessThan(PreciseNumber.One, tanh, "Tanh(20) reached one");
 		AssertAgreesTo(PreciseNumber.One, tanh, 16, "Tanh(20) is not close to one");
 	}
 
@@ -422,8 +423,9 @@ public class PreciseNumberHyperbolicTests
 		Assert.AreEqual(50, PreciseNumber.Cosh(PreciseNumber.One).SignificantDigits);
 
 		PreciseNumber wide = Parse("1.00000000000000000000000000000000000000000000000000000000001");
-		Assert.IsTrue(
-			PreciseNumber.Sinh(wide).SignificantDigits >= wide.SignificantDigits,
+		Assert.IsGreaterThanOrEqualTo(
+			wide.SignificantDigits,
+			PreciseNumber.Sinh(wide).SignificantDigits,
 			"Sinh narrowed a wider argument");
 	}
 }
