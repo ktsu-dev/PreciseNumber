@@ -1703,6 +1703,13 @@ public readonly partial record struct PreciseNumber
 	/// </summary>
 	/// <param name="power">The power to raise the number to.</param>
 	/// <returns>A new instance of <see cref="PreciseNumber"/> that is the result of raising the current instance to the specified power.</returns>
+	/// <exception cref="ArgumentOutOfRangeException">Thrown when the current instance is negative and <paramref name="power"/> is not an integer.</exception>
+	/// <exception cref="OverflowException">Thrown when the result needs an exponent outside the range of an <see cref="int"/>.</exception>
+	/// <remarks>
+	/// An integer power is exact, by repeated squaring. A fractional power is
+	/// <c>exp(power · ln x)</c>, produced to the significant digits of the wider operand and never
+	/// fewer than <see cref="MinimumDivisionPrecision"/>.
+	/// </remarks>
 	public PreciseNumber Pow(PreciseNumber power)
 	{
 		if (power.Significand.IsZero)
@@ -1740,28 +1747,18 @@ public readonly partial record struct PreciseNumber
 			return power.Significand.Sign < 0 ? One / result : result;
 		}
 
-		// Use logarithm and exponential to support decimal powers
-		double logValue = Math.Log(To<double>());
-		return Math.Exp(logValue * power.To<double>()).ToPreciseNumber();
-	}
-
-	/// <summary>
-	/// Returns the result of raising e to the specified power.
-	/// </summary>
-	/// <param name="power">The power to raise e to.</param>
-	/// <returns>A new instance of <see cref="PreciseNumber"/> that is the result of raising e to the specified power.</returns>
-	public static PreciseNumber Exp(PreciseNumber power)
-	{
-		if (power.Significand.IsZero)
+		// A fractional power is exp(y · ln x), which has no real value for a negative base. There are
+		// no complex results here, so this is rejected rather than quietly returned as a NaN.
+		if (Significand.Sign < 0)
 		{
-			return One;
-		}
-		else if (power.IsUnit)
-		{
-			return E;
+			throw new ArgumentOutOfRangeException(nameof(power), power, NegativeBaseMessage);
 		}
 
-		return Math.Exp(power.To<double>()).ToPreciseNumber();
+		int significantDigits = Math.Max(
+			Math.Max(SignificantDigits, power.SignificantDigits),
+			MinimumDivisionPrecision);
+
+		return FractionalPow(this, power, significantDigits);
 	}
 
 	/// <inheritdoc/>

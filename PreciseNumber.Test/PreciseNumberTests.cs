@@ -1617,8 +1617,10 @@ public class PreciseNumberTests
 		Assert.AreEqual(PreciseNumber.One, PreciseNumber.One.Pow(10.ToPreciseNumber()));
 		Assert.AreEqual(PreciseNumber.Zero, PreciseNumber.Zero.Pow(10.ToPreciseNumber()));
 
+		// A fractional power is exp(y · ln x) on the significand, so it carries the type's own
+		// precision rather than the seventeen digits the double fallback this replaced returned.
 		result = number.Pow(2.5.ToPreciseNumber());
-		expected = 5.656854249492381.ToPreciseNumber();
+		expected = PreciseNumber.Parse("5.6568542494923801952067548968387923142786875015078", CultureInfo.InvariantCulture);
 		Assert.AreEqual(expected, result);
 	}
 
@@ -1671,9 +1673,10 @@ public class PreciseNumberTests
 	{
 		PreciseNumber result = PreciseNumber.Exp(-1.ToPreciseNumber());
 
-		// Exp routes through a double, and the result keeps every digit that double needs to round-trip.
-		// Its 17th digit comes from binary rounding, so it's 3 where 1/e continues 0.36787944117144232159.
-		PreciseNumber expected = PreciseNumber.Parse("0.36787944117144233", CultureInfo.InvariantCulture);
+		// Exp is computed on the significand, so these are 1/e's own digits rather than the ones a
+		// double needs to round-trip. The 17th is 2, where the double fallback this replaced rounded
+		// it to 3.
+		PreciseNumber expected = PreciseNumber.Parse("0.36787944117144232159552377016146086744581113103177", CultureInfo.InvariantCulture);
 
 		Assert.AreEqual(expected, result);
 		Assert.AreEqual(Math.Exp(-1), result.To<double>());
@@ -1683,7 +1686,7 @@ public class PreciseNumberTests
 	public void TestExpWithLargePositivePower()
 	{
 		PreciseNumber result = PreciseNumber.Exp(5.ToPreciseNumber());
-		PreciseNumber expected = 148.4131591025766m.ToPreciseNumber();
+		PreciseNumber expected = PreciseNumber.Parse("148.41315910257660342111558004055227962348766759388", CultureInfo.InvariantCulture);
 		Assert.AreEqual(expected, result);
 	}
 
@@ -1691,7 +1694,7 @@ public class PreciseNumberTests
 	public void TestExpWithLargeNegativePower()
 	{
 		PreciseNumber result = PreciseNumber.Exp(-5.ToPreciseNumber());
-		PreciseNumber expected = 0.006737946999085467m.ToPreciseNumber();
+		PreciseNumber expected = PreciseNumber.Parse("0.0067379469990854670966360484231484242488495850273551", CultureInfo.InvariantCulture);
 		Assert.AreEqual(expected, result);
 	}
 

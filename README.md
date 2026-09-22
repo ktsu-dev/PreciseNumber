@@ -447,11 +447,22 @@ significant digits of the operand, never fewer than `MinimumDivisionPrecision`. 
 through `double`, so a value outside its range — `1e400`, or `1e-400` — roots as accurately as any
 other.  
 
+`Exp`, `Log`, `Pow` and their base-2 and base-10 siblings follow that rule too, and none of them
+goes through `double` either. The representation carries most of the work: `ln(m · 10^k)` splits
+into `ln m + k · ln 10` against a stored constant, and an exponential factors its whole power of
+ten into the exponent field, so only a mantissa centred on one ever reaches a series. `Log10` of a
+power of ten, and `Exp10` of an integer, are exact and run no series at all, and an integer `Pow`
+is still exact by repeated squaring.  
+
+The `…M1` and `…P1` variants — `ExpM1`, `LogP1` and their siblings — are computed directly rather
+than as `Exp(x) - 1` and `Log(1 + x)`, so they keep the digits of a small argument instead of
+cancelling them away: `ExpM1(1e-30)` is `1e-30`, not zero.  
+
 ## Limitations  
 
-- `Exp()`, and `Pow()` with a non-integer power, are computed through `double` and are therefore limited to its precision. Addition, subtraction, multiplication, division and the roots are not  
+- There is no NaN, so `Sqrt()` of a negative value, `RootN()` of a negative value at an even degree, `Log()` of a value that is not positive, and `Pow()` of a negative value with a fractional exponent, throw `ArgumentOutOfRangeException` where a `double` would return NaN and carry on  
 
-- There is no NaN, so `Sqrt()` of a negative value, and `RootN()` of a negative value at an even degree, throw `ArgumentOutOfRangeException` where a `double` would return NaN and carry on  
+- There is no infinity, so an exponential whose result needs a decimal exponent outside the range of an `int` throws `OverflowException` rather than saturating  
 
 - A checked conversion to an integer type or `decimal` throws `OverflowException` when the value is out of range. Conversion to `double`, `float`, or `Half` overflows to infinity instead, as it does for every built-in type  
 
