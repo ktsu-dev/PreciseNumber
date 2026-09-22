@@ -1,6 +1,4 @@
-## v2.5.0 (minor)
+## v2.5.0
 
-Changes since v2.4.0:
-
-- Implement ITrigonometricFunctions<PreciseNumber>, plus Atan2 [minor] ([@Claude](https://github.com/Claude))
+No significant changes detected since v2.5.0.
 
