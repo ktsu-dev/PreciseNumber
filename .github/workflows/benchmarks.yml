@@ -21,12 +21,19 @@ on:
           - short
           - default
           - long
+      baseline:
+        description: "Git ref to measure alongside this one, e.g. v1.9.0. Empty measures only this checkout."
+        required: false
+        default: ""
+        type: string
 
 permissions:
   contents: read
 
 env:
   DOTNET_VERSION: "10.0"
+  # Each ref measured gets its own subdirectory, the same layout benchmark-history.yml uses.
+  RUNS: BenchmarkDotNet.Artifacts
 
 jobs:
   benchmark:
@@ -37,6 +44,10 @@ jobs:
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v7
+        with:
+          # A baseline ref is measured through a worktree, so its history has to be present.
+          # Quoted so the falsy-zero rule in GitHub expressions does not turn 0 into 1.
+          fetch-depth: ${{ inputs.baseline != '' && '0' || '1' }}
 
       - name: Setup .NET SDK ${{ env.DOTNET_VERSION }}
         uses: actions/setup-dotnet@v6
@@ -48,9 +59,40 @@ jobs:
             **/Directory.Packages.props
             **/global.json
 
+      # Measured before this checkout rather than after, so the summary reads in the order a
+      # comparison is written: where it was, then where it is. The point of measuring it here
+      # instead of in a second dispatch is that both readings come off one runner -- separate
+      # runs can land on different CPU generations, which is what made earlier numbers
+      # incomparable (see #76).
+      #
       # The inputs go through the environment rather than being interpolated into the script.
-      # `filter` is free-form text supplied by whoever dispatches the workflow, and expanding it
-      # into the script body would let it run as shell.
+      # `filter` and `baseline` are free-form text supplied by whoever dispatches the workflow,
+      # and expanding either into the script body would let it run as shell.
+      - name: Run Benchmarks (baseline ref)
+        if: inputs.baseline != ''
+        shell: bash
+        env:
+          BENCHMARK_FILTER: ${{ inputs.filter }}
+          BENCHMARK_JOB: ${{ inputs.job }}
+          BENCHMARK_BASELINE: ${{ inputs.baseline }}
+        run: |
+          set -euo pipefail
+          if ! git rev-parse --verify --quiet "${BENCHMARK_BASELINE}^{commit}" > /dev/null; then
+            echo "::error::Baseline ref '${BENCHMARK_BASELINE}' does not resolve to a commit."
+            exit 1
+          fi
+          work="${RUNNER_TEMP}/bench-baseline"
+          git worktree add --detach "$work" "$BENCHMARK_BASELINE"
+
+          args=(--filter "$BENCHMARK_FILTER")
+          if [ "$BENCHMARK_JOB" != "default" ]; then
+            args+=(--job "$BENCHMARK_JOB")
+          fi
+          args+=(--artifacts "$GITHUB_WORKSPACE/$RUNS/baseline")
+          (cd "$work" && dotnet run -c Release --project PreciseNumber.Benchmarks -- "${args[@]}")
+
+          git worktree remove --force "$work"
+
       - name: Run Benchmarks
         shell: bash
         env:
@@ -66,31 +108,46 @@ jobs:
           # writes them below the working directory, which `dotnet run --project` leaves at the
           # repository root rather than moving to the project -- so the later steps looked under
           # PreciseNumber.Benchmarks/ and found nothing, and every run uploaded no artifact.
-          args+=(--artifacts "$GITHUB_WORKSPACE/BenchmarkDotNet.Artifacts")
+          args+=(--artifacts "$GITHUB_WORKSPACE/$RUNS/head")
           dotnet run -c Release --project PreciseNumber.Benchmarks -- "${args[@]}"
 
       # The Markdown reports are the readable artifact; the JSON is what a later comparison
-      # against another run would be built from.
+      # against another run would be built from. Each ref is headed by the ref it came from,
+      # because two tables of the same benchmark names are otherwise impossible to tell apart.
       - name: Summarize
         if: always()
         shell: bash
+        env:
+          BENCHMARK_BASELINE: ${{ inputs.baseline }}
         run: |
           shopt -s nullglob
-          reports=(BenchmarkDotNet.Artifacts/results/*-report-github.md)
-          if [ ${#reports[@]} -eq 0 ]; then
-            echo "No benchmark reports were produced." >> "$GITHUB_STEP_SUMMARY"
-            exit 0
-          fi
-          for report in "${reports[@]}"; do
-            cat "$report" >> "$GITHUB_STEP_SUMMARY"
+          found=0
+          for ref in baseline head; do
+            reports=("$RUNS/$ref"/results/*-report-github.md)
+            if [ ${#reports[@]} -eq 0 ]; then
+              continue
+            fi
+            found=1
+            if [ "$ref" = "baseline" ]; then
+              echo "## Baseline: $BENCHMARK_BASELINE" >> "$GITHUB_STEP_SUMMARY"
+            else
+              echo "## This checkout: $GITHUB_SHA" >> "$GITHUB_STEP_SUMMARY"
+            fi
             echo >> "$GITHUB_STEP_SUMMARY"
+            for report in "${reports[@]}"; do
+              cat "$report" >> "$GITHUB_STEP_SUMMARY"
+              echo >> "$GITHUB_STEP_SUMMARY"
+            done
           done
+          if [ "$found" -eq 0 ]; then
+            echo "No benchmark reports were produced." >> "$GITHUB_STEP_SUMMARY"
+          fi
 
       - name: Upload Results
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: benchmark-results-${{ github.sha }}
-          path: BenchmarkDotNet.Artifacts/results/*
+          path: BenchmarkDotNet.Artifacts/*/results/*
           retention-days: 30
           if-no-files-found: error
