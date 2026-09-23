@@ -16,6 +16,13 @@ using System.Numerics;
 /// rather than the <see cref="Pi"/> property — which is exactly why <see cref="Sin(PreciseNumber)"/>
 /// of a large angle is meaningful at all.
 /// <para>
+/// π is stored to <see cref="ConstantPrecision"/> digits, so that same <c>d + n</c> is a ceiling as
+/// well as a requirement: about <c>ConstantPrecision - d</c> digits are available at magnitude
+/// <c>10^d</c>, and a circular function asked for more is refused rather than answered with digits
+/// the constant never carried. The half-turn family below has no such ceiling, because it reduces
+/// before it multiplies and so never needs a wide π at all.
+/// </para>
+/// <para>
 /// <see cref="Sin(PreciseNumber)"/> and <see cref="Cos(PreciseNumber)"/> reduce modulo <c>π/2</c>
 /// into <c>[-π/4, π/4]</c> with an octant index, so one kernel serves both and the series stays
 /// short. <see cref="SinCos(PreciseNumber)"/> exists to do that reduction once for a caller that
@@ -100,7 +107,12 @@ public readonly partial record struct PreciseNumber
 	/// <param name="x">The angle, in radians.</param>
 	/// <param name="significantDigits">The number of significant digits to produce.</param>
 	/// <returns>The sine of <paramref name="x"/>.</returns>
-	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// Thrown when <paramref name="significantDigits"/> is less than one, or when it and the integer
+	/// digits of <paramref name="x"/> together exceed <see cref="ConstantPrecision"/>. Reducing the
+	/// argument cancels its integer digits out of π, so those and the answer both have to fit inside
+	/// the stored constant; see <see cref="SinCos(PreciseNumber, int)"/>.
+	/// </exception>
 	public static PreciseNumber Sin(PreciseNumber x, int significantDigits) =>
 		SinCos(x, significantDigits).Sin;
 
@@ -123,7 +135,12 @@ public readonly partial record struct PreciseNumber
 	/// <param name="x">The angle, in radians.</param>
 	/// <param name="significantDigits">The number of significant digits to produce.</param>
 	/// <returns>The cosine of <paramref name="x"/>.</returns>
-	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// Thrown when <paramref name="significantDigits"/> is less than one, or when it and the integer
+	/// digits of <paramref name="x"/> together exceed <see cref="ConstantPrecision"/>. Reducing the
+	/// argument cancels its integer digits out of π, so those and the answer both have to fit inside
+	/// the stored constant; see <see cref="SinCos(PreciseNumber, int)"/>.
+	/// </exception>
 	public static PreciseNumber Cos(PreciseNumber x, int significantDigits) =>
 		SinCos(x, significantDigits).Cos;
 
@@ -146,13 +163,22 @@ public readonly partial record struct PreciseNumber
 	/// <param name="x">The angle, in radians.</param>
 	/// <param name="significantDigits">The number of significant digits to produce.</param>
 	/// <returns>A tuple of the sine and cosine of <paramref name="x"/>.</returns>
-	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// Thrown when <paramref name="significantDigits"/> is less than one, or when it and the integer
+	/// digits of <paramref name="x"/> together exceed <see cref="ConstantPrecision"/>.
+	/// </exception>
 	/// <remarks>
 	/// <c>x = q · π/2 + r</c> with <c>q</c> the nearest integer and <c>r</c> in <c>[-π/4, π/4]</c>.
 	/// The kernel evaluates the sine and cosine of <c>r</c>, and <c>q</c> mod four selects which, and
 	/// with which sign, becomes the sine and cosine of <c>x</c>. The <c>π/2</c> the reduction
 	/// subtracts is read wide enough that the integer part it cancels was present in the constant
 	/// rather than invented.
+	/// <para>
+	/// That width is bounded: π is stored to <see cref="ConstantPrecision"/> digits, the reduction
+	/// spends one per integer digit of <paramref name="x"/>, and what is left is the most the answer
+	/// can carry. Beyond it the call is refused rather than answered with digits the constant never
+	/// held — see <see cref="RequireReducibleArgument(int, int)"/>.
+	/// </para>
 	/// </remarks>
 	public static (PreciseNumber Sin, PreciseNumber Cos) SinCos(PreciseNumber x, int significantDigits)
 	{
@@ -169,6 +195,8 @@ public readonly partial record struct PreciseNumber
 		// that many digits past the answer or the remainder is only as good as what was left over.
 		int argumentDigits = IntegerDigitCount(x);
 		int reductionDigits = working + argumentDigits + TrigonometricGuardDigits;
+
+		RequireReducibleArgument(significantDigits, argumentDigits);
 
 		PreciseNumber piOverTwo = Divide(PiTo(reductionDigits), Two, reductionDigits);
 		BigInteger quadrant = RoundToNearestInteger(Divide(x, piOverTwo, reductionDigits));
@@ -868,5 +896,56 @@ public readonly partial record struct PreciseNumber
 
 		throw new ArithmeticException(
 			$"The arc tangent series did not converge to {workingDigits.ToString(InvariantCulture)} significant digits.");
+	}
+
+	/// <summary>
+	/// Throws when reducing an argument modulo <c>π/2</c> would need more of π than
+	/// <see cref="ConstantPrecision"/> carries.
+	/// </summary>
+	/// <param name="significantDigits">The significant digits the caller asked for.</param>
+	/// <param name="argumentDigits">The integer digits of the argument, which the reduction cancels.</param>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// Thrown when the two together exceed <see cref="ConstantPrecision"/>.
+	/// </exception>
+	/// <remarks>
+	/// <para>
+	/// <see cref="PiTo(int)"/> serves at most <see cref="ConstantPrecision"/> digits and says so, but
+	/// it returns the capped constant rather than failing, so a reduction that asked for more had no
+	/// way to know it had been short-changed. The result still reported the full
+	/// <paramref name="significantDigits"/>, which on this type is a promise that those digits are
+	/// correct.
+	/// </para>
+	/// <para>
+	/// The bound is the answer's width plus the digits the reduction destroys, not the padded
+	/// <c>reductionDigits</c> the caller passes to <see cref="PiTo(int)"/>. Those carry
+	/// <see cref="TrigonometricGuardDigits"/> twice over as margin, and margin is allowed to be
+	/// unavailable: <c>Sin(1000000, 130)</c> asks π for 157 digits, is served 150, and is still
+	/// correct to every digit it reports, which
+	/// <c>TestSinReducesALargeArgumentAgainstAWidePi</c> pins against an independent reference.
+	/// Bounding <c>reductionDigits</c> instead would refuse that call.
+	/// </para>
+	/// <para>
+	/// Measured rather than assumed. Against references computed independently at several hundred
+	/// digits, the correct digits of a sine come out as
+	/// <c>min(significantDigits, ConstantPrecision - argumentDigits)</c>: an argument of 80 integer
+	/// digits yields 71 correct digits whether 100 or 140 are requested, and one of 50 integer digits
+	/// yields 100. The sum crossing <see cref="ConstantPrecision"/> is exactly where the requested
+	/// digits stop being delivered.
+	/// </para>
+	/// </remarks>
+	private static void RequireReducibleArgument(int significantDigits, int argumentDigits)
+	{
+		if (significantDigits + argumentDigits > ConstantPrecision)
+		{
+			int available = Math.Max(0, ConstantPrecision - argumentDigits);
+			throw new ArgumentOutOfRangeException(
+				nameof(significantDigits),
+				significantDigits,
+				$"Reducing an argument of {argumentDigits.ToString(InvariantCulture)} integer digits to " +
+				$"{significantDigits.ToString(InvariantCulture)} significant digits needs π to " +
+				$"{(significantDigits + argumentDigits).ToString(InvariantCulture)} digits, but it is stored to " +
+				$"{ConstantPrecision.ToString(InvariantCulture)}. At most " +
+				$"{available.ToString(InvariantCulture)} significant digits are available at this magnitude.");
+		}
 	}
 }

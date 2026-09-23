@@ -123,6 +123,62 @@ public class PreciseNumberTrigonometryTests
 	}
 
 	[TestMethod]
+	public void TestSinRefusesMoreDigitsThanPiCanReduceAgainst()
+	{
+		// The issue's acceptance criterion. Reducing modulo π/2 cancels the argument's integer
+		// digits, so π has to carry those on top of the answer. PiTo caps at ConstantPrecision and
+		// returns the capped constant rather than failing, so this used to come back reporting every
+		// digit asked for while only about ConstantPrecision - argumentDigits of them were real.
+		PreciseNumber million = Parse("1000000");
+
+		ArgumentOutOfRangeException thrown = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+			() => PreciseNumber.Sin(million, PreciseNumber.ConstantPrecision - 6));
+
+		// The message has to name the shortfall, or a caller cannot tell what to ask for instead.
+		StringAssert.Contains(thrown.Message, "144 significant digits needs", StringComparison.Ordinal);
+		StringAssert.Contains(thrown.Message, "143 significant digits are available", StringComparison.Ordinal);
+	}
+
+	[TestMethod]
+	public void TestSinDeliversEveryDigitUpToTheReductionCeiling()
+	{
+		// The other half, and the reason the bound is where it is rather than somewhere safer. One
+		// million has seven integer digits, so ConstantPrecision - 7 digits is the most π can
+		// support — and that request has to succeed and be correct, not be refused out of caution.
+		PreciseNumber sine = PreciseNumber.Sin(Parse("1000000"), PreciseNumber.ConstantPrecision - 7);
+
+		Assert.AreEqual(PreciseNumber.ConstantPrecision - 7, sine.SignificantDigits);
+		AssertAgreesTo(Parse(SinOneMillionDigits), sine, 120, "Sin at the reduction ceiling did not match its wide reference");
+	}
+
+	[TestMethod]
+	public void TestSinRefusesAnArgumentTooLargeToReduceAtAll()
+	{
+		// Magnitude alone is enough, without asking for many digits. An argument of 201 integer
+		// digits cancels more of π than exists, so there is no precision at which the answer means
+		// anything — where before it returned digits that were simply invented.
+		PreciseNumber enormous = Parse("1E200");
+
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Sin(enormous, 10));
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Cos(enormous, 10));
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Tan(enormous, 10));
+	}
+
+	[TestMethod]
+	public void TestOrdinaryAnglesAreUnaffectedByTheReductionCeiling()
+	{
+		// The guard on the guard. Every angle in the sweep at a sane precision has to keep working,
+		// so the ceiling cannot be reached by ordinary use — only the combination of a large
+		// magnitude and a high precision is beyond what the constant can serve.
+		foreach (PreciseNumber angle in AngleSweep())
+		{
+			(PreciseNumber sin, PreciseNumber cos) = PreciseNumber.SinCos(angle, 60);
+			Assert.IsTrue(sin.SignificantDigits <= 60, $"Sin({angle}) reported more digits than were asked for");
+			Assert.IsTrue(cos.SignificantDigits <= 60, $"Cos({angle}) reported more digits than were asked for");
+		}
+	}
+
+	[TestMethod]
 	public void TestPythagoreanIdentityHoldsAcrossTheSweep()
 	{
 		foreach (PreciseNumber angle in AngleSweep())
