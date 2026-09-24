@@ -2056,6 +2056,48 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
+	public void TestDivideIsExactWhenTheDenominatorOnlyTerminatesAfterReduction()
+	{
+		// The denominators here carry factors that are neither two nor five, so they only
+		// terminate once the numerator has cancelled them: 91/7 is 13, 6/3 is 2, 22/11 is 2.
+		// Asking for fewer significant digits than the exact answer needs is what exposes it -
+		// at the default precision the rounded path happens to land on the same value.
+		(int Numerator, int Denominator, string Expected)[] cases =
+		[
+			(91, 7, "13"),
+			(6, 3, "2"),
+			(22, 11, "2"),
+			(-91, 7, "-13"),
+			(91, -7, "-13"),
+			(126, 14, "9"),
+			(1001, 7, "143"),
+		];
+
+		foreach ((int numerator, int denominator, string expected) in cases)
+		{
+			PreciseNumber quotient = PreciseNumber.Divide(
+				numerator.ToPreciseNumber(),
+				denominator.ToPreciseNumber(),
+				1);
+
+			Assert.AreEqual(expected, quotient.ToString(CultureInfo.InvariantCulture), $"{numerator}/{denominator} at 1 significant digit");
+		}
+	}
+
+	[TestMethod]
+	public void TestDivideStillRoundsWhenReductionLeavesANonTerminatingDenominator()
+	{
+		// Reducing must not be mistaken for terminating: 14/6 reduces to 7/3, whose denominator
+		// still has a factor of three, so the quotient repeats and the requested precision applies.
+		PreciseNumber fourteen = 14.ToPreciseNumber();
+		PreciseNumber six = 6.ToPreciseNumber();
+
+		Assert.AreEqual("2", PreciseNumber.Divide(fourteen, six, 1).ToString(CultureInfo.InvariantCulture));
+		Assert.AreEqual("2.33", PreciseNumber.Divide(fourteen, six, 3).ToString(CultureInfo.InvariantCulture));
+		Assert.AreEqual("2.3333", PreciseNumber.Divide(fourteen, six, 5).ToString(CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
 	public void TestDivideKeepsEveryDigitOfALongTerminatingQuotient()
 	{
 		// 2^-64 terminates, but only after 64 decimal places - far more than the default
