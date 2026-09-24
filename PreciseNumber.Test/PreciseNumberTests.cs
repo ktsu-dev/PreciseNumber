@@ -1174,6 +1174,64 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
+	public void TestGetHashCodeAgreesWithEqualsForUnsanitizedValues()
+	{
+		// Equals compares numerically, so an un-sanitized 2.50 equals a sanitized 2.5. The hash
+		// has to agree, or the two land in different buckets of a dictionary and lookups miss.
+		(int Exponent, int Significand)[] unsanitized =
+		[
+			(-2, 250),      // 2.50
+			(-3, 2500),     // 2.500
+			(0, 100),       // 100
+			(1, 10),        // 100
+			(-1, -250),     // -25.0
+			(0, 0),         // zero
+			(5, 0),         // zero, at a non-zero exponent
+		];
+
+		foreach ((int exponent, int significand) in unsanitized)
+		{
+			PreciseNumber raw = PreciseNumber.CreateFromComponents(exponent, significand, sanitize: false);
+			PreciseNumber sanitized = PreciseNumber.CreateFromComponents(exponent, significand);
+
+			Assert.IsTrue(raw.Equals(sanitized), $"({exponent}, {significand}) should equal its sanitized form");
+			Assert.AreEqual(
+				sanitized.GetHashCode(),
+				raw.GetHashCode(),
+				$"({exponent}, {significand}) is Equals-equal to its sanitized form, so it must hash alike");
+		}
+	}
+
+	[TestMethod]
+	public void TestGetHashCodeAgreesWithEqualsAfterCommonizing()
+	{
+		// MakeCommonized hands back un-normalized values directly, which is the other way a
+		// caller can reach an instance whose stored fields carry trailing zeros.
+		PreciseNumber twoAndAHalf = PreciseNumber.CreateFromComponents(-1, 25);
+		PreciseNumber thousandths = PreciseNumber.CreateFromComponents(-3, 1);
+
+		(PreciseNumber commonized, PreciseNumber _) = PreciseNumber.MakeCommonized(twoAndAHalf, thousandths);
+
+		Assert.IsTrue(commonized.Equals(twoAndAHalf));
+		Assert.AreEqual(twoAndAHalf.GetHashCode(), commonized.GetHashCode());
+	}
+
+	[TestMethod]
+	public void TestUnsanitizedValuesShareADictionarySlotWithTheirSanitizedForm()
+	{
+		// The contract violation as a caller meets it: a lookup that silently misses.
+		Dictionary<PreciseNumber, string> lookup = new()
+		{
+			[PreciseNumber.CreateFromComponents(-1, 25)] = "two and a half",
+		};
+
+		PreciseNumber raw = PreciseNumber.CreateFromComponents(-2, 250, sanitize: false);
+
+		Assert.IsTrue(lookup.TryGetValue(raw, out string? found), "2.50 should find the entry stored under 2.5");
+		Assert.AreEqual("two and a half", found);
+	}
+
+	[TestMethod]
 	public void TestEqualsObjectSameInstance()
 	{
 		PreciseNumber number = PreciseNumber.One;

@@ -450,7 +450,31 @@ public readonly partial record struct PreciseNumber
 		Equal(this, other);
 
 	/// <inheritdoc/>
-	public override int GetHashCode() => HashCode.Combine(Exponent, Significand);
+	/// <remarks>
+	/// Hashes the sanitized form rather than the stored fields. <see cref="Equals(PreciseNumber)"/>
+	/// compares numerically, so an un-sanitized 2.50 - significand 250 at exponent -2, reachable
+	/// through <see cref="CreateFromComponents(int, BigInteger, bool)"/> and the commonizing
+	/// helpers - equals a sanitized 2.5 and has to hash alike, or the two land in different buckets
+	/// of a hash table and lookups silently miss.
+	/// </remarks>
+	public override int GetHashCode()
+	{
+		if (Significand.IsZero)
+		{
+			// Every zero is equal, whatever exponent it happens to be stored at.
+			return HashCode.Combine(0, BigInteger.Zero);
+		}
+
+		// The leading digit is non-zero, so at most SignificantDigits - 1 zeros can trail.
+		int trailingZeros = CountTrailingZeros(Significand, SignificantDigits - 1);
+
+		// Unchecked because a hash must not throw. The sanitizing constructor does this addition
+		// checked, so an exponent that could overflow here cannot survive ordinary arithmetic
+		// anyway, and a wrapped value still hashes Equals-equal pairs to the same bucket.
+		return trailingZeros == 0
+			? HashCode.Combine(Exponent, Significand)
+			: HashCode.Combine(unchecked(Exponent + trailingZeros), Significand / Pow10(trailingZeros));
+	}
 
 	/// <inheritdoc/>
 	public override string ToString() => ToString(this, null, null);
