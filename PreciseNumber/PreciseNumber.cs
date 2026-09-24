@@ -1484,9 +1484,21 @@ public readonly partial record struct PreciseNumber
 	/// <returns><c>true</c> if the quotient terminates and <paramref name="result"/> is exact; otherwise <c>false</c>.</returns>
 	private static bool TryDivideExactly(BigInteger numerator, BigInteger denominator, int exponent, out PreciseNumber result)
 	{
-		// A fraction terminates in base ten exactly when its denominator is 2^twos * 5^fives. Most
-		// denominators are rejected by the first remainder test, which is why this is worth trying
-		// before falling back to a rounded quotient.
+		// A fraction terminates in base ten exactly when its *reduced* denominator is
+		// 2^twos * 5^fives, so reduce before factorizing: a denominator factor that cancels against
+		// the numerator, as the seven of 91/7 does, leaves a terminating quotient behind and must
+		// not keep this off the exact path. The numerator is non-zero here - Divide returns early
+		// for a zero dividend - so the greatest common divisor is positive and the denominator
+		// stays positive across the reduction.
+		BigInteger common = BigInteger.GreatestCommonDivisor(BigInteger.Abs(numerator), denominator);
+		if (!common.IsOne)
+		{
+			numerator /= common;
+			denominator /= common;
+		}
+
+		// Most denominators are rejected by the first remainder test, which is why this is worth
+		// trying before falling back to a rounded quotient.
 		int twos = (int)BigInteger.TrailingZeroCount(denominator);
 		BigInteger remaining = denominator >> twos;
 
