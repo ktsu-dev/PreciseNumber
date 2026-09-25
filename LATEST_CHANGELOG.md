@@ -1,6 +1,7 @@
-## v2.6.1 (patch)
+## v2.6.2 (patch)
 
-Changes since v2.6.0:
+Changes since v2.6.1:
 
-- Bump the ktsu group with 9 updates ([@dependabot[bot]](https://github.com/dependabot[bot]))
+- Hash the sanitized form, so Equals and GetHashCode agree [patch] ([@Claude](https://github.com/Claude))
+- Reduce by the GCD before testing whether a quotient terminates [patch] ([@Claude](https://github.com/Claude))
 
