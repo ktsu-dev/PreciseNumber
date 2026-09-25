@@ -1,7 +1,4 @@
-## v2.6.2 (patch)
+## v2.6.2
 
-Changes since v2.6.1:
-
-- Hash the sanitized form, so Equals and GetHashCode agree [patch] ([@Claude](https://github.com/Claude))
-- Reduce by the GCD before testing whether a quotient terminates [patch] ([@Claude](https://github.com/Claude))
+No significant changes detected since v2.6.2.
 
