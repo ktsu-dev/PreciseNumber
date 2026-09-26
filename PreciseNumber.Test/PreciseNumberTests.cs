@@ -608,7 +608,7 @@ public class PreciseNumberTests
 		PreciseNumber one = PreciseNumber.One;
 		PreciseNumber negativeOne = PreciseNumber.NegativeOne;
 		PreciseNumber result = PreciseNumber.MinMagnitude(one, negativeOne);
-		Assert.AreEqual(one, result);
+		Assert.AreEqual(negativeOne, result);
 	}
 
 	[TestMethod]
@@ -617,7 +617,35 @@ public class PreciseNumberTests
 		PreciseNumber one = PreciseNumber.One;
 		PreciseNumber negativeOne = PreciseNumber.NegativeOne;
 		PreciseNumber result = PreciseNumber.MinMagnitudeNumber(one, negativeOne);
-		Assert.AreEqual(one, result);
+		Assert.AreEqual(negativeOne, result);
+	}
+
+	[TestMethod]
+	[DataRow(-2, 2)]
+	[DataRow(2, -2)]
+	public void TestMagnitudeTiesFollowInt(int x, int y)
+	{
+		PreciseNumber px = x.ToPreciseNumber();
+		PreciseNumber py = y.ToPreciseNumber();
+
+		Assert.AreEqual(int.MaxMagnitude(x, y).ToPreciseNumber(), PreciseNumber.MaxMagnitude(px, py));
+		Assert.AreEqual(int.MaxMagnitude(x, y).ToPreciseNumber(), PreciseNumber.MaxMagnitudeNumber(px, py));
+		Assert.AreEqual(int.MinMagnitude(x, y).ToPreciseNumber(), PreciseNumber.MinMagnitude(px, py));
+		Assert.AreEqual(int.MinMagnitude(x, y).ToPreciseNumber(), PreciseNumber.MinMagnitudeNumber(px, py));
+	}
+
+	[TestMethod]
+	[DataRow(-3, 2)]
+	[DataRow(2, -3)]
+	[DataRow(3, -2)]
+	[DataRow(-2, 3)]
+	public void TestMagnitudeWithoutATiePicksByAbsoluteValue(int x, int y)
+	{
+		PreciseNumber px = x.ToPreciseNumber();
+		PreciseNumber py = y.ToPreciseNumber();
+
+		Assert.AreEqual(int.MaxMagnitude(x, y).ToPreciseNumber(), PreciseNumber.MaxMagnitude(px, py));
+		Assert.AreEqual(int.MinMagnitude(x, y).ToPreciseNumber(), PreciseNumber.MinMagnitude(px, py));
 	}
 
 	[TestMethod]
