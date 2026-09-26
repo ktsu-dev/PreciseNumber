@@ -1097,15 +1097,37 @@ public readonly partial record struct PreciseNumber
 		value.Significand == 0;
 
 	/// <inheritdoc/>
-	public static PreciseNumber MaxMagnitude(PreciseNumber x, PreciseNumber y) =>
-		x.Abs() >= y.Abs() ? x : y;
+	/// <remarks>
+	/// When the magnitudes are equal, the positive value is returned, as for <see cref="int"/> and <see cref="double"/>.
+	/// </remarks>
+	public static PreciseNumber MaxMagnitude(PreciseNumber x, PreciseNumber y)
+	{
+		int comparison = x.Abs().CompareTo(y.Abs());
+		if (comparison != 0)
+		{
+			return comparison > 0 ? x : y;
+		}
+
+		return IsNegative(x) ? y : x;
+	}
 
 	/// <inheritdoc/>
 	public static PreciseNumber MaxMagnitudeNumber(PreciseNumber x, PreciseNumber y) => MaxMagnitude(x, y);
 
 	/// <inheritdoc/>
-	public static PreciseNumber MinMagnitude(PreciseNumber x, PreciseNumber y) =>
-		x.Abs() <= y.Abs() ? x : y;
+	/// <remarks>
+	/// When the magnitudes are equal, the negative value is returned, as for <see cref="int"/> and <see cref="double"/>.
+	/// </remarks>
+	public static PreciseNumber MinMagnitude(PreciseNumber x, PreciseNumber y)
+	{
+		int comparison = x.Abs().CompareTo(y.Abs());
+		if (comparison != 0)
+		{
+			return comparison < 0 ? x : y;
+		}
+
+		return IsNegative(x) ? x : y;
+	}
 
 	/// <inheritdoc/>
 	public static PreciseNumber MinMagnitudeNumber(PreciseNumber x, PreciseNumber y) => MinMagnitude(x, y);
