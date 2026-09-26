@@ -667,8 +667,6 @@ public readonly partial record struct PreciseNumber
 		ReadOnlySpan<char> fractionalComponent = decimalIndex < 0 ? "0".AsSpan() : text[(decimalIndex + 1)..];
 		exponentValue -= fractionalComponent.Length;
 
-		Debug.Assert(fractionalComponent.Length != 0 || integerComponent.TrimStart("-").Length == 1, $"Unexpected format: {text}");
-
 		int digitLength = integerComponent.Length + fractionalComponent.Length;
 		char[]? rentedDigits = digitLength > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent(digitLength) : null;
 		Span<char> stackDigits = stackalloc char[MaxStackAllocChars];

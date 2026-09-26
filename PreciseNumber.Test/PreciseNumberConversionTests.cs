@@ -85,6 +85,18 @@ public class PreciseNumberConversionTests
 	}
 
 	[TestMethod]
+	public void FromDecimalWithOnlyZerosAfterThePoint()
+	{
+		// Trimming the zeros of "10.0" leaves "10." with an empty fraction, which is valid text for
+		// ten, not a malformed rendering. This runs in Debug, where a failed assert ends the process.
+		Assert.AreEqual(P("10"), 10.0m.ToPreciseNumber());
+		Assert.AreEqual(P("100"), 100.00m.ToPreciseNumber());
+		Assert.AreEqual(P("-20"), (-20.0m).ToPreciseNumber());
+		AssertFromInAllModes(10.0m, "10");
+		AssertFromInAllModes(-1200.000m, "-1200");
+	}
+
+	[TestMethod]
 	public void FromBinaryFloatingPointUsesDecimalText()
 	{
 		AssertFromInAllModes(0.3048, "0.3048");
