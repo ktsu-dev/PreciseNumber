@@ -1034,6 +1034,37 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
+	public void TestRoundToNegativeDecimalsDoesNotDependOnHowTheValueIsStored()
+	{
+		static PreciseNumber P(string text) => PreciseNumber.Parse(text, CultureInfo.InvariantCulture);
+
+		// Integers are stored with trailing zeros moved into a positive exponent, so "1230" is 123 at
+		// exponent 1. Rounding used to derive the dropped digits from the decimal places alone, which
+		// only worked when the value had a fractional part.
+		(string Input, int Decimals, string Expected)[] cases =
+		[
+			("1234.5", -2, "1200"),
+			("1234", -2, "1200"),
+			("1230", -2, "1200"),
+			("1250", -2, "1300"),
+			("1500", -3, "2000"),
+			("-1500", -3, "-2000"),
+			("1499", -3, "1000"),
+			("400", -3, "0"),
+			("1200", -2, "1200"),
+			("1234", 0, "1234"),
+			("1230", 2, "1230"),
+			("7", -1, "10"),
+		];
+
+		foreach ((string input, int decimals, string expected) in cases)
+		{
+			Assert.AreEqual(P(expected), P(input).Round(decimals), $"{input} to {decimals} decimal places");
+			Assert.AreEqual(P(expected), PreciseNumber.Round(P(input), decimals), $"static Round of {input} to {decimals} decimal places");
+		}
+	}
+
+	[TestMethod]
 	public void TestMakeCommonizedAndGetExponent()
 	{
 		PreciseNumber number1 = PreciseNumber.CreateFromComponents(1, 123);
