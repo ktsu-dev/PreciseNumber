@@ -905,7 +905,8 @@ public class PreciseNumberTests
 	[TestMethod]
 	public void TestRadix()
 	{
-		Assert.AreEqual(2, PreciseNumber.Radix);
+		// The type stores significand × 10^exponent, so like decimal it is base 10.
+		Assert.AreEqual(10, PreciseNumber.Radix);
 	}
 
 	[TestMethod]
