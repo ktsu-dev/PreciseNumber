@@ -434,10 +434,10 @@ public readonly partial record struct PreciseNumber
 	/// </summary>
 	internal static CultureInfo InvariantCulture { get; } = CultureInfo.InvariantCulture;
 
-	private const int BinaryRadix = 2;
+	private const int DecimalRadix = 10;
 
 	/// <inheritdoc/>
-	public static int Radix => BinaryRadix;
+	public static int Radix => DecimalRadix;
 
 	/// <inheritdoc/>
 	public static PreciseNumber AdditiveIdentity => Zero;
