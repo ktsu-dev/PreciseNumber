@@ -1103,9 +1103,12 @@ public readonly partial record struct PreciseNumber
 	public static PreciseNumber MaxMagnitude(PreciseNumber x, PreciseNumber y)
 	{
 		int comparison = x.Abs().CompareTo(y.Abs());
-		return comparison > 0 ? x
-			: comparison < 0 ? y
-			: IsNegative(x) ? y : x;
+		if (comparison != 0)
+		{
+			return comparison > 0 ? x : y;
+		}
+
+		return IsNegative(x) ? y : x;
 	}
 
 	/// <inheritdoc/>
@@ -1118,9 +1121,12 @@ public readonly partial record struct PreciseNumber
 	public static PreciseNumber MinMagnitude(PreciseNumber x, PreciseNumber y)
 	{
 		int comparison = x.Abs().CompareTo(y.Abs());
-		return comparison < 0 ? x
-			: comparison > 0 ? y
-			: IsNegative(x) ? x : y;
+		if (comparison != 0)
+		{
+			return comparison < 0 ? x : y;
+		}
+
+		return IsNegative(x) ? x : y;
 	}
 
 	/// <inheritdoc/>
