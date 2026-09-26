@@ -2431,6 +2431,47 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
+	public void TestMultiplyThrowsOverflowWhenTheExponentLeavesTheIntRange()
+	{
+		PreciseNumber big = PreciseNumber.Parse("1e2000000000", NumberStyles.Float, CultureInfo.InvariantCulture);
+		PreciseNumber small = PreciseNumber.Parse("1e-2000000000", NumberStyles.Float, CultureInfo.InvariantCulture);
+
+		// Wrapping would give 1e-294967296 and 1e+294967296, off by billions of orders of magnitude.
+		Assert.ThrowsExactly<OverflowException>(() => big * big);
+		Assert.ThrowsExactly<OverflowException>(() => small * small);
+		Assert.ThrowsExactly<OverflowException>(() => PreciseNumber.Pow(big, 2.ToPreciseNumber()));
+
+		// Exponents that still fit are unaffected.
+		Assert.AreEqual(PreciseNumber.One, big * small);
+	}
+
+	[TestMethod]
+	public void TestDivideThrowsOverflowWhenTheExponentLeavesTheIntRange()
+	{
+		PreciseNumber big = PreciseNumber.Parse("1e2000000000", NumberStyles.Float, CultureInfo.InvariantCulture);
+		PreciseNumber small = PreciseNumber.Parse("1e-2000000000", NumberStyles.Float, CultureInfo.InvariantCulture);
+
+		Assert.ThrowsExactly<OverflowException>(() => big / small);
+		Assert.ThrowsExactly<OverflowException>(() => small / big);
+
+		// Exponents that still fit are unaffected.
+		Assert.AreEqual(PreciseNumber.One, big / big);
+	}
+
+	[TestMethod]
+	public void TestDivideThrowsOverflowWhenScalingTheQuotientLeavesTheIntRange()
+	{
+		PreciseNumber tiny = PreciseNumber.Parse("1E-2147483648", NumberStyles.Float, CultureInfo.InvariantCulture);
+
+		// An exact quotient: 1e-2147483648 / 2 is 5e-2147483649, one place past int.MinValue.
+		Assert.ThrowsExactly<OverflowException>(() => tiny / PreciseNumber.CreateFromComponents(0, 2));
+
+		// A rounded quotient: a third needs its digits below int.MinValue too.
+		Assert.ThrowsExactly<OverflowException>(() => tiny / PreciseNumber.CreateFromComponents(0, 3));
+		Assert.ThrowsExactly<OverflowException>(() => PreciseNumber.Divide(tiny, PreciseNumber.CreateFromComponents(0, 3), 5));
+	}
+
+	[TestMethod]
 	public void TestRoundAtExtremeNegativeExponentGivesZero()
 	{
 		// Every significant digit sits far below the requested place, so the value rounds away.
