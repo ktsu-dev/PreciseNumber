@@ -572,11 +572,17 @@ public readonly partial record struct PreciseNumber
 	/// <param name="min">The minimum value.</param>
 	/// <param name="max">The maximum value.</param>
 	/// <returns>The clamped value.</returns>
+	/// <exception cref="ArgumentException"><paramref name="min"/> is greater than <paramref name="max"/>.</exception>
 	public PreciseNumber Clamp<TNumber>(TNumber min, TNumber max)
 		where TNumber : INumber<TNumber>
 	{
 		PreciseNumber sigMin = min.ToPreciseNumber();
 		PreciseNumber sigMax = max.ToPreciseNumber();
+		if (sigMin > sigMax)
+		{
+			throw new ArgumentException($"'{sigMin}' cannot be greater than {sigMax}.", nameof(min));
+		}
+
 		PreciseNumber clampedToMax = this > sigMax ? sigMax : this;
 		return this < sigMin ? sigMin : clampedToMax;
 	}
@@ -1710,6 +1716,7 @@ public readonly partial record struct PreciseNumber
 	/// <param name="min">The minimum value.</param>
 	/// <param name="max">The maximum value.</param>
 	/// <returns>The clamped number.</returns>
+	/// <exception cref="ArgumentException"><paramref name="min"/> is greater than <paramref name="max"/>.</exception>
 	public static PreciseNumber Clamp(PreciseNumber value, PreciseNumber min, PreciseNumber max) =>
 		value.Clamp(min, max);
 
