@@ -1409,6 +1409,7 @@ public readonly partial record struct PreciseNumber
 	/// <param name="left">The first number to multiply.</param>
 	/// <param name="right">The second number to multiply.</param>
 	/// <returns>The result of the multiplication.</returns>
+	/// <exception cref="OverflowException">Thrown when the product needs an exponent outside the range of an <see cref="int"/>.</exception>
 	public static PreciseNumber Multiply(PreciseNumber left, PreciseNumber right)
 	{
 		if (left.Significand.IsZero || right.Significand.IsZero)
@@ -1426,7 +1427,7 @@ public readonly partial record struct PreciseNumber
 
 		// (l * 10^el) * (r * 10^er) == (l * r) * 10^(el + er), so there is no need to scale the
 		// operands to a common exponent first; doing so only inflates both significands.
-		return new PreciseNumber(left.Exponent + right.Exponent, left.Significand * right.Significand);
+		return new PreciseNumber(checked(left.Exponent + right.Exponent), left.Significand * right.Significand);
 	}
 
 	/// <summary>
@@ -1436,6 +1437,7 @@ public readonly partial record struct PreciseNumber
 	/// <param name="right">The number to divide by.</param>
 	/// <returns>The result of the division.</returns>
 	/// <exception cref="DivideByZeroException">Thrown when <paramref name="right"/> is zero.</exception>
+	/// <exception cref="OverflowException">Thrown when the quotient needs an exponent outside the range of an <see cref="int"/>.</exception>
 	/// <remarks>
 	/// A quotient whose decimal expansion terminates is produced exactly, however many digits that
 	/// takes. One that repeats is produced to the precision of the wider operand, and never fewer
@@ -1465,6 +1467,7 @@ public readonly partial record struct PreciseNumber
 	/// <returns>The result of the division.</returns>
 	/// <exception cref="DivideByZeroException">Thrown when <paramref name="right"/> is zero.</exception>
 	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	/// <exception cref="OverflowException">Thrown when the quotient needs an exponent outside the range of an <see cref="int"/>.</exception>
 	public static PreciseNumber Divide(PreciseNumber left, PreciseNumber right, int significantDigits)
 	{
 		if (significantDigits < 1)
@@ -1484,7 +1487,7 @@ public readonly partial record struct PreciseNumber
 
 		BigInteger numerator = left.Significand;
 		BigInteger denominator = right.Significand;
-		int exponent = left.Exponent - right.Exponent;
+		int exponent = checked(left.Exponent - right.Exponent);
 
 		// Carry the sign on the numerator so the denominator can be factorized as a positive value.
 		if (denominator.Sign < 0)
@@ -1543,7 +1546,7 @@ public readonly partial record struct PreciseNumber
 		int scale = Math.Max(twos, fives);
 		BigInteger significand = numerator * BigInteger.Pow(2, scale - twos) * BigInteger.Pow(5, scale - fives);
 
-		result = new PreciseNumber(exponent - scale, significand);
+		result = new PreciseNumber(checked(exponent - scale), significand);
 		return true;
 	}
 
@@ -1562,7 +1565,7 @@ public readonly partial record struct PreciseNumber
 		// rounding decision is made on.
 		int scale = significantDigits + 1 - CountDigits(numerator) + CountDigits(denominator);
 		BigInteger scaled = scale > 0 ? numerator * Pow10(scale) : numerator;
-		int scaledExponent = exponent - Math.Max(scale, 0);
+		int scaledExponent = checked(exponent - Math.Max(scale, 0));
 
 		BigInteger quotient = scaled / denominator;
 		int excess = CountDigits(quotient) - significantDigits;
@@ -1583,7 +1586,7 @@ public readonly partial record struct PreciseNumber
 			kept += quotient.Sign;
 		}
 
-		return new PreciseNumber(scaledExponent + excess, kept);
+		return new PreciseNumber(checked(scaledExponent + excess), kept);
 	}
 
 	/// <summary>
