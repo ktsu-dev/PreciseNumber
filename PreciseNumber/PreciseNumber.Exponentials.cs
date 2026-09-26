@@ -647,6 +647,7 @@ public readonly partial record struct PreciseNumber
 	/// <param name="y">The exponent.</param>
 	/// <returns><c>x^y</c>.</returns>
 	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="x"/> is negative and <paramref name="y"/> is not an integer.</exception>
+	/// <exception cref="DivideByZeroException">Thrown when <paramref name="x"/> is zero and <paramref name="y"/> is negative.</exception>
 	/// <exception cref="OverflowException">Thrown when the result needs an exponent outside the range of an <see cref="int"/>.</exception>
 	/// <remarks>
 	/// An integer exponent is exact, by repeated squaring. Anything else is

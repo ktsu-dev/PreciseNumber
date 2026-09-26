@@ -1740,6 +1740,7 @@ public readonly partial record struct PreciseNumber
 	/// <param name="power">The power to raise the number to.</param>
 	/// <returns>A new instance of <see cref="PreciseNumber"/> that is the result of raising the current instance to the specified power.</returns>
 	/// <exception cref="ArgumentOutOfRangeException">Thrown when the current instance is negative and <paramref name="power"/> is not an integer.</exception>
+	/// <exception cref="DivideByZeroException">Thrown when the current instance is zero and <paramref name="power"/> is negative.</exception>
 	/// <exception cref="OverflowException">Thrown when the result needs an exponent outside the range of an <see cref="int"/>.</exception>
 	/// <remarks>
 	/// An integer power is exact, by repeated squaring. A fractional power is
@@ -1754,7 +1755,7 @@ public readonly partial record struct PreciseNumber
 		}
 		else if (Significand.IsZero)
 		{
-			return Zero;
+			return PowOfZero(power);
 		}
 		else if (IsUnit)
 		{
@@ -1796,6 +1797,17 @@ public readonly partial record struct PreciseNumber
 
 		return FractionalPow(this, power, significantDigits);
 	}
+
+	/// <summary>
+	/// Returns zero raised to a non-zero power.
+	/// </summary>
+	/// <param name="power">The non-zero power.</param>
+	/// <returns>Zero, for a positive <paramref name="power"/>.</returns>
+	/// <exception cref="DivideByZeroException">Thrown when <paramref name="power"/> is negative, since that is one over zero, as for <c>One / Zero</c>.</exception>
+	private static PreciseNumber PowOfZero(PreciseNumber power) =>
+		power.Significand.Sign < 0
+			? throw new DivideByZeroException()
+			: Zero;
 
 	/// <inheritdoc/>
 	public static PreciseNumber operator -(PreciseNumber value) =>
