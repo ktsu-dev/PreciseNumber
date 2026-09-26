@@ -1755,10 +1755,7 @@ public readonly partial record struct PreciseNumber
 		}
 		else if (Significand.IsZero)
 		{
-			// Zero to a negative power is one over zero, which has no value here, as for One / Zero.
-			return power.Significand.Sign < 0
-				? throw new DivideByZeroException()
-				: Zero;
+			return PowOfZero(power);
 		}
 		else if (IsUnit)
 		{
@@ -1800,6 +1797,17 @@ public readonly partial record struct PreciseNumber
 
 		return FractionalPow(this, power, significantDigits);
 	}
+
+	/// <summary>
+	/// Returns zero raised to a non-zero power.
+	/// </summary>
+	/// <param name="power">The non-zero power.</param>
+	/// <returns>Zero, for a positive <paramref name="power"/>.</returns>
+	/// <exception cref="DivideByZeroException">Thrown when <paramref name="power"/> is negative, since that is one over zero, as for <c>One / Zero</c>.</exception>
+	private static PreciseNumber PowOfZero(PreciseNumber power) =>
+		power.Significand.Sign < 0
+			? throw new DivideByZeroException()
+			: Zero;
 
 	/// <inheritdoc/>
 	public static PreciseNumber operator -(PreciseNumber value) =>
