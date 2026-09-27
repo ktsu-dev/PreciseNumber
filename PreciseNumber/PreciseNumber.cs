@@ -1045,7 +1045,13 @@ public readonly partial record struct PreciseNumber
 	public static bool IsComplexNumber(PreciseNumber value) => !IsRealNumber(value);
 
 	/// <inheritdoc/>
-	public static bool IsEvenInteger(PreciseNumber value) => IsInteger(value) && value.Significand.IsEven;
+	/// <remarks>
+	/// Trailing zeros are stored in <see cref="Exponent"/>, so 10 is significand 1 at exponent 1. The
+	/// significand's parity is the value's only at exponent 0; any positive exponent makes the value a
+	/// multiple of 10, and so even.
+	/// </remarks>
+	public static bool IsEvenInteger(PreciseNumber value) =>
+		IsInteger(value) && (value.Exponent > 0 || value.Significand.IsEven);
 
 	/// <inheritdoc/>
 	public static bool IsFinite(PreciseNumber value) => true;
@@ -1077,7 +1083,11 @@ public readonly partial record struct PreciseNumber
 	public static bool IsNormal(PreciseNumber value) => true;
 
 	/// <inheritdoc/>
-	public static bool IsOddInteger(PreciseNumber value) => IsInteger(value) && !value.Significand.IsEven;
+	/// <remarks>
+	/// Only a value at exponent 0 can be odd, for the reason given on <see cref="IsEvenInteger"/>.
+	/// </remarks>
+	public static bool IsOddInteger(PreciseNumber value) =>
+		IsInteger(value) && value.Exponent == 0 && !value.Significand.IsEven;
 
 	/// <inheritdoc/>
 	public static bool IsPositive(PreciseNumber value) =>

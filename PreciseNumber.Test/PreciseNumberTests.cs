@@ -543,6 +543,42 @@ public class PreciseNumberTests
 		Assert.IsFalse(PreciseNumber.IsOddInteger(two), "Two should not be an odd integer");
 	}
 
+	// Trailing zeros are stored in the exponent, so 10 is significand 1 at exponent 1. The parity
+	// checks used to read only the significand, which made every multiple of 10 look odd.
+
+	[TestMethod]
+	[DataRow(10)]
+	[DataRow(100)]
+	[DataRow(30)]
+	[DataRow(-20)]
+	[DataRow(1000000)]
+	public void TestIsEvenIntegerForMultiplesOfTen(int value)
+	{
+		PreciseNumber number = value.ToPreciseNumber();
+		Assert.IsTrue(PreciseNumber.IsEvenInteger(number), $"{value} should be an even integer");
+		Assert.IsFalse(PreciseNumber.IsOddInteger(number), $"{value} should not be an odd integer");
+	}
+
+	[TestMethod]
+	public void TestParityOfASumWithTrailingZero()
+	{
+		PreciseNumber sum = 7.ToPreciseNumber() + 3.ToPreciseNumber();
+		Assert.IsTrue(PreciseNumber.IsEvenInteger(sum), "7 + 3 should be an even integer");
+		Assert.IsFalse(PreciseNumber.IsOddInteger(sum), "7 + 3 should not be an odd integer");
+	}
+
+	[TestMethod]
+	[DataRow(1)]
+	[DataRow(-3)]
+	[DataRow(21)]
+	[DataRow(1001)]
+	public void TestIsOddIntegerForOddValues(int value)
+	{
+		PreciseNumber number = value.ToPreciseNumber();
+		Assert.IsTrue(PreciseNumber.IsOddInteger(number), $"{value} should be an odd integer");
+		Assert.IsFalse(PreciseNumber.IsEvenInteger(number), $"{value} should not be an even integer");
+	}
+
 	[TestMethod]
 	public void TestIsPositive()
 	{
