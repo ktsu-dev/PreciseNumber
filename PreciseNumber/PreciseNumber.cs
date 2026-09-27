@@ -1090,8 +1090,12 @@ public readonly partial record struct PreciseNumber
 	/// Determines whether the specified value is normal.
 	/// </summary>
 	/// <param name="value">The PreciseNumber.</param>
-	/// <returns><c>true</c> if the specified value is normal; otherwise, <c>false</c>.</returns>
-	public static bool IsNormal(PreciseNumber value) => true;
+	/// <returns><c>true</c> if the specified value is non-zero; otherwise, <c>false</c>.</returns>
+	/// <remarks>
+	/// Zero is not normal, as for <see cref="int"/>, <see cref="decimal"/> and <see cref="BigInteger"/>,
+	/// so generic math that guards a division or a logarithm with <c>IsNormal</c> treats it the same way.
+	/// </remarks>
+	public static bool IsNormal(PreciseNumber value) => !value.Significand.IsZero;
 
 	/// <inheritdoc/>
 	/// <remarks>
@@ -1111,7 +1115,10 @@ public readonly partial record struct PreciseNumber
 	public static bool IsRealNumber(PreciseNumber value) => true;
 
 	/// <inheritdoc/>
-	public static bool IsSubnormal(PreciseNumber value) => !IsNormal(value);
+	/// <remarks>
+	/// Always <c>false</c>: the exponent carries the magnitude, so no value loses digits near zero.
+	/// </remarks>
+	public static bool IsSubnormal(PreciseNumber value) => false;
 
 	/// <inheritdoc/>
 	public static bool IsZero(PreciseNumber value) =>
