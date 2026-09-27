@@ -857,8 +857,15 @@ public readonly partial record struct PreciseNumber
 	/// <param name="significantDigits">The number of significant digits to reduce to.</param>
 	/// <returns>A new instance of <see cref="PreciseNumber"/> reduced to the specified number of significant digits.</returns>
 	/// <remarks>Rounds half away from zero, so 123.5 becomes 124 and 123.456 becomes 123 at three digits.</remarks>
+	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	/// <exception cref="OverflowException">Thrown when the result needs an exponent outside the range of an <see cref="int"/>.</exception>
 	public PreciseNumber ReduceSignificance(int significantDigits)
 	{
+		if (significantDigits < 1)
+		{
+			throw new ArgumentOutOfRangeException(nameof(significantDigits), significantDigits, "At least one significant digit is required.");
+		}
+
 		int significantDifference = significantDigits < SignificantDigits
 			? SignificantDigits - significantDigits
 			: 0;
@@ -868,9 +875,7 @@ public readonly partial record struct PreciseNumber
 			return this;
 		}
 
-		int newExponent = Exponent == 0
-			? significantDifference
-			: Exponent + significantDifference;
+		int newExponent = checked(Exponent + significantDifference);
 		BigInteger newSignificand = DropDigitsRoundingHalfAwayFromZero(Significand, significantDifference);
 		return new(newExponent, newSignificand);
 	}
