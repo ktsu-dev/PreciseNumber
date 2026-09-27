@@ -224,6 +224,21 @@ public class PreciseNumberExponentialTests
 	}
 
 	[TestMethod]
+	public void TestPowOfZeroToANegativePowerThrowsLikeDivision()
+	{
+		// Zero to a negative power is one over zero, which One / Zero and RootN(0, -n) already reject.
+		Assert.ThrowsExactly<DivideByZeroException>(() => PreciseNumber.Zero.Pow(PreciseNumber.NegativeOne));
+		Assert.ThrowsExactly<DivideByZeroException>(() => PreciseNumber.Zero.Pow(Parse("-0.5")));
+		Assert.ThrowsExactly<DivideByZeroException>(() => PreciseNumber.Pow(PreciseNumber.Zero, Parse("-2")));
+		Assert.ThrowsExactly<DivideByZeroException>(() => PreciseNumber.Pow(PreciseNumber.Zero, Parse("-0.5")));
+
+		// A positive power of zero is still zero, and the zero power of anything is still one.
+		Assert.AreEqual(PreciseNumber.Zero, PreciseNumber.Pow(PreciseNumber.Zero, 2.ToPreciseNumber()));
+		Assert.AreEqual(PreciseNumber.Zero, PreciseNumber.Pow(PreciseNumber.Zero, Parse("0.5")));
+		Assert.AreEqual(PreciseNumber.One, PreciseNumber.Pow(PreciseNumber.Zero, PreciseNumber.Zero));
+	}
+
+	[TestMethod]
 	public void TestExpM1KeepsTheDigitsOfASmallArgument()
 	{
 		// Computed as Exp(x) - 1 this is exactly zero: every digit of the answer lies below the last
