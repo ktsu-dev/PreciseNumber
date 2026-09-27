@@ -544,21 +544,28 @@ public readonly partial record struct PreciseNumber
 	/// </summary>
 	/// <param name="decimalDigits">The number of decimal digits to round to.</param>
 	/// <returns>A new instance of <see cref="PreciseNumber"/> rounded to the specified number of decimal digits.</returns>
-	/// <remarks>Rounds half away from zero, so 1.235 becomes 1.24 and 1.2349 becomes 1.23.</remarks>
+	/// <remarks>
+	/// Rounds half away from zero, so 1.235 becomes 1.24 and 1.2349 becomes 1.23. A negative
+	/// <paramref name="decimalDigits"/> rounds to a place left of the units, so 1234 rounded to -2
+	/// becomes 1200 and 1500 rounded to -3 becomes 2000.
+	/// </remarks>
 	public PreciseNumber Round(int decimalDigits)
 	{
-		long currentDecimalDigits = CountDecimalDigits();
-		long decimalDifference = long.Abs(decimalDigits - currentDecimalDigits);
-		if (currentDecimalDigits > decimalDigits && decimalDifference > 0)
+		// The requested place, as the exponent of its digit. Anything stored below it is dropped.
+		// Working from this rather than from CountDecimalDigits keeps the arithmetic right whatever
+		// the sign of the stored exponent: a value with trailing zeros, stored with a positive
+		// exponent, has its last digit that many places left of the units.
+		long targetExponent = -(long)decimalDigits;
+		if (Exponent < targetExponent)
 		{
 			// Dropping one digit more than the significand holds always leaves zero, so there is
 			// never a reason to raise ten to a wider power than that, however far below the
 			// requested place the value sits.
-			int droppedDigits = (int)long.Min(decimalDifference, SignificantDigits + 1);
+			int droppedDigits = (int)long.Min(targetExponent - Exponent, SignificantDigits + 1);
 			BigInteger newSignificand = DropDigitsRoundingHalfAwayFromZero(Significand, droppedDigits);
 			int newExponent = newSignificand.IsZero
 				? 0
-				: Exponent - int.CopySign(droppedDigits, Exponent);
+				: checked(Exponent + droppedDigits);
 			return new PreciseNumber(newExponent, newSignificand);
 		}
 
