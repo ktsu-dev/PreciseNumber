@@ -85,6 +85,25 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
+	public void TestClampThrowsWhenMinIsGreaterThanMax()
+	{
+		PreciseNumber min = 3.ToPreciseNumber();
+		PreciseNumber max = 1.ToPreciseNumber();
+
+		// Every value, inside or outside the inverted range, is a caller bug, as it is for Math.Clamp.
+		Assert.ThrowsExactly<ArgumentException>(() => PreciseNumber.Clamp(2.ToPreciseNumber(), min, max));
+		Assert.ThrowsExactly<ArgumentException>(() => PreciseNumber.Clamp(5.ToPreciseNumber(), min, max));
+		Assert.ThrowsExactly<ArgumentException>(() => 2.ToPreciseNumber().Clamp(3, 1));
+	}
+
+	[TestMethod]
+	public void TestClampAcceptsEqualBounds()
+	{
+		PreciseNumber bound = 3.ToPreciseNumber();
+		Assert.AreEqual(bound, PreciseNumber.Clamp(7.ToPreciseNumber(), bound, bound));
+	}
+
+	[TestMethod]
 	public void TestClampUpper()
 	{
 		PreciseNumber value = PreciseNumber.CreateFromComponents(0, new BigInteger(8));
