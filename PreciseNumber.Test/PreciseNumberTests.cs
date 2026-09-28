@@ -552,6 +552,31 @@ public class PreciseNumberTests
 		Assert.IsTrue(PreciseNumber.IsNormal(one), "One should be a normal number");
 	}
 
+	// Zero is not normal on any built-in numeric type, so generic math that guards a division or a
+	// logarithm with IsNormal must see PreciseNumber zero the same way.
+
+	[TestMethod]
+	public void TestZeroIsNotNormal()
+	{
+		Assert.IsFalse(PreciseNumber.IsNormal(PreciseNumber.Zero), "Zero should not be a normal number");
+		Assert.IsFalse(PreciseNumber.IsNormal(default), "default should not be a normal number");
+	}
+
+	[TestMethod]
+	[DataRow(1)]
+	[DataRow(-1)]
+	[DataRow(10)]
+	[DataRow(-12345)]
+	public void TestNonZeroIntegerIsNormal(int value) =>
+		Assert.IsTrue(PreciseNumber.IsNormal(value.ToPreciseNumber()), $"{value} should be a normal number");
+
+	[TestMethod]
+	[DataRow(0.001)]
+	[DataRow(-2.5e-300)]
+	[DataRow(1.5e300)]
+	public void TestNonZeroFractionIsNormal(double value) =>
+		Assert.IsTrue(PreciseNumber.IsNormal(value.ToPreciseNumber()), $"{value} should be a normal number");
+
 	[TestMethod]
 	public void TestIsOddInteger()
 	{
@@ -628,6 +653,15 @@ public class PreciseNumberTests
 		PreciseNumber one = PreciseNumber.One;
 		Assert.IsFalse(PreciseNumber.IsSubnormal(one), "One should not be subnormal");
 	}
+
+	[TestMethod]
+	[DataRow(0)]
+	[DataRow(1)]
+	[DataRow(-7)]
+	[DataRow(1e-300)]
+	[DataRow(-1e300)]
+	public void TestNothingIsSubnormal(double value) =>
+		Assert.IsFalse(PreciseNumber.IsSubnormal(value.ToPreciseNumber()), $"{value} should not be subnormal");
 
 	[TestMethod]
 	public void TestIsZero()
