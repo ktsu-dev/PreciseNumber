@@ -1,3 +1,7 @@
+## v2.6.4
+
+No significant changes detected since v2.6.4.
+
 ## v2.6.4 (patch)
 
 Changes since v2.6.3:
@@ -154,14 +158,18 @@ Changes since v1.7.0:
 - docs: correct README, DESCRIPTION and TAGS metadata ([@matt-edmondson](https://github.com/matt-edmondson))
 - Stop Update SDKs failing when there is nothing to update ([@matt-edmondson](https://github.com/matt-edmondson))
 - Fix build against ktsu.Sdk 2.27.0 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .editorconfig ([@KtsuTools](https://github.com/KtsuTools))
 - Sync global.json ([@KtsuTools](https://github.com/KtsuTools))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - chore: update ktsu.Sdk to 2.21.1 [patch] ([@matt-edmondson](https://github.com/matt-edmondson))
 - chore: remove SourceLink package versions from central props ([@matt-edmondson](https://github.com/matt-edmondson))
 - chore: remove SourceLink package references ([@matt-edmondson](https://github.com/matt-edmondson))
 - Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - Refactor CI pipeline to clone KtsuBuild at latest tag and streamline release logic ([@matt-edmondson](https://github.com/matt-edmondson))
 - Remove legacy build scripts ([@matt-edmondson](https://github.com/matt-edmondson))
+- Remove .github\workflows\project.yml ([@matt-edmondson](https://github.com/matt-edmondson))
 - Refactor input handling in PreciseNumber creation methods ([@matt-edmondson](https://github.com/matt-edmondson))
 - migrate to dotnet 10 ([@matt-edmondson](https://github.com/matt-edmondson))
 - Update sdk ([@matt-edmondson](https://github.com/matt-edmondson))
@@ -223,8 +231,10 @@ Changes since v1.7.28:
 Changes since v1.7.27:
 
 - Fix build against ktsu.Sdk 2.27.0 ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 - Sync .editorconfig ([@KtsuTools](https://github.com/KtsuTools))
 - Sync global.json ([@KtsuTools](https://github.com/KtsuTools))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 
 ## v1.7.27 (patch)
 
@@ -361,10 +371,13 @@ Changes since v1.7.8:
 Changes since v1.7.7:
 
 - Add TAGS.md with NuGet package tags ([@matt-edmondson](https://github.com/matt-edmondson))
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 
 ## v1.7.8-pre.1 (prerelease)
 
-No significant changes detected since v1.7.8.
+Changes since v1.7.7:
+
+- Sync .github\workflows\dotnet.yml ([@KtsuTools](https://github.com/KtsuTools))
 
 ## v1.7.7 (patch)
 
@@ -378,7 +391,11 @@ Changes since v1.7.6:
 
 ## v1.7.7-pre.1 (prerelease)
 
-No significant changes detected since v1.7.7.
+Changes since v1.7.6:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.7.6 (patch)
 
@@ -428,7 +445,11 @@ Changes since v1.7.6-pre.1:
 
 ## v1.7.6-pre.1 (prerelease)
 
-No significant changes detected since v1.7.6.
+Changes since v1.7.5:
+
+- Sync scripts\update-winget-manifests.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync global.json ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync COPYRIGHT.md ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.7.5 (patch)
 
@@ -470,7 +491,13 @@ Changes since v1.7.3-pre.1:
 
 ## v1.7.3-pre.1 (prerelease)
 
-No significant changes detected since v1.7.3.
+Changes since v1.7.2:
+
+- Sync scripts\PSBuild.psm1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync scripts\update-winget-manifests.ps1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .gitattributes ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .runsettings ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.7.2 (patch)
 
@@ -560,7 +587,9 @@ No significant changes detected since v1.7.2-pre.1.
 
 ## v1.7.2-pre.1 (prerelease)
 
-No significant changes detected since v1.7.2.
+Changes since v1.7.1:
+
+- Sync scripts\PSBuild.psm1 ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.7.1 (patch)
 
@@ -571,7 +600,11 @@ Changes since v1.7.0:
 
 ## v1.7.1-pre.1 (prerelease)
 
-No significant changes detected since v1.7.1.
+Changes since v1.7.0:
+
+- Sync .github\workflows\dotnet.yml ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .editorconfig ([@ktsu[bot]](https://github.com/ktsu[bot]))
+- Sync .runsettings ([@ktsu[bot]](https://github.com/ktsu[bot]))
 
 ## v1.7.0 (minor)
 
