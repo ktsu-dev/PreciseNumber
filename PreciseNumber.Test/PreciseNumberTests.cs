@@ -1090,6 +1090,26 @@ public class PreciseNumberTests
 		Assert.AreEqual(number, number.ReduceSignificance(5));
 	}
 
+	// A precision below one has no meaning, and used to return a wrong number rather than fail:
+	// 5 reduced to zero digits came back as 10, and to minus one digit as 0.
+
+	[TestMethod]
+	[DataRow(0)]
+	[DataRow(-1)]
+	[DataRow(int.MinValue)]
+	public void TestReduceSignificanceRejectsAPrecisionBelowOne(int significantDigits)
+	{
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => 5.ToPreciseNumber().ReduceSignificance(significantDigits));
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Pi.ReduceSignificance(significantDigits));
+	}
+
+	[TestMethod]
+	public void TestReduceSignificanceThrowsWhenTheExponentLeavesTheIntRange()
+	{
+		PreciseNumber number = PreciseNumber.CreateFromComponents(int.MaxValue - 1, 12345);
+		Assert.ThrowsExactly<OverflowException>(() => number.ReduceSignificance(3));
+	}
+
 	[TestMethod]
 	public void TestReduceSignificanceRoundsHalfAwayFromZeroOnTheDroppedDigits()
 	{
