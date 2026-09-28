@@ -1168,6 +1168,12 @@ public readonly partial record struct PreciseNumber
 	/// <inheritdoc/>
 	public static PreciseNumber Parse(ReadOnlySpan<char> s, NumberStyles style, IFormatProvider? provider)
 	{
+		// Read the separator and signs from the same culture TryFormat writes them with, so that
+		// Parse(x.ToString(p), p) round-trips for every provider.
+		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider ?? InvariantCulture);
+
+		s = TrimAllowedWhite(s, style);
+
 		if (s.IsEmpty)
 		{
 			throw new FormatException(InvalidFormatMessage);
@@ -1178,8 +1184,11 @@ public readonly partial record struct PreciseNumber
 			return Zero;
 		}
 
-		bool isNegative = s[0] == '-';
-		int startIndex = isNegative ? 1 : 0;
+		ReadOnlySpan<char> decimalSeparator = numberFormat.NumberDecimalSeparator;
+		ReadOnlySpan<char> groupSeparator = numberFormat.NumberGroupSeparator;
+		bool allowThousands = style.HasFlag(NumberStyles.AllowThousands) && !groupSeparator.IsEmpty;
+
+		int startIndex = ReadLeadingSign(s, style, numberFormat, out bool isNegative);
 
 		// Collect the digits first and hand them to BigInteger in one go. Accumulating with
 		// significand = significand * 10 + digit costs a full BigInteger multiply per character.
@@ -1197,7 +1206,7 @@ public readonly partial record struct PreciseNumber
 			for (int i = startIndex; i < s.Length; i++)
 			{
 				char c = s[i];
-				if (c == '.')
+				if (s[i..].StartsWith(decimalSeparator, StringComparison.Ordinal))
 				{
 					if (hasDecimal)
 					{
@@ -1205,13 +1214,21 @@ public readonly partial record struct PreciseNumber
 					}
 
 					hasDecimal = true;
+					i += decimalSeparator.Length - 1;
+					continue;
+				}
+
+				// Group separators may only sit between integral digits.
+				if (allowThousands && !hasDecimal && digitCount > 0 && s[i..].StartsWith(groupSeparator, StringComparison.Ordinal))
+				{
+					i += groupSeparator.Length - 1;
 					continue;
 				}
 
 				if (c is 'e' or 'E')
 				{
 					// An exponent outside the range of int throws OverflowException, which TryParse reports as failure.
-					exponent = int.Parse(s[(i + 1)..], InvariantCulture);
+					exponent = int.Parse(s[(i + 1)..], NumberStyles.Integer, numberFormat);
 					break;
 				}
 
@@ -1251,6 +1268,47 @@ public readonly partial record struct PreciseNumber
 				ArrayPool<char>.Shared.Return(rentedDigits);
 			}
 		}
+	}
+
+	/// <summary>Trims the leading and trailing white space that <paramref name="style"/> allows.</summary>
+	private static ReadOnlySpan<char> TrimAllowedWhite(ReadOnlySpan<char> s, NumberStyles style)
+	{
+		if (style.HasFlag(NumberStyles.AllowLeadingWhite))
+		{
+			s = s.TrimStart();
+		}
+
+		if (style.HasFlag(NumberStyles.AllowTrailingWhite))
+		{
+			s = s.TrimEnd();
+		}
+
+		return s;
+	}
+
+	/// <summary>
+	/// Reads a leading sign spelled as <paramref name="numberFormat"/> spells it, returning the index
+	/// of the first character after it. The ASCII hyphen stays accepted whatever the culture spells
+	/// its negative sign with, as it always has been here and as the BCL does for cultures that use
+	/// U+2212. A positive sign is only read when <paramref name="style"/> allows a leading sign.
+	/// </summary>
+	private static int ReadLeadingSign(ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, out bool isNegative)
+	{
+		isNegative = true;
+		if (s.StartsWith(numberFormat.NegativeSign, StringComparison.Ordinal))
+		{
+			return numberFormat.NegativeSign.Length;
+		}
+
+		if (s[0] == '-')
+		{
+			return 1;
+		}
+
+		isNegative = false;
+		return style.HasFlag(NumberStyles.AllowLeadingSign) && s.StartsWith(numberFormat.PositiveSign, StringComparison.Ordinal)
+			? numberFormat.PositiveSign.Length
+			: 0;
 	}
 
 	/// <inheritdoc/>
