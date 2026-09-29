@@ -352,4 +352,17 @@ public class PreciseNumberTrigonometryTests
 		Assert.AreEqual(PreciseNumber.One, PreciseNumber.AcosPi(PreciseNumber.NegativeOne, 50));
 		AssertAgreesTo(Parse("0.25"), PreciseNumber.AtanPi(PreciseNumber.One, 50), 49, "AtanPi(1) is a quarter turn");
 	}
+
+	[TestMethod]
+	public void TestExactQuotientsOfApproximatePiStillRoundToTheRequestedDigits()
+	{
+		// π at working precision halves, or divides by 180, without a remainder. That exact quotient
+		// must still be rounded to the digits asked for, not handed back with the guard digits on it.
+		Assert.AreEqual(Parse("1.5708"), PreciseNumber.Asin(PreciseNumber.One, 5), "Asin(1) is wrong");
+		Assert.AreEqual(Parse("-1.5708"), PreciseNumber.Asin(-PreciseNumber.One, 5), "Asin(-1) is wrong");
+		Assert.AreEqual(Parse("1.5708"), PreciseNumber.Atan2(PreciseNumber.One, PreciseNumber.Zero, 5), "Atan2(1, 0) is wrong");
+		Assert.AreEqual(Parse("-1.5708"), PreciseNumber.Atan2(-PreciseNumber.One, PreciseNumber.Zero, 5), "Atan2(-1, 0) is wrong");
+		Assert.AreEqual(Parse("3.1416"), PreciseNumber.DegreesToRadians(Parse("180"), 5), "DegreesToRadians(180) is wrong");
+		Assert.AreEqual(Parse("1.5708"), PreciseNumber.DegreesToRadians(Parse("90"), 5), "DegreesToRadians(90) is wrong");
+	}
 }

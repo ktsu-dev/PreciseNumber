@@ -158,7 +158,7 @@ public readonly partial record struct PreciseNumber
 		{
 			return x.Significand.IsZero
 				? throw new DivideByZeroException()
-				: Divide(One, RootN(x, -n, significantDigits), significantDigits);
+				: DivideApproximation(One, RootN(x, -n, significantDigits + RootGuardDigits), significantDigits + RootGuardDigits, significantDigits);
 		}
 
 		if (x.Significand.IsZero || n == 1)
