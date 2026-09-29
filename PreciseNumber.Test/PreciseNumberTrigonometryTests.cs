@@ -365,4 +365,13 @@ public class PreciseNumberTrigonometryTests
 		Assert.AreEqual(Parse("3.1416"), PreciseNumber.DegreesToRadians(Parse("180"), 5), "DegreesToRadians(180) is wrong");
 		Assert.AreEqual(Parse("1.5708"), PreciseNumber.DegreesToRadians(Parse("90"), 5), "DegreesToRadians(90) is wrong");
 	}
+
+	[TestMethod]
+	public void TestHalfTurnFunctionsRoundToTheRequestedDigits()
+	{
+		// asin(1/2) = π/6 and acos(1/2) = π/3, so in half turns they are 1/6 and 1/3. tan(π/8) = √2 − 1.
+		Assert.AreEqual(Parse("0.1666666667"), PreciseNumber.AsinPi(Parse("0.5"), 10), "AsinPi(0.5) is wrong");
+		Assert.AreEqual(Parse("0.3333333333"), PreciseNumber.AcosPi(Parse("0.5"), 10), "AcosPi(0.5) is wrong");
+		Assert.AreEqual(Parse("0.4142135624"), PreciseNumber.TanPi(Parse("0.125"), 10), "TanPi(0.125) is wrong");
+	}
 }
