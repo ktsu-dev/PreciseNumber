@@ -528,7 +528,8 @@ public readonly partial record struct PreciseNumber
 			return Two.Pow(x);
 		}
 
-		return ExpOfProductWithConstant(x, Ln2To(significantDigits + ExponentialGuardDigits), significantDigits);
+		// x scales the absolute error in ln 2, so widen it by the integer digits of x as Exp2M1 does.
+		return ExpOfProductWithConstant(x, Ln2To(significantDigits + ExponentialGuardDigits + IntegerDigitCount(x)), significantDigits);
 	}
 
 	/// <summary>

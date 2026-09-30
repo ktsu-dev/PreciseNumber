@@ -320,6 +320,26 @@ public class PreciseNumberExponentialTests
 	}
 
 	[TestMethod]
+	public void TestExp2RoundsTheLastDigitOfALargeFractionalPower()
+	{
+		// x·ln2 scales the error in ln2 by |x|, so a fractional power with ten integer digits needs
+		// ln2 widened by those digits or the digit the final rounding turns on is wrong. The values
+		// are too large to print, so compare the significand and exponent directly.
+		AssertExp2(Parse("7000000000.5"), 3, 629, 2107209967);
+		AssertExp2(Parse("-6000000000.5"), 5, 73383, -1806179979);
+
+		static void AssertExp2(PreciseNumber x, int digits, int expectedSignificand, int expectedExponent)
+		{
+			PreciseNumber actual = PreciseNumber.Exp2(x, digits);
+			PreciseNumber reference = PreciseNumber.Exp2(x, digits + 40).ReduceSignificance(digits);
+
+			Assert.AreEqual(new BigInteger(expectedSignificand), actual.Significand, $"Exp2({x}, {digits}) significand is wrong");
+			Assert.AreEqual(expectedExponent, actual.Exponent, $"Exp2({x}, {digits}) exponent is wrong");
+			Assert.AreEqual(reference.Significand, actual.Significand, $"Exp2({x}, {digits}) disagrees with the wider computation");
+		}
+	}
+
+	[TestMethod]
 	public void TestExp2M1AndExp10M1KeepTheDigitsOfASmallArgument()
 	{
 		// Published values, not the first-order approximations x·ln2 and x·ln10 — those only agree
