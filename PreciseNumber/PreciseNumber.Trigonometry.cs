@@ -236,7 +236,7 @@ public readonly partial record struct PreciseNumber
 		RequireSignificantDigits(significantDigits);
 		int working = significantDigits + TrigonometricGuardDigits;
 		(PreciseNumber sin, PreciseNumber cos) = SinCos(x, working);
-		return Divide(sin, cos, significantDigits);
+		return DivideApproximation(sin, cos, working, significantDigits);
 	}
 
 	/// <summary>
@@ -281,7 +281,7 @@ public readonly partial record struct PreciseNumber
 
 		if (magnitude == One)
 		{
-			PreciseNumber halfPi = Divide(PiTo(working), Two, significantDigits);
+			PreciseNumber halfPi = DivideApproximation(PiTo(working), Two, working, significantDigits);
 			return x.Significand.Sign > 0 ? halfPi : -halfPi;
 		}
 
@@ -431,7 +431,7 @@ public readonly partial record struct PreciseNumber
 				return Zero;
 			}
 
-			PreciseNumber halfPi = Divide(PiTo(working), Two, significantDigits);
+			PreciseNumber halfPi = DivideApproximation(PiTo(working), Two, working, significantDigits);
 			return y.Significand.Sign > 0 ? halfPi : -halfPi;
 		}
 
@@ -562,7 +562,7 @@ public readonly partial record struct PreciseNumber
 		RequireSignificantDigits(significantDigits);
 		int working = significantDigits + TrigonometricGuardDigits;
 		(PreciseNumber sin, PreciseNumber cos) = SinCosPi(x, working);
-		return Divide(sin, cos, significantDigits);
+		return DivideApproximation(sin, cos, working, significantDigits);
 	}
 
 	/// <summary>
@@ -599,7 +599,7 @@ public readonly partial record struct PreciseNumber
 		}
 
 		int working = significantDigits + TrigonometricGuardDigits;
-		return Divide(Asin(x, working), PiTo(working), significantDigits);
+		return DivideApproximation(Asin(x, working), PiTo(working), working, significantDigits);
 	}
 
 	/// <summary>
@@ -636,7 +636,7 @@ public readonly partial record struct PreciseNumber
 		}
 
 		int working = significantDigits + TrigonometricGuardDigits;
-		return Divide(Acos(x, working), PiTo(working), significantDigits);
+		return DivideApproximation(Acos(x, working), PiTo(working), working, significantDigits);
 	}
 
 	/// <summary>
@@ -664,7 +664,7 @@ public readonly partial record struct PreciseNumber
 		}
 
 		int working = significantDigits + TrigonometricGuardDigits;
-		return Divide(Atan(x, working), PiTo(working), significantDigits);
+		return DivideApproximation(Atan(x, working), PiTo(working), working, significantDigits);
 	}
 
 	/// <summary>
@@ -692,7 +692,7 @@ public readonly partial record struct PreciseNumber
 	{
 		RequireSignificantDigits(significantDigits);
 		int working = significantDigits + TrigonometricGuardDigits;
-		return Divide(Multiply(degrees, PiTo(working)), OneEighty, significantDigits);
+		return DivideApproximation(Multiply(degrees, PiTo(working)), OneEighty, working, significantDigits);
 	}
 
 	/// <summary>
@@ -720,7 +720,7 @@ public readonly partial record struct PreciseNumber
 	{
 		RequireSignificantDigits(significantDigits);
 		int working = significantDigits + TrigonometricGuardDigits;
-		return Divide(Multiply(radians, OneEighty), PiTo(working), significantDigits);
+		return DivideApproximation(Multiply(radians, OneEighty), PiTo(working), working, significantDigits);
 	}
 
 	/// <summary>
@@ -852,6 +852,23 @@ public readonly partial record struct PreciseNumber
 		throw new ArithmeticException(
 			$"The trigonometric series did not converge to {workingDigits.ToString(InvariantCulture)} significant digits.");
 	}
+
+	/// <summary>
+	/// Divides a value that is already an approximation, then rounds to the digits the caller asked for.
+	/// </summary>
+	/// <param name="numerator">The dividend, carried at <paramref name="workingDigits"/>.</param>
+	/// <param name="denominator">The divisor.</param>
+	/// <param name="workingDigits">The significant digits the operands were computed to.</param>
+	/// <param name="significantDigits">The number of significant digits to produce.</param>
+	/// <returns>The quotient, rounded to <paramref name="significantDigits"/>.</returns>
+	/// <remarks>
+	/// <see cref="Divide(PreciseNumber, PreciseNumber, int)"/> returns a terminating quotient exactly,
+	/// without rounding it. When an operand is a rounded approximation, such as π at working precision,
+	/// that exact quotient still carries the operand's guard digits, and they are wrong. Rounding
+	/// afterwards keeps the result to the digits requested whether or not the quotient terminates.
+	/// </remarks>
+	private static PreciseNumber DivideApproximation(PreciseNumber numerator, PreciseNumber denominator, int workingDigits, int significantDigits) =>
+		Divide(numerator, denominator, workingDigits).ReduceSignificance(significantDigits);
 
 	/// <summary>
 	/// Sums the arc tangent series for a small argument.

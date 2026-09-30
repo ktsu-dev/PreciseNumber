@@ -299,4 +299,12 @@ public class PreciseNumberRootTests
 		Assert.AreEqual(200, root.SignificantDigits, "A 200 digit input produced a shorter root");
 		AssertAgreesTo(value, root.Squared(), 195, "The root of a 200 digit value does not square back");
 	}
+
+	[TestMethod]
+	public void TestNegativeDegreeRootRoundsTheReciprocalOfAnUnroundedRoot()
+	{
+		// The square root of 1.0486 is 1.02401…, which rounds to 1.024 at four digits, and 1/1.024 is
+		// exactly 0.9765625. The true reciprocal is 0.976551…, so it must come from a wider root.
+		Assert.AreEqual(Parse("0.9766"), PreciseNumber.RootN(Parse("1.0486"), -2, 4), "RootN(1.0486, -2) is wrong");
+	}
 }
