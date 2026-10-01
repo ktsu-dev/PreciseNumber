@@ -495,21 +495,7 @@ public readonly partial record struct PreciseNumber
 	public static string ToString(PreciseNumber number, string? format, IFormatProvider? formatProvider)
 	{
 		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(formatProvider ?? InvariantCulture);
-
-		// Digits, plus the padding zeros implied by the exponent, plus the sign, the decimal
-		// separator and a possible leading "0". Widened, because an exponent of int.MinValue has
-		// no negation that fits an int and one near int.MaxValue would wrap the sum.
-		long desiredAlloc = number.SignificantDigits
-			+ long.Abs(number.Exponent)
-			+ numberFormat.NegativeSign.Length
-			+ numberFormat.NumberDecimalSeparator.Length
-			+ 1;
-
-		if (desiredAlloc > Array.MaxLength)
-		{
-			throw new OverflowException(
-				$"An exponent of {number.Exponent.ToString(InvariantCulture)} needs more characters in fixed point notation than a string can hold.");
-		}
+		long desiredAlloc = number.GetFormattedLengthBound(numberFormat);
 
 		char[]? rentedBuffer = desiredAlloc > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent((int)desiredAlloc) : null;
 		Span<char> stackBuffer = stackalloc char[MaxStackAllocChars];
@@ -532,6 +518,43 @@ public readonly partial record struct PreciseNumber
 
 	/// <inheritdoc/>
 	public string ToString(string? format, IFormatProvider? formatProvider) => ToString(this, format, formatProvider);
+
+	/// <summary>
+	/// Returns an upper bound on the number of characters this number needs in fixed point notation.
+	/// </summary>
+	/// <param name="numberFormat">The format supplying the sign and decimal separator.</param>
+	/// <returns>A length no shorter than the rendered text, and no longer than <see cref="Array.MaxLength"/>.</returns>
+	/// <exception cref="OverflowException">Thrown when the text would be longer than any string can hold.</exception>
+	/// <remarks>
+	/// This is a property of the value, not of any destination, so <see cref="TryFormat"/> throws
+	/// rather than returning <see langword="false"/>. Callers such as string interpolation and
+	/// <see cref="System.Text.StringBuilder"/> read <see langword="false"/> as a request to grow the
+	/// buffer and retry, which no buffer could ever satisfy.
+	/// </remarks>
+	private long GetFormattedLengthBound(NumberFormatInfo numberFormat)
+	{
+		if (Significand.IsZero)
+		{
+			return 1;
+		}
+
+		// Digits, plus the padding zeros implied by the exponent, plus the sign, the decimal
+		// separator and a possible leading "0". Widened, because an exponent of int.MinValue has
+		// no negation that fits an int and one near int.MaxValue would wrap the sum.
+		long bound = SignificantDigits
+			+ long.Abs(Exponent)
+			+ numberFormat.NegativeSign.Length
+			+ numberFormat.NumberDecimalSeparator.Length
+			+ 1;
+
+		if (bound > Array.MaxLength)
+		{
+			throw new OverflowException(
+				$"An exponent of {Exponent.ToString(InvariantCulture)} needs more characters in fixed point notation than a string can hold.");
+		}
+
+		return bound;
+	}
 
 	/// <summary>
 	/// Returns the absolute value of the current instance.
@@ -1351,12 +1374,19 @@ public readonly partial record struct PreciseNumber
 		TryParse(s, NumberStyles.Any, provider, out result);
 
 	/// <inheritdoc/>
+	/// <exception cref="OverflowException">Thrown when the text would be longer than any string can hold, whatever the size of <paramref name="destination"/>.</exception>
 	public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 	{
 		if (!format.IsEmpty && !format.Equals("G", StringComparison.OrdinalIgnoreCase))
 		{
 			throw new FormatException();
 		}
+
+		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider ?? InvariantCulture);
+
+		// Throws for text no string could hold, so that callers which grow their buffer on false
+		// fail promptly instead of retrying without end.
+		_ = GetFormattedLengthBound(numberFormat);
 
 		if (Significand.IsZero)
 		{
@@ -1370,8 +1400,6 @@ public readonly partial record struct PreciseNumber
 			charsWritten = 1;
 			return true;
 		}
-
-		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider ?? InvariantCulture);
 
 		int digitCount = SignificantDigits;
 		char[]? rentedDigits = digitCount > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent(digitCount) : null;
@@ -1411,9 +1439,8 @@ public readonly partial record struct PreciseNumber
 			sign = numberFormat.NegativeSign;
 		}
 
-		// Every length below is widened, because the padding zeros an extreme exponent implies can
-		// outnumber anything an int holds. Past that point no destination is large enough, so the
-		// comparison against its length is what answers, rather than an overflow.
+		// TryFormat has already bounded the whole rendering by Array.MaxLength, so the casts back to
+		// int below cannot wrap. The lengths stay widened so that this holds without relying on it.
 		if (Exponent >= 0)
 		{
 			long wholeLength = (long)sign.Length + digits.Length + Exponent;

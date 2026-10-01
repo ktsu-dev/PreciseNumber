@@ -2555,12 +2555,26 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
-	public void TestTryFormatAtExtremeExponentsReturnsFalse()
+	public void TestTryFormatAtExtremeExponentsThrowsOverflow()
 	{
-		// The text these need is longer than any int, so the only correct answer for a
-		// destination this size is false, not an exception.
-		Span<char> buffer = stackalloc char[64];
+		// The text these need is longer than any string can hold. That is a property of the
+		// value, not of the destination, so false would only invite the caller to grow its
+		// buffer and retry forever.
 		foreach (int exponent in new[] { int.MinValue, int.MaxValue })
+		{
+			PreciseNumber number = PreciseNumber.CreateFromComponents(exponent, BigInteger.One);
+
+			Assert.ThrowsExactly<OverflowException>(
+				() => number.TryFormat(new char[64], out _, "G".AsSpan(), CultureInfo.InvariantCulture),
+				$"TryFormat should overflow for an exponent of {exponent}");
+		}
+	}
+
+	[TestMethod]
+	public void TestTryFormatReturnsFalseWhenOnlyTheDestinationIsTooSmall()
+	{
+		Span<char> buffer = stackalloc char[64];
+		foreach (int exponent in new[] { -1000, 1000 })
 		{
 			PreciseNumber number = PreciseNumber.CreateFromComponents(exponent, BigInteger.One);
 
@@ -2568,6 +2582,33 @@ public class PreciseNumberTests
 
 			Assert.IsFalse(result, $"TryFormat should fail for an exponent of {exponent}");
 			Assert.AreEqual(0, charsWritten);
+		}
+	}
+
+	[TestMethod]
+	public async Task TestInterpolationAndAppendAtExtremeExponentsFailPromptly()
+	{
+		// These callers grow their buffer and retry whenever TryFormat returns false, so they
+		// only stop if it throws. Each runs on its own task so a regression fails the test
+		// rather than hanging it.
+		foreach (string text in new[] { "1e-2147483648", "1e2147483647" })
+		{
+			PreciseNumber number = PreciseNumber.Parse(text, CultureInfo.InvariantCulture);
+			Func<string>[] formatters =
+			[
+				() => $"{number}",
+				() => new System.Text.StringBuilder().Append(number).ToString(),
+				() => string.Format(CultureInfo.InvariantCulture, "{0}", number),
+			];
+
+			foreach (Func<string> format in formatters)
+			{
+				Task<string> attempt = Task.Run(format);
+				Task finished = await Task.WhenAny(attempt, Task.Delay(TimeSpan.FromSeconds(10))).ConfigureAwait(false);
+
+				Assert.AreSame(attempt, finished, $"Formatting {text} should not hang");
+				await Assert.ThrowsExactlyAsync<OverflowException>(() => attempt).ConfigureAwait(false);
+			}
 		}
 	}
 
