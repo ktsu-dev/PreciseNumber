@@ -2588,8 +2588,9 @@ public class PreciseNumberTests
 	[TestMethod]
 	public async Task TestInterpolationAndAppendAtExtremeExponentsFailPromptly()
 	{
-		// These callers grow their buffer and retry whenever TryFormat returns false, so they
-		// only stop if it throws. Each runs on its own task so a regression fails the test
+		// Most of these callers grow their buffer and retry whenever TryFormat returns false, so
+		// they only stop if it throws. Append(object) goes through ToString instead, and is here
+		// to show both paths agree. Each runs on its own task so a regression fails the test
 		// rather than hanging it.
 		foreach (string text in new[] { "1e-2147483648", "1e2147483647" })
 		{
@@ -2598,6 +2599,8 @@ public class PreciseNumberTests
 			[
 				() => $"{number}",
 				() => new System.Text.StringBuilder().Append(number).ToString(),
+				() => new System.Text.StringBuilder().Append($"{number}").ToString(),
+				() => new System.Text.StringBuilder().AppendFormat(CultureInfo.InvariantCulture, "{0}", number).ToString(),
 				() => string.Format(CultureInfo.InvariantCulture, "{0}", number),
 			];
 
