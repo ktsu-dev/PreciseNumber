@@ -1,7 +1,8 @@
-## v2.6.7 (patch)
+## v2.6.8 (patch)
 
-Changes since v2.6.6:
+Changes since v2.6.7:
 
-- Move the integer-power path into IntegerPow to keep Pow's complexity down ([@Claude](https://github.com/Claude))
-- Return ±1 for -1 raised to an integer too large for an int [patch] ([@Claude](https://github.com/Claude))
+- Root the reciprocal in integers for a negative-degree RootN [patch] ([@Claude](https://github.com/Claude))
+- Check Tan's precision ceiling against the requested digits [patch] ([@Claude](https://github.com/Claude))
+- Clamp default trig precision to what the reduction can deliver [patch] ([@Claude](https://github.com/Claude))
 
