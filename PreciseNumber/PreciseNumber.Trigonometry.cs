@@ -95,11 +95,12 @@ public readonly partial record struct PreciseNumber
 	/// <returns>The sine of <paramref name="x"/>.</returns>
 	/// <remarks>
 	/// Produced to the significant digits of <paramref name="x"/>, and never fewer than
-	/// <see cref="MinimumDivisionPrecision"/>. Use <see cref="Sin(PreciseNumber, int)"/> to choose
-	/// that precision.
+	/// <see cref="MinimumDivisionPrecision"/>, but no more than the reduction can deliver at the
+	/// magnitude of <paramref name="x"/>; see <see cref="DefaultReducedPrecision(PreciseNumber)"/>.
+	/// Use <see cref="Sin(PreciseNumber, int)"/> to choose that precision.
 	/// </remarks>
 	public static PreciseNumber Sin(PreciseNumber x) =>
-		Sin(x, DefaultTrigonometricPrecision(x));
+		Sin(x, DefaultReducedPrecision(x));
 
 	/// <summary>
 	/// Returns the sine of an angle in radians, to a chosen number of significant digits.
@@ -123,11 +124,12 @@ public readonly partial record struct PreciseNumber
 	/// <returns>The cosine of <paramref name="x"/>.</returns>
 	/// <remarks>
 	/// Produced to the significant digits of <paramref name="x"/>, and never fewer than
-	/// <see cref="MinimumDivisionPrecision"/>. Use <see cref="Cos(PreciseNumber, int)"/> to choose
-	/// that precision.
+	/// <see cref="MinimumDivisionPrecision"/>, but no more than the reduction can deliver at the
+	/// magnitude of <paramref name="x"/>; see <see cref="DefaultReducedPrecision(PreciseNumber)"/>.
+	/// Use <see cref="Cos(PreciseNumber, int)"/> to choose that precision.
 	/// </remarks>
 	public static PreciseNumber Cos(PreciseNumber x) =>
-		Cos(x, DefaultTrigonometricPrecision(x));
+		Cos(x, DefaultReducedPrecision(x));
 
 	/// <summary>
 	/// Returns the cosine of an angle in radians, to a chosen number of significant digits.
@@ -152,10 +154,10 @@ public readonly partial record struct PreciseNumber
 	/// <remarks>
 	/// Both come from one argument reduction and one kernel, which is the reason to prefer this over a
 	/// separate <see cref="Sin(PreciseNumber)"/> and <see cref="Cos(PreciseNumber)"/> when both are
-	/// wanted.
+	/// wanted. The precision follows <see cref="DefaultReducedPrecision(PreciseNumber)"/>.
 	/// </remarks>
 	public static (PreciseNumber Sin, PreciseNumber Cos) SinCos(PreciseNumber x) =>
-		SinCos(x, DefaultTrigonometricPrecision(x));
+		SinCos(x, DefaultReducedPrecision(x));
 
 	/// <summary>
 	/// Returns the sine and cosine of an angle in radians, to a chosen number of significant digits.
@@ -214,11 +216,12 @@ public readonly partial record struct PreciseNumber
 	/// <returns>The tangent of <paramref name="x"/>.</returns>
 	/// <remarks>
 	/// Produced to the significant digits of <paramref name="x"/>, and never fewer than
-	/// <see cref="MinimumDivisionPrecision"/>. Use <see cref="Tan(PreciseNumber, int)"/> to choose
-	/// that precision.
+	/// <see cref="MinimumDivisionPrecision"/>, but no more than the reduction can deliver at the
+	/// magnitude of <paramref name="x"/>; see <see cref="DefaultReducedPrecision(PreciseNumber)"/>.
+	/// Use <see cref="Tan(PreciseNumber, int)"/> to choose that precision.
 	/// </remarks>
 	public static PreciseNumber Tan(PreciseNumber x) =>
-		Tan(x, DefaultTrigonometricPrecision(x));
+		Tan(x, DefaultReducedPrecision(x));
 
 	/// <summary>
 	/// Returns the tangent of an angle in radians, to a chosen number of significant digits.
@@ -735,6 +738,26 @@ public readonly partial record struct PreciseNumber
 	/// </remarks>
 	private static int DefaultTrigonometricPrecision(PreciseNumber value) =>
 		Math.Max(value.SignificantDigits, MinimumDivisionPrecision);
+
+	/// <summary>
+	/// Gets the significant digits the circular functions produce when the caller does not choose.
+	/// </summary>
+	/// <param name="value">The angle being reduced.</param>
+	/// <returns>
+	/// <see cref="DefaultTrigonometricPrecision(PreciseNumber)"/>, capped at what reducing
+	/// <paramref name="value"/> against <see cref="ConstantPrecision"/> digits of π can deliver, and
+	/// never less than one.
+	/// </returns>
+	/// <remarks>
+	/// The built-in constants carry <see cref="ConstantPrecision"/> digits, so the uncapped default
+	/// asks for exactly as many digits as π holds, and a constant with an integer digit then needs
+	/// one more than that. <see cref="RequireReducibleArgument(int, int)"/> rightly refuses such a
+	/// request when a caller makes it, but an overload that picks its own precision must not pick one
+	/// it will refuse, or <c>Sin(Pi)</c> throws. Only an argument too large to reduce at any
+	/// precision, where even one digit is out of reach, still throws.
+	/// </remarks>
+	private static int DefaultReducedPrecision(PreciseNumber value) =>
+		Math.Max(1, Math.Min(DefaultTrigonometricPrecision(value), ConstantPrecision - IntegerDigitCount(value)));
 
 	/// <summary>
 	/// Selects the sine and cosine of an angle from those of its reduced remainder and the quadrant

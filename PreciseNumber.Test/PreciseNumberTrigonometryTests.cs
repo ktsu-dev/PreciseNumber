@@ -165,6 +165,39 @@ public class PreciseNumberTrigonometryTests
 	}
 
 	[TestMethod]
+	public void TestDefaultPrecisionOverloadsAcceptTheLibrarysOwnConstants()
+	{
+		// The constants carry ConstantPrecision digits, so the default used to ask for every one of
+		// them and then refuse, because an argument with an integer digit needs π one digit wider.
+		// The overloads that choose their own precision must choose one they can deliver.
+		int ceiling = PreciseNumber.ConstantPrecision - 1;
+
+		PreciseNumber cosPi = PreciseNumber.Cos(PreciseNumber.Pi);
+		AssertAgreesTo(PreciseNumber.NegativeOne, cosPi, ceiling, "Cos(Pi) was not -1");
+		AssertAgreesTo(PreciseNumber.One, PreciseNumber.Cos(PreciseNumber.Tau), ceiling, "Cos(Tau) was not 1");
+
+		(PreciseNumber sin, PreciseNumber cos) = PreciseNumber.SinCos(PreciseNumber.Pi);
+		Assert.AreEqual(PreciseNumber.Sin(PreciseNumber.Pi), sin, "SinCos(Pi).Sin disagreed with Sin(Pi)");
+		Assert.AreEqual(cosPi, cos, "SinCos(Pi).Cos disagreed with Cos(Pi)");
+
+		// E is not a multiple of π/2, so the sine has digits of its own to compare against the
+		// explicit overload at the same ceiling.
+		Assert.AreEqual(PreciseNumber.Sin(PreciseNumber.E, ceiling), PreciseNumber.Sin(PreciseNumber.E));
+	}
+
+	[TestMethod]
+	public void TestDefaultPrecisionOverloadsStillRefuseAnArgumentTooLargeToReduce()
+	{
+		// Clamping the default must not hide the one case with no answer at any precision.
+		PreciseNumber enormous = Parse("1E200");
+
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Sin(enormous));
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Cos(enormous));
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.SinCos(enormous));
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Tan(enormous));
+	}
+
+	[TestMethod]
 	public void TestOrdinaryAnglesAreUnaffectedByTheReductionCeiling()
 	{
 		// The guard on the guard. Every angle in the sweep at a sane precision has to keep working,
