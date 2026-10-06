@@ -1908,31 +1908,7 @@ public readonly partial record struct PreciseNumber
 
 		if (IsInteger(power))
 		{
-			// (-1)^n is ±1 by parity alone. Answering it here keeps an exponent too large for an int, which
-			// the loop below cannot count down, from throwing for a result that is always in range.
-			if (Exponent == 0 && Significand == BigInteger.MinusOne)
-			{
-				return IsEvenInteger(power) ? One : NegativeOne;
-			}
-
-			// Exponentiation by squaring: O(log n) multiplications instead of O(n).
-			PreciseNumber result = One;
-			PreciseNumber factor = this;
-
-			for (int remaining = power.Abs().To<int>(); remaining > 0; remaining >>= 1)
-			{
-				if ((remaining & 1) != 0)
-				{
-					result *= factor;
-				}
-
-				if (remaining > 1)
-				{
-					factor = factor.Squared();
-				}
-			}
-
-			return power.Significand.Sign < 0 ? One / result : result;
+			return IntegerPow(power);
 		}
 
 		// A fractional power is exp(y · ln x), which has no real value for a negative base. There are
@@ -1947,6 +1923,41 @@ public readonly partial record struct PreciseNumber
 			MinimumDivisionPrecision);
 
 		return FractionalPow(this, power, significantDigits);
+	}
+
+	/// <summary>
+	/// Returns the current number raised to an integer power, exactly.
+	/// </summary>
+	/// <param name="power">The integer power, which is not zero.</param>
+	/// <returns>The current number raised to <paramref name="power"/>.</returns>
+	/// <exception cref="OverflowException">Thrown when the result needs an exponent outside the range of an <see cref="int"/>.</exception>
+	private PreciseNumber IntegerPow(PreciseNumber power)
+	{
+		// (-1)^n is ±1 by parity alone. Answering it here keeps an exponent too large for an int, which
+		// the loop below cannot count down, from throwing for a result that is always in range.
+		if (Exponent == 0 && Significand == BigInteger.MinusOne)
+		{
+			return IsEvenInteger(power) ? One : NegativeOne;
+		}
+
+		// Exponentiation by squaring: O(log n) multiplications instead of O(n).
+		PreciseNumber result = One;
+		PreciseNumber factor = this;
+
+		for (int remaining = power.Abs().To<int>(); remaining > 0; remaining >>= 1)
+		{
+			if ((remaining & 1) != 0)
+			{
+				result *= factor;
+			}
+
+			if (remaining > 1)
+			{
+				factor = factor.Squared();
+			}
+		}
+
+		return power.Significand.Sign < 0 ? One / result : result;
 	}
 
 	/// <summary>
