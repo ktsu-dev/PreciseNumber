@@ -307,4 +307,39 @@ public class PreciseNumberRootTests
 		// exactly 0.9765625. The true reciprocal is 0.976551…, so it must come from a wider root.
 		Assert.AreEqual(Parse("0.9766"), PreciseNumber.RootN(Parse("1.0486"), -2, 4), "RootN(1.0486, -2) is wrong");
 	}
+
+	[TestMethod]
+	public void TestNegativeDegreeRootRoundsOnceFromTheTrueValue()
+	{
+		// Rooting and then taking the reciprocal rounded twice before the final rounding, and two
+		// guard digits could not absorb that near a rounding boundary: 3^(-1/3) is 0.69336127435…
+		Assert.AreEqual(Parse("0.6933612744"), PreciseNumber.RootN(3.ToPreciseNumber(), -3, 10), "RootN(3, -3, 10) is wrong");
+		Assert.AreEqual(Parse("0.2236067977"), PreciseNumber.RootN(20.ToPreciseNumber(), -2, 10), "RootN(20, -2, 10) is wrong");
+		Assert.AreEqual(Parse("0.14586"), PreciseNumber.RootN(47.ToPreciseNumber(), -2, 5), "RootN(47, -2, 5) is wrong");
+		Assert.AreEqual(Parse("0.29"), PreciseNumber.RootN(41.ToPreciseNumber(), -3, 5), "RootN(41, -3, 5) is wrong");
+		Assert.AreEqual(Parse("1.2599210"), PreciseNumber.RootN(Parse("0.5"), -3, 8), "RootN(0.5, -3, 8) is wrong");
+		Assert.AreEqual(Parse("0.87358"), PreciseNumber.RootN(Parse("1.5"), -3, 6), "RootN(1.5, -3, 6) is wrong");
+		Assert.AreEqual(Parse("-0.6933612744"), PreciseNumber.RootN((-3).ToPreciseNumber(), -3, 10), "RootN(-3, -3, 10) is wrong");
+	}
+
+	[TestMethod]
+	public void TestNegativeDegreeRootsAgreeWithAWideReciprocalAcrossASweep()
+	{
+		// The reference goes through the positive-degree root and a division, forty digits wider, so
+		// it shares no code with the path under test and its own rounding is far from the last digit.
+		foreach (int degree in new[] { 2, 3, 5 })
+		{
+			foreach (int digits in new[] { 5, 10, 20, 50 })
+			{
+				for (int k = 2; k <= 300; k++)
+				{
+					PreciseNumber value = k.ToPreciseNumber();
+					int wide = digits + 40;
+					PreciseNumber expected = PreciseNumber.Divide(PreciseNumber.One, PreciseNumber.RootN(value, degree, wide), wide)
+						.ReduceSignificance(digits);
+					Assert.AreEqual(expected, PreciseNumber.RootN(value, -degree, digits), $"RootN({k}, -{degree}, {digits}) is wrong");
+				}
+			}
+		}
+	}
 }

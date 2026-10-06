@@ -156,9 +156,14 @@ public readonly partial record struct PreciseNumber
 
 		if (n < 0)
 		{
-			return x.Significand.IsZero
-				? throw new DivideByZeroException()
-				: DivideApproximation(One, RootN(x, -n, significantDigits + RootGuardDigits), significantDigits + RootGuardDigits, significantDigits);
+			return x.Significand.Sign switch
+			{
+				0 => throw new DivideByZeroException(),
+				> 0 => PositiveReciprocalRootN(x, -n, significantDigits),
+				_ => int.IsEvenInteger(n)
+					? throw new ArgumentOutOfRangeException(nameof(x), x, NegativeRootMessage)
+					: -PositiveReciprocalRootN(-x, -n, significantDigits),
+			};
 		}
 
 		if (x.Significand.IsZero || n == 1)
@@ -253,6 +258,49 @@ public readonly partial record struct PreciseNumber
 		// An exact root has every digit of its own, so rounding it to the requested precision would
 		// throw away an answer that is already right.
 		return BigInteger.Pow(root, n) == scaled
+			? result
+			: result.ReduceSignificance(significantDigits);
+	}
+
+	/// <summary>
+	/// Computes the reciprocal of the n-th root of a positive value.
+	/// </summary>
+	/// <param name="value">The value to take the root of, which must be positive.</param>
+	/// <param name="n">The degree of the root, which must be at least one.</param>
+	/// <param name="significantDigits">The number of significant digits to produce.</param>
+	/// <returns>The n-th root of the reciprocal of <paramref name="value"/>.</returns>
+	/// <exception cref="OverflowException">Thrown when the root needs a scale or an exponent wider than an <see cref="int"/>.</exception>
+	/// <remarks>
+	/// Taking the root and then its reciprocal rounds twice before the final rounding, and no fixed
+	/// number of guard digits stops that from landing on the wrong side of a rounding boundary. This
+	/// instead roots the reciprocal in integers: <c>1 / (s · 10^e)</c> is <c>(10^k / s) · 10^(-k - e)</c>,
+	/// and <c>q = floor(10^k / s)</c> loses nothing a root can see, because the floor of the n-th root
+	/// of <c>floor(y)</c> is the floor of the n-th root of <c>y</c>. The integer root of <c>q</c> is
+	/// therefore the true value truncated, and the one rounding to the requested digits is correct.
+	/// </remarks>
+	private static PreciseNumber PositiveReciprocalRootN(PreciseNumber value, int n, int significantDigits)
+	{
+		// q has at least digits(10^k) - digits(s) digits, so this leaves n · (d + guard) of them for
+		// the root to work on, as in PositiveRootN.
+		int digits = CountDigits(value.Significand);
+		long scale = ((long)n * (significantDigits + RootGuardDigits)) + digits;
+
+		// Raise the scale until the degree divides the exponent -k - e.
+		scale += (((-scale - value.Exponent) % n) + n) % n;
+
+		long rootExponent = (-scale - value.Exponent) / n;
+		if (scale > int.MaxValue || rootExponent is < int.MinValue or > int.MaxValue)
+		{
+			throw new OverflowException(
+				$"A root of degree {(-n).ToString(InvariantCulture)} to {significantDigits.ToString(InvariantCulture)} significant digits needs an exponent outside the range of an int.");
+		}
+
+		BigInteger quotient = BigInteger.DivRem(Pow10((int)scale), value.Significand, out BigInteger remainder);
+		BigInteger root = n == 1 ? quotient : IntegerRootN(quotient, n);
+		PreciseNumber result = new((int)rootExponent, root);
+
+		// Exact only when both the reciprocal and its root were.
+		return remainder.IsZero && BigInteger.Pow(root, n) == quotient
 			? result
 			: result.ReduceSignificance(significantDigits);
 	}
