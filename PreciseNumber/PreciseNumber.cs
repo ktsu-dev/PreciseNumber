@@ -1908,6 +1908,13 @@ public readonly partial record struct PreciseNumber
 
 		if (IsInteger(power))
 		{
+			// (-1)^n is ±1 by parity alone. Answering it here keeps an exponent too large for an int, which
+			// the loop below cannot count down, from throwing for a result that is always in range.
+			if (Exponent == 0 && Significand == BigInteger.MinusOne)
+			{
+				return IsEvenInteger(power) ? One : NegativeOne;
+			}
+
 			// Exponentiation by squaring: O(log n) multiplications instead of O(n).
 			PreciseNumber result = One;
 			PreciseNumber factor = this;
