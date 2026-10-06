@@ -183,7 +183,25 @@ public readonly partial record struct PreciseNumber
 	public static (PreciseNumber Sin, PreciseNumber Cos) SinCos(PreciseNumber x, int significantDigits)
 	{
 		RequireSignificantDigits(significantDigits);
+		RequireReducibleArgument(significantDigits, IntegerDigitCount(x));
+		return SinCosCore(x, significantDigits);
+	}
 
+	/// <summary>
+	/// Computes the sine and cosine of an angle in radians without checking the precision against
+	/// the reduction ceiling.
+	/// </summary>
+	/// <param name="x">The angle, in radians.</param>
+	/// <param name="significantDigits">The number of significant digits to produce, at least one.</param>
+	/// <returns>A tuple of the sine and cosine of <paramref name="x"/>.</returns>
+	/// <remarks>
+	/// The body of <see cref="SinCos(PreciseNumber, int)"/>, for a caller that has already checked
+	/// the digits it will report and wants these computed wider as guard margin. Margin is allowed to
+	/// be unavailable (see <see cref="RequireReducibleArgument(int, int)"/>), so checking the widened
+	/// precision would refuse requests whose every reported digit is correct.
+	/// </remarks>
+	private static (PreciseNumber Sin, PreciseNumber Cos) SinCosCore(PreciseNumber x, int significantDigits)
+	{
 		if (x.Significand.IsZero)
 		{
 			return (Zero, One);
@@ -195,8 +213,6 @@ public readonly partial record struct PreciseNumber
 		// that many digits past the answer or the remainder is only as good as what was left over.
 		int argumentDigits = IntegerDigitCount(x);
 		int reductionDigits = working + argumentDigits + TrigonometricGuardDigits;
-
-		RequireReducibleArgument(significantDigits, argumentDigits);
 
 		PreciseNumber piOverTwo = Divide(PiTo(reductionDigits), Two, reductionDigits);
 		BigInteger quadrant = RoundToNearestInteger(Divide(x, piOverTwo, reductionDigits));
@@ -226,16 +242,23 @@ public readonly partial record struct PreciseNumber
 	/// <param name="x">The angle, in radians.</param>
 	/// <param name="significantDigits">The number of significant digits to produce.</param>
 	/// <returns>The tangent of <paramref name="x"/>.</returns>
-	/// <exception cref="ArgumentOutOfRangeException">Thrown when <paramref name="significantDigits"/> is less than one.</exception>
+	/// <exception cref="ArgumentOutOfRangeException">
+	/// Thrown when <paramref name="significantDigits"/> is less than one, or when it and the integer
+	/// digits of <paramref name="x"/> together exceed <see cref="ConstantPrecision"/>, exactly as for
+	/// <see cref="SinCos(PreciseNumber, int)"/>.
+	/// </exception>
 	/// <exception cref="DivideByZeroException">Thrown when the cosine of <paramref name="x"/> is zero.</exception>
 	/// <remarks>
 	/// <c>sin / cos</c> from one reduction and a single division, rather than two independent series.
+	/// The ceiling is checked against the requested digits only; the sine and cosine are then
+	/// computed wider as guard margin, which is not counted against it.
 	/// </remarks>
 	public static PreciseNumber Tan(PreciseNumber x, int significantDigits)
 	{
 		RequireSignificantDigits(significantDigits);
+		RequireReducibleArgument(significantDigits, IntegerDigitCount(x));
 		int working = significantDigits + TrigonometricGuardDigits;
-		(PreciseNumber sin, PreciseNumber cos) = SinCos(x, working);
+		(PreciseNumber sin, PreciseNumber cos) = SinCosCore(x, working);
 		return DivideApproximation(sin, cos, working, significantDigits);
 	}
 

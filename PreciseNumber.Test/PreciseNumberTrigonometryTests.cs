@@ -152,6 +152,37 @@ public class PreciseNumberTrigonometryTests
 	}
 
 	[TestMethod]
+	public void TestTanDeliversEveryDigitUpToTheReductionCeiling()
+	{
+		// Tan widens by its guard digits before computing sin and cos. Those are margin, so they must
+		// not be counted against the ceiling: Tan has to reach the same precision Sin and Cos do.
+		int ceiling = PreciseNumber.ConstantPrecision - 7;
+		PreciseNumber million = Parse("1000000");
+		PreciseNumber tangent = PreciseNumber.Tan(million, ceiling);
+		(PreciseNumber sin, PreciseNumber cos) = PreciseNumber.SinCos(million, ceiling);
+
+		Assert.AreEqual(ceiling, tangent.SignificantDigits);
+		AssertAgreesTo(PreciseNumber.Divide(sin, cos, ceiling), tangent, ceiling - 2, "Tan at the reduction ceiling was not sin/cos");
+
+		// One digit past the ceiling is still refused, as it is for Sin.
+		Assert.ThrowsExactly<ArgumentOutOfRangeException>(() => PreciseNumber.Tan(million, ceiling + 1));
+	}
+
+	[TestMethod]
+	public void TestTanAcceptsThePrecisionsSinAndCosAccept()
+	{
+		// The issue's reproduction: each of these is within the ceiling for Sin and Cos, and Tan
+		// refused them because its guard digits were checked as if they were part of the answer.
+		PreciseNumber one = PreciseNumber.One;
+		PreciseNumber tangent = PreciseNumber.Tan(one, 145);
+
+		Assert.AreEqual(145, tangent.SignificantDigits);
+		StringAssert.StartsWith(Digits(tangent), Tan1Digits, StringComparison.Ordinal, "Tan(1, 145) is wrong");
+		Assert.AreEqual(145, PreciseNumber.Tan(Parse("0.3"), 145).SignificantDigits);
+		Assert.AreEqual(PreciseNumber.ConstantPrecision, PreciseNumber.Tan(Parse("0.3"), PreciseNumber.ConstantPrecision).SignificantDigits);
+	}
+
+	[TestMethod]
 	public void TestSinRefusesAnArgumentTooLargeToReduceAtAll()
 	{
 		// Magnitude alone is enough, without asking for many digits. An argument of 201 integer
