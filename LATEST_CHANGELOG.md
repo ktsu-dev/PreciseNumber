@@ -1,4 +1,7 @@
-## v2.6.7-pre.1 (prerelease)
+## v2.6.7 (patch)
 
-No significant changes detected since v2.6.7-pre.1.
+Changes since v2.6.6:
+
+- Move the integer-power path into IntegerPow to keep Pow's complexity down ([@Claude](https://github.com/Claude))
+- Return ±1 for -1 raised to an integer too large for an int [patch] ([@Claude](https://github.com/Claude))
 
