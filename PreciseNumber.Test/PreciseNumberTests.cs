@@ -1880,6 +1880,22 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
+	[DataRow("2147483648", 1)]
+	[DataRow("-2147483648", 1)]
+	[DataRow("1e20", 1)]
+	[DataRow("2147483649", -1)]
+	[DataRow("-2147483649", -1)]
+	[DataRow("2147483647", -1)]
+	[DataRow("2", 1)]
+	[DataRow("-3", -1)]
+	public void PowOfNegativeOneIsParityOfAnyIntegerPower(string power, int expected)
+	{
+		PreciseNumber result = PreciseNumber.NegativeOne.Pow(PreciseNumber.Parse(power, CultureInfo.InvariantCulture));
+
+		Assert.AreEqual(expected.ToPreciseNumber(), result, $"(-1)^{power}");
+	}
+
+	[TestMethod]
 	public void TestExpWithZeroPower()
 	{
 		PreciseNumber result = PreciseNumber.Exp(0.ToPreciseNumber());
