@@ -100,4 +100,54 @@ public class PreciseNumberParseCultureTests
 	{
 		Assert.AreEqual(P("0.015"), PreciseNumber.Parse("1,5e−2", CommaDecimal));
 	}
+
+	[TestMethod]
+	[DataRow("1.5", NumberStyles.Integer)]
+	[DataRow("1e5", NumberStyles.Integer)]
+	[DataRow("-5", NumberStyles.None)]
+	[DataRow("1e 5", NumberStyles.Float)]
+	[DataRow("1e5", NumberStyles.Number)]
+	[DataRow("1.5", NumberStyles.None)]
+	[DataRow("1.5", NumberStyles.Float)]
+	[DataRow("-1.5e-3", NumberStyles.Float)]
+	[DataRow("-1.5e-3", NumberStyles.Any)]
+	[DataRow("1,234.5", NumberStyles.Any)]
+	[DataRow("-5", NumberStyles.Integer)]
+	[DataRow("1e+5", NumberStyles.Float)]
+	public void TryParse_AcceptsWhatDecimalAccepts(string text, NumberStyles style)
+	{
+		bool decimalParsed = decimal.TryParse(text, style, CultureInfo.InvariantCulture, out decimal expected);
+		bool parsed = PreciseNumber.TryParse(text, style, CultureInfo.InvariantCulture, out PreciseNumber actual);
+
+		Assert.AreEqual(decimalParsed, parsed, $"PreciseNumber and decimal disagree on whether \"{text}\" parses under {style}.");
+		if (parsed)
+		{
+			Assert.AreEqual(P(expected.ToString(CultureInfo.InvariantCulture)), actual);
+		}
+	}
+
+	[TestMethod]
+	public void Parse_ThrowsForWhatTheStyleDoesNotAllow()
+	{
+		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse("1.5", NumberStyles.Integer, CultureInfo.InvariantCulture));
+		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse("1e5", NumberStyles.Integer, CultureInfo.InvariantCulture));
+		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse("-5", NumberStyles.None, CultureInfo.InvariantCulture));
+		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse("1e 5", NumberStyles.Float, CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
+	public void Parse_WithoutAStyleStillReadsFractionsExponentsAndSigns()
+	{
+		Assert.AreEqual(P("1.5"), PreciseNumber.Parse("1.5", CultureInfo.InvariantCulture));
+		Assert.AreEqual(P("-0.0015"), PreciseNumber.Parse("-1.5e-3", CultureInfo.InvariantCulture));
+		Assert.AreEqual(P("1234.5"), PreciseNumber.Parse("1,234.5", CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
+	public void Parse_ReadsACulturesNegativeSignOnlyWhenTheStyleAllowsIt()
+	{
+		Assert.AreEqual(P("-2.5"), PreciseNumber.Parse("−2,5", NumberStyles.Float, CommaDecimal));
+		Assert.IsFalse(PreciseNumber.TryParse("−2", NumberStyles.None, CommaDecimal, out _));
+		Assert.IsFalse(PreciseNumber.TryParse("-2", NumberStyles.None, CommaDecimal, out _));
+	}
 }

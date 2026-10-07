@@ -1210,6 +1210,8 @@ public readonly partial record struct PreciseNumber
 		ReadOnlySpan<char> decimalSeparator = numberFormat.NumberDecimalSeparator;
 		ReadOnlySpan<char> groupSeparator = numberFormat.NumberGroupSeparator;
 		bool allowThousands = style.HasFlag(NumberStyles.AllowThousands) && !groupSeparator.IsEmpty;
+		bool allowDecimalPoint = style.HasFlag(NumberStyles.AllowDecimalPoint);
+		bool allowExponent = style.HasFlag(NumberStyles.AllowExponent);
 
 		int startIndex = ReadLeadingSign(s, style, numberFormat, out bool isNegative);
 
@@ -1229,7 +1231,7 @@ public readonly partial record struct PreciseNumber
 			for (int i = startIndex; i < s.Length; i++)
 			{
 				char c = s[i];
-				if (s[i..].StartsWith(decimalSeparator, StringComparison.Ordinal))
+				if (allowDecimalPoint && s[i..].StartsWith(decimalSeparator, StringComparison.Ordinal))
 				{
 					if (hasDecimal)
 					{
@@ -1248,10 +1250,12 @@ public readonly partial record struct PreciseNumber
 					continue;
 				}
 
-				if (c is 'e' or 'E')
+				if (allowExponent && c is 'e' or 'E')
 				{
 					// An exponent outside the range of int throws OverflowException, which TryParse reports as failure.
-					exponent = int.Parse(s[(i + 1)..], NumberStyles.Integer, numberFormat);
+					// Only a sign may precede its digits: NumberStyles.Integer would also let white space through,
+					// accepting "1e 5" where every BCL numeric type rejects it.
+					exponent = int.Parse(s[(i + 1)..], NumberStyles.AllowLeadingSign, numberFormat);
 					break;
 				}
 
@@ -1313,10 +1317,17 @@ public readonly partial record struct PreciseNumber
 	/// Reads a leading sign spelled as <paramref name="numberFormat"/> spells it, returning the index
 	/// of the first character after it. The ASCII hyphen stays accepted whatever the culture spells
 	/// its negative sign with, as it always has been here and as the BCL does for cultures that use
-	/// U+2212. A positive sign is only read when <paramref name="style"/> allows a leading sign.
+	/// U+2212. Neither sign is read unless <paramref name="style"/> allows a leading sign, so under
+	/// <see cref="NumberStyles.None"/> a sign is left in place and rejected as a non-digit.
 	/// </summary>
 	private static int ReadLeadingSign(ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, out bool isNegative)
 	{
+		isNegative = false;
+		if (!style.HasFlag(NumberStyles.AllowLeadingSign))
+		{
+			return 0;
+		}
+
 		isNegative = true;
 		if (s.StartsWith(numberFormat.NegativeSign, StringComparison.Ordinal))
 		{
@@ -1329,7 +1340,7 @@ public readonly partial record struct PreciseNumber
 		}
 
 		isNegative = false;
-		return style.HasFlag(NumberStyles.AllowLeadingSign) && s.StartsWith(numberFormat.PositiveSign, StringComparison.Ordinal)
+		return s.StartsWith(numberFormat.PositiveSign, StringComparison.Ordinal)
 			? numberFormat.PositiveSign.Length
 			: 0;
 	}
