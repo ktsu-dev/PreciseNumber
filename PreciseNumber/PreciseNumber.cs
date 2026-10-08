@@ -1555,6 +1555,69 @@ public readonly partial record struct PreciseNumber
 	}
 
 	/// <summary>
+	/// Digits kept below the last one a precision-bounded sum is wanted to, before a far smaller
+	/// operand is collapsed into a single sticky digit.
+	/// </summary>
+	private const int StickyGuardDigits = 3;
+
+	/// <summary>
+	/// Adds two numbers whose sum is only ever going to be rounded to a given number of significant
+	/// digits.
+	/// </summary>
+	/// <param name="left">The first number to add.</param>
+	/// <param name="right">The second number to add.</param>
+	/// <param name="significantDigits">The precision the caller will round the sum to.</param>
+	/// <returns>
+	/// The exact sum when the operands are close in magnitude. Otherwise the larger operand plus a
+	/// single unit of the smaller one's sign, placed below every digit of the larger operand and
+	/// <see cref="StickyGuardDigits"/> below the last digit the caller keeps.
+	/// </returns>
+	/// <remarks>
+	/// <see cref="Add(PreciseNumber, PreciseNumber)"/> is exact, so <c>1 + 1e-4000000</c> scales the
+	/// one by <c>10^4000000</c> and builds a four-million-digit significand only for the caller to
+	/// round almost all of it away. When the smaller operand lies wholly below the larger one's last
+	/// digit and below the caller's rounding position, the exact sum and the sticky sum lie strictly
+	/// inside the same gap between neighbouring multiples of that digit. Every rounding boundary at
+	/// the caller's precision, or one digit coarser after a halving, is such a multiple, so both
+	/// round the same way. Only the sign of the small operand can still matter, and the sticky unit
+	/// keeps it.
+	/// </remarks>
+	internal static PreciseNumber AddToPrecision(PreciseNumber left, PreciseNumber right, int significantDigits)
+	{
+		if (left.Significand.IsZero || right.Significand.IsZero)
+		{
+			return Add(left, right);
+		}
+
+		long leftMagnitude = (long)left.Exponent + left.SignificantDigits;
+		long rightMagnitude = (long)right.Exponent + right.SignificantDigits;
+		(PreciseNumber larger, PreciseNumber smaller, long largerMagnitude, long smallerMagnitude) = leftMagnitude >= rightMagnitude
+			? (left, right, leftMagnitude, rightMagnitude)
+			: (right, left, rightMagnitude, leftMagnitude);
+
+		// The smaller operand is below 10^smallerMagnitude, so it is wholly beneath 10^floor once
+		// smallerMagnitude is at most floor.
+		long floor = Math.Min(larger.Exponent, largerMagnitude - significantDigits - StickyGuardDigits);
+		if (smallerMagnitude > floor || floor - 1 < int.MinValue)
+		{
+			return Add(left, right);
+		}
+
+		return Add(larger, new PreciseNumber((int)(floor - 1), smaller.Significand.Sign));
+	}
+
+	/// <summary>
+	/// Subtracts one number from another where the difference is only ever going to be rounded to a
+	/// given number of significant digits.
+	/// </summary>
+	/// <param name="left">The number to subtract from.</param>
+	/// <param name="right">The number to subtract.</param>
+	/// <param name="significantDigits">The precision the caller will round the difference to.</param>
+	/// <returns>The difference, as <see cref="AddToPrecision(PreciseNumber, PreciseNumber, int)"/> forms it.</returns>
+	internal static PreciseNumber SubtractToPrecision(PreciseNumber left, PreciseNumber right, int significantDigits) =>
+		AddToPrecision(left, -right, significantDigits);
+
+	/// <summary>
 	/// Multiplies two numbers.
 	/// </summary>
 	/// <param name="left">The first number to multiply.</param>

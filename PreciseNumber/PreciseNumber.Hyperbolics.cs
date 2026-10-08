@@ -107,7 +107,7 @@ public readonly partial record struct PreciseNumber
 
 		PreciseNumber raised = Exp(x, working);
 		PreciseNumber lowered = Divide(One, raised, working);
-		return Divide(Subtract(raised, lowered), Two, working).ReduceSignificance(significantDigits);
+		return Divide(SubtractToPrecision(raised, lowered, working), Two, working).ReduceSignificance(significantDigits);
 	}
 
 	/// <summary>
@@ -150,7 +150,7 @@ public readonly partial record struct PreciseNumber
 		int working = significantDigits + ExponentialGuardDigits;
 		PreciseNumber raised = Exp(x, working);
 		PreciseNumber lowered = Divide(One, raised, working);
-		return Divide(Add(raised, lowered), Two, working).ReduceSignificance(significantDigits);
+		return Divide(AddToPrecision(raised, lowered, working), Two, working).ReduceSignificance(significantDigits);
 	}
 
 	/// <summary>
@@ -256,8 +256,8 @@ public readonly partial record struct PreciseNumber
 		int working = significantDigits + ExponentialGuardDigits;
 		PreciseNumber magnitude = Abs(x);
 		PreciseNumber square = Multiply(magnitude, magnitude);
-		PreciseNumber root = Sqrt(Add(One, square), working);
-		PreciseNumber excess = Divide(square, Add(One, root), working);
+		PreciseNumber root = Sqrt(AddToPrecision(One, square, working), working);
+		PreciseNumber excess = Divide(square, AddToPrecision(One, root, working), working);
 		PreciseNumber result = LogP1(Add(magnitude, excess), significantDigits);
 
 		return x.Significand.Sign > 0 ? result : -result;
@@ -320,8 +320,8 @@ public readonly partial record struct PreciseNumber
 		}
 
 		int working = significantDigits + ExponentialGuardDigits;
-		PreciseNumber below = Subtract(x, One);
-		PreciseNumber root = Sqrt(Multiply(below, Add(x, One)), working);
+		PreciseNumber below = SubtractToPrecision(x, One, working);
+		PreciseNumber root = Sqrt(Multiply(below, AddToPrecision(x, One, working)), working);
 		return LogP1(Add(below, root), significantDigits);
 	}
 
