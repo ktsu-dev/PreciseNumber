@@ -1,6 +1,4 @@
-## v2.6.9 (patch)
+## v2.6.9
 
-Changes since v2.6.8:
-
-- Honour AllowDecimalPoint, AllowExponent and AllowLeadingSign in Parse [patch] ([@Claude](https://github.com/Claude))
+No significant changes detected since v2.6.9.
 
