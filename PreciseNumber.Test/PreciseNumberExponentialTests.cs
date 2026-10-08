@@ -204,6 +204,16 @@ public class PreciseNumberExponentialTests
 	}
 
 	[TestMethod]
+	public void TestPowWithAFractionalExponentRoundsOnceFromAGuardedWidth()
+	{
+		// Each true value continues "…49…" just past the fiftieth digit. Rounding to one spare digit
+		// and then to fifty turns that 4 into a 5 and carries it, so the last digit comes out one high.
+		Assert.AreEqual("82819079927272797492502657693332697523603074579416", Digits(19.ToPreciseNumber().Pow(Parse("1.5"))), "Pow(19, 1.5) is misrounded");
+		Assert.AreEqual("16431676725154983403709093484024064018582340849939", Digits(30.ToPreciseNumber().Pow(Parse("1.5"))), "Pow(30, 1.5) is misrounded");
+		Assert.AreEqual("16079664639848680625219093575785418730625364814757", Digits(2957.ToPreciseNumber().Pow(Parse("1.5"))), "Pow(2957, 1.5) is misrounded");
+	}
+
+	[TestMethod]
 	public void TestPowWithAFractionalExponentAgreesWithTheRoots()
 	{
 		// Two independent routes to the same answer: the integer Newton root on the significand, and
