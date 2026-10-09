@@ -317,7 +317,7 @@ public readonly partial record struct PreciseNumber
 		// better conditioned than an atanh argument approaching one.
 		if (Abs(x) > DirectSeriesLimit)
 		{
-			return Log(Add(One, x), significantDigits);
+			return Log(AddToPrecision(One, x, significantDigits + ExponentialGuardDigits), significantDigits);
 		}
 
 		int working = significantDigits + ExponentialGuardDigits;
@@ -486,7 +486,16 @@ public readonly partial record struct PreciseNumber
 		if (Abs(x) > DirectSeriesLimit)
 		{
 			int wide = significantDigits + ExponentialGuardDigits;
-			return Subtract(Exp(x, wide), One).ReduceSignificance(significantDigits);
+
+			// Below -3 · (wide + 1), e^x is under 10^-(wide + 1) because ln 10 is under three, so it
+			// cannot reach the digits kept and the answer is -1. Exp itself would build that tiny
+			// value first, or overflow its exponent trying to.
+			if (x < new PreciseNumber(0, -3 * ((BigInteger)wide + 1)))
+			{
+				return NegativeOne;
+			}
+
+			return SubtractToPrecision(Exp(x, wide), One, wide).ReduceSignificance(significantDigits);
 		}
 
 		return ExpSeriesWithoutLeadingOne(x, significantDigits + ExponentialGuardDigits)
