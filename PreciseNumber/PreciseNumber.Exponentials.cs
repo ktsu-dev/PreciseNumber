@@ -668,7 +668,9 @@ public readonly partial record struct PreciseNumber
 	/// <remarks>
 	/// The exponential factors out <c>10^k</c>, and forming <c>r</c> cancels every integer digit of
 	/// <c>y · ln x</c>. Those digits therefore have to be present in the logarithm before the
-	/// exponential asks for them, which is what the second, wider pass buys.
+	/// exponential asks for them, which is what the second, wider pass buys. The exponential itself
+	/// is taken at the guarded width too, so the final reduction is the only rounding to the
+	/// requested digits; rounding first to one spare digit would carry a trailing <c>…49</c> up.
 	/// </remarks>
 	private static PreciseNumber FractionalPow(PreciseNumber x, PreciseNumber y, int significantDigits)
 	{
@@ -681,7 +683,7 @@ public readonly partial record struct PreciseNumber
 			product = Multiply(y, Log(x, working + consumed));
 		}
 
-		return Exp(product, significantDigits + consumed).ReduceSignificance(significantDigits);
+		return Exp(product, working + consumed).ReduceSignificance(significantDigits);
 	}
 
 	/// <summary>
