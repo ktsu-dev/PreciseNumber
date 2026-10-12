@@ -943,6 +943,7 @@ public readonly partial record struct PreciseNumber
 	/// <param name="left">The left number.</param>
 	/// <param name="right">The right number.</param>
 	/// <returns>The scaled significands and the exponent they share.</returns>
+	/// <exception cref="OverflowException">Thrown when the exponents are further apart than the range of an <see cref="int"/>.</exception>
 	private static (BigInteger Left, BigInteger Right, int Exponent) CommonizeSignificands(PreciseNumber left, PreciseNumber right)
 	{
 		int leftExponent = left.Exponent;
@@ -953,9 +954,11 @@ public readonly partial record struct PreciseNumber
 			return (left.Significand, right.Significand, leftExponent);
 		}
 
+		// Exponents at opposite extremes are more than int.MaxValue apart, and an unchecked difference
+		// would wrap negative and reach Pow10 as an unrelated ArgumentOutOfRangeException.
 		return leftExponent > rightExponent
-			? (left.Significand * Pow10(leftExponent - rightExponent), right.Significand, rightExponent)
-			: (left.Significand, right.Significand * Pow10(rightExponent - leftExponent), leftExponent);
+			? (left.Significand * Pow10(checked(leftExponent - rightExponent)), right.Significand, rightExponent)
+			: (left.Significand, right.Significand * Pow10(checked(rightExponent - leftExponent)), leftExponent);
 	}
 
 	/// <summary>
@@ -1536,6 +1539,7 @@ public readonly partial record struct PreciseNumber
 	/// <param name="left">The number to subtract from.</param>
 	/// <param name="right">The number to subtract.</param>
 	/// <returns>The result of the subtraction.</returns>
+	/// <exception cref="OverflowException">Thrown when the exponents of the operands are further apart than the range of an <see cref="int"/>.</exception>
 	public static PreciseNumber Subtract(PreciseNumber left, PreciseNumber right)
 	{
 		(BigInteger commonLeft, BigInteger commonRight, int commonExponent) = CommonizeSignificands(left, right);
@@ -1548,6 +1552,7 @@ public readonly partial record struct PreciseNumber
 	/// <param name="left">The first number to add.</param>
 	/// <param name="right">The second number to add.</param>
 	/// <returns>The result of the addition.</returns>
+	/// <exception cref="OverflowException">Thrown when the exponents of the operands are further apart than the range of an <see cref="int"/>.</exception>
 	public static PreciseNumber Add(PreciseNumber left, PreciseNumber right)
 	{
 		(BigInteger commonLeft, BigInteger commonRight, int commonExponent) = CommonizeSignificands(left, right);
@@ -1809,6 +1814,7 @@ public readonly partial record struct PreciseNumber
 	/// <param name="left">The number to divide.</param>
 	/// <param name="right">The number to divide by.</param>
 	/// <returns>The modulus of the two numbers.</returns>
+	/// <exception cref="OverflowException">Thrown when the exponents of the operands are further apart than the range of an <see cref="int"/>.</exception>
 	public static PreciseNumber Mod(PreciseNumber left, PreciseNumber right)
 	{
 		if (right.Significand.IsZero)
