@@ -2675,6 +2675,26 @@ public class PreciseNumberTests
 	}
 
 	[TestMethod]
+	public void TestAddSubtractModThrowOverflowWhenTheExponentsAreTooFarApartToAlign()
+	{
+		PreciseNumber big = PreciseNumber.Parse("1e2000000000", NumberStyles.Float, CultureInfo.InvariantCulture);
+		PreciseNumber small = PreciseNumber.Parse("1e-2000000000", NumberStyles.Float, CultureInfo.InvariantCulture);
+
+		// The exponents are 4e9 apart; the difference wrapped to -294967296 and reached Pow10 as an
+		// ArgumentOutOfRangeException, unlike the OverflowException Multiply and Divide throw.
+		Assert.ThrowsExactly<OverflowException>(() => big + small);
+		Assert.ThrowsExactly<OverflowException>(() => small + big);
+		Assert.ThrowsExactly<OverflowException>(() => big - small);
+		Assert.ThrowsExactly<OverflowException>(() => small - big);
+		Assert.ThrowsExactly<OverflowException>(() => big % small);
+		Assert.ThrowsExactly<OverflowException>(() => small % big);
+
+		// Exponents that are close enough to align are unaffected.
+		Assert.AreEqual(PreciseNumber.Parse("2e2000000000", NumberStyles.Float, CultureInfo.InvariantCulture), big + big);
+		Assert.AreEqual(PreciseNumber.Zero, small - small);
+	}
+
+	[TestMethod]
 	public void TestDivideThrowsOverflowWhenTheExponentLeavesTheIntRange()
 	{
 		PreciseNumber big = PreciseNumber.Parse("1e2000000000", NumberStyles.Float, CultureInfo.InvariantCulture);
