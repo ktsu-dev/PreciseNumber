@@ -1523,7 +1523,9 @@ public class PreciseNumberTests
 	public void TestTryFormatInvalidFormat()
 	{
 		PreciseNumber number = PreciseNumber.CreateFromComponents(-2, 12345);
-		Assert.ThrowsExactly<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "e", CultureInfo.InvariantCulture));
+		FormatException exception = Assert.ThrowsExactly<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "0.00", CultureInfo.InvariantCulture));
+		Assert.Contains("'0.00'", exception.Message);
+		Assert.Contains("F, N and E", exception.Message);
 	}
 
 	[TestMethod]
@@ -1731,18 +1733,113 @@ public class PreciseNumberTests
 	public void TestToStringVariousFormats()
 	{
 		PreciseNumber number = PreciseNumber.CreateFromComponents(-2, 12345);
-		Assert.ThrowsExactly<FormatException>(() => number.ToString("E2", CultureInfo.InvariantCulture));
-		Assert.ThrowsExactly<FormatException>(() => number.ToString("F2", CultureInfo.InvariantCulture));
-		Assert.ThrowsExactly<FormatException>(() => number.ToString("N2", CultureInfo.InvariantCulture));
+		Assert.AreEqual("1.23E+002", number.ToString("E2", CultureInfo.InvariantCulture));
+		Assert.AreEqual("123.45", number.ToString("F2", CultureInfo.InvariantCulture));
+		Assert.AreEqual("123.45", number.ToString("N2", CultureInfo.InvariantCulture));
 	}
 
 	[TestMethod]
 	public void TestTryFormatVariousFormats()
 	{
 		PreciseNumber number = PreciseNumber.CreateFromComponents(-2, 12345);
-		Assert.ThrowsExactly<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "E2".AsSpan(), CultureInfo.InvariantCulture));
-		Assert.ThrowsExactly<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "F2".AsSpan(), CultureInfo.InvariantCulture));
-		Assert.ThrowsExactly<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "N2".AsSpan(), CultureInfo.InvariantCulture));
+		Span<char> buffer = stackalloc char[50];
+		Assert.IsTrue(number.TryFormat(buffer, out int charsWritten, "E2".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.AreEqual("1.23E+002", buffer[..charsWritten].ToString());
+		Assert.IsTrue(number.TryFormat(buffer, out charsWritten, "F1".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.AreEqual("123.5", buffer[..charsWritten].ToString());
+		Assert.IsTrue(number.TryFormat(buffer, out charsWritten, "N2".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.AreEqual("123.45", buffer[..charsWritten].ToString());
+	}
+
+	[TestMethod]
+	public void TestTryFormatStandardFormatReturnsFalseWhenDestinationTooSmall()
+	{
+		PreciseNumber number = PreciseNumber.CreateFromComponents(-2, 12345);
+		Assert.IsFalse(number.TryFormat(stackalloc char[5], out int charsWritten, "F2".AsSpan(), CultureInfo.InvariantCulture));
+		Assert.AreEqual(0, charsWritten);
+	}
+
+	[TestMethod]
+	[DataRow("1234.5678", "F2", "1234.57")]
+	[DataRow("1234.5678", "F0", "1235")]
+	[DataRow("1234.5", "F3", "1234.500")]
+	[DataRow("0.005", "F2", "0.01")]
+	[DataRow("-0.004", "F2", "0.00")]
+	[DataRow("-1.005", "F2", "-1.01")]
+	[DataRow("0.0001", "F6", "0.000100")]
+	[DataRow("12000", "F1", "12000.0")]
+	[DataRow("1234.5", "F", "1234.50")]
+	[DataRow("0", "F2", "0.00")]
+	[DataRow("1234567.891", "N2", "1,234,567.89")]
+	[DataRow("-1234567.891", "N0", "-1,234,568")]
+	[DataRow("999.995", "N2", "1,000.00")]
+	[DataRow("123", "N2", "123.00")]
+	[DataRow("1234.5678", "E5", "1.23457E+003")]
+	[DataRow("1234.5678", "e2", "1.23e+003")]
+	[DataRow("-0.00012345", "E3", "-1.235E-004")]
+	[DataRow("9.9999", "E2", "1.00E+001")]
+	[DataRow("5", "E0", "5E+000")]
+	[DataRow("0", "E2", "0.00E+000")]
+	[DataRow("12", "E", "1.200000E+001")]
+	[DataRow("1234.5678", "R", "1234.5678")]
+	[DataRow("1234.5678", "r", "1234.5678")]
+	[DataRow("1234.5678", "G5", "1234.6")]
+	[DataRow("1234.5678", "G0", "1234.5678")]
+	public void TestToStringStandardFormats(string value, string format, string expected)
+	{
+		PreciseNumber number = PreciseNumber.Parse(value, CultureInfo.InvariantCulture);
+		Assert.AreEqual(expected, number.ToString(format, CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
+	public void TestInterpolatedFixedPointFormat()
+	{
+		PreciseNumber number = PreciseNumber.Parse("3.14159", CultureInfo.InvariantCulture);
+		Assert.AreEqual("Value: 3.14", string.Create(CultureInfo.InvariantCulture, $"Value: {number:F2}"));
+		Assert.AreEqual("3.14", string.Format(CultureInfo.InvariantCulture, "{0:N2}", number));
+	}
+
+	[TestMethod]
+	public void TestStandardFormatsUseCultureSeparators()
+	{
+		PreciseNumber number = PreciseNumber.Parse("-1234567.891", CultureInfo.InvariantCulture);
+		NumberFormatInfo german = (NumberFormatInfo)CultureInfo.InvariantCulture.NumberFormat.Clone();
+		german.NumberDecimalSeparator = ",";
+		german.NumberGroupSeparator = ".";
+		Assert.AreEqual("-1.234.567,89", number.ToString("N2", german));
+		Assert.AreEqual("-1234567,89", number.ToString("F2", german));
+		Assert.AreEqual("-1,23E+006", number.ToString("E2", german));
+	}
+
+	[TestMethod]
+	public void TestNumberFormatHonoursGroupSizesAndNegativePattern()
+	{
+		NumberFormatInfo numberFormat = (NumberFormatInfo)CultureInfo.InvariantCulture.NumberFormat.Clone();
+		numberFormat.NumberGroupSizes = [3, 2];
+		numberFormat.NumberNegativePattern = 0;
+		PreciseNumber number = PreciseNumber.Parse("-123456789", CultureInfo.InvariantCulture);
+		Assert.AreEqual("(12,34,56,789)", number.ToString("N0", numberFormat));
+	}
+
+	[TestMethod]
+	public void TestScientificFormatReachesTinyExponentsWithoutFixedPointExpansion()
+	{
+		PreciseNumber number = PreciseNumber.CreateFromComponents(-1000000, 1);
+		Assert.AreEqual("1.00E-1000000", number.ToString("E2", CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
+	[DataRow("0.00")]
+	[DataRow("#,##0")]
+	[DataRow("X")]
+	[DataRow("C2")]
+	[DataRow("R2")]
+	[DataRow("F1000000000")]
+	public void TestToStringUnsupportedFormatThrowsDescriptiveFormatException(string format)
+	{
+		PreciseNumber number = PreciseNumber.CreateFromComponents(-2, 12345);
+		FormatException exception = Assert.ThrowsExactly<FormatException>(() => number.ToString(format, CultureInfo.InvariantCulture));
+		Assert.Contains(format, exception.Message);
 	}
 
 	[TestMethod]

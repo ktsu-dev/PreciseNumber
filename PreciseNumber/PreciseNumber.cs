@@ -495,6 +495,11 @@ public readonly partial record struct PreciseNumber
 	public static string ToString(PreciseNumber number, string? format, IFormatProvider? formatProvider)
 	{
 		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(formatProvider ?? InvariantCulture);
+		if (!IsPlainGeneralFormat(format))
+		{
+			return number.FormatStandard(format, numberFormat);
+		}
+
 		long desiredAlloc = number.GetFormattedLengthBound(numberFormat);
 
 		char[]? rentedBuffer = desiredAlloc > MaxStackAllocChars ? ArrayPool<char>.Shared.Rent((int)desiredAlloc) : null;
@@ -1388,15 +1393,23 @@ public readonly partial record struct PreciseNumber
 		TryParse(s, NumberStyles.Any, provider, out result);
 
 	/// <inheritdoc/>
+	/// <exception cref="FormatException">Thrown when <paramref name="format"/> is not one of the standard formats G, R, F, N and E, optionally followed by a precision.</exception>
 	/// <exception cref="OverflowException">Thrown when the text would be longer than any string can hold, whatever the size of <paramref name="destination"/>.</exception>
 	public bool TryFormat(Span<char> destination, out int charsWritten, ReadOnlySpan<char> format, IFormatProvider? provider)
 	{
-		if (!format.IsEmpty && !format.Equals("G", StringComparison.OrdinalIgnoreCase))
-		{
-			throw new FormatException();
-		}
-
 		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider ?? InvariantCulture);
+		if (!IsPlainGeneralFormat(format))
+		{
+			string text = FormatStandard(format, numberFormat);
+			if (!text.TryCopyTo(destination))
+			{
+				charsWritten = 0;
+				return false;
+			}
+
+			charsWritten = text.Length;
+			return true;
+		}
 
 		// Throws for text no string could hold, so that callers which grow their buffer on false
 		// fail promptly instead of retrying without end.

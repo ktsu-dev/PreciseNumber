@@ -326,12 +326,21 @@ if (PreciseNumber.TryParse("456.789", out var result))
 Convert PreciseNumber to string:  
 
 ```csharp  
+using System.Globalization;  
 using ktsu.PreciseNumber;  
 
 var number = 123.456.ToPreciseNumber();  
 string formatted = number.ToString(); // "123.456"  
 
+// Standard format strings, rounded half away from zero  
+number.ToString("F2", CultureInfo.InvariantCulture); // "123.46"  
+number.ToString("N1", CultureInfo.InvariantCulture); // "123.5"  
+number.ToString("E3", CultureInfo.InvariantCulture); // "1.235E+002"  
+number.ToString("G4", CultureInfo.InvariantCulture); // "123.5"  
+
 ```  
+
+`G` (or empty) and `R` write the exact value. `F`, `N`, `E` and `G` take an optional precision, and `N` uses the culture's group separator and negative pattern. Custom format strings such as `0.00` throw a `FormatException` that names the supported formats.  
 
 ## Comparison with Built-in Types  
 
