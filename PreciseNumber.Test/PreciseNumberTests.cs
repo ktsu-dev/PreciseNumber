@@ -1524,8 +1524,8 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number = PreciseNumber.CreateFromComponents(-2, 12345);
 		FormatException exception = Assert.ThrowsExactly<FormatException>(() => number.TryFormat(stackalloc char[50], out int charsWritten, "0.00", CultureInfo.InvariantCulture));
-		StringAssert.Contains(exception.Message, "'0.00'");
-		StringAssert.Contains(exception.Message, "F, N and E");
+		Assert.Contains("'0.00'", exception.Message);
+		Assert.Contains("F, N and E", exception.Message);
 	}
 
 	[TestMethod]
@@ -1839,7 +1839,7 @@ public class PreciseNumberTests
 	{
 		PreciseNumber number = PreciseNumber.CreateFromComponents(-2, 12345);
 		FormatException exception = Assert.ThrowsExactly<FormatException>(() => number.ToString(format, CultureInfo.InvariantCulture));
-		StringAssert.Contains(exception.Message, format);
+		Assert.Contains(format, exception.Message);
 	}
 
 	[TestMethod]

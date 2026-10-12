@@ -142,28 +142,12 @@ public readonly partial record struct PreciseNumber
 			+ 4;
 		ThrowIfLongerThanAnyString(bound);
 
-		StringBuilder integral = new((int)integralLength);
-		if (rounded.Significand.IsZero)
-		{
-			_ = integral.Append('0');
-		}
-		else if (rounded.Exponent >= 0)
-		{
-			_ = integral.Append(digits).Append('0', rounded.Exponent);
-		}
-		else if (digits.Length > fractionalLength)
-		{
-			_ = integral.Append(digits, 0, (int)(digits.Length - fractionalLength));
-		}
-		else
-		{
-			_ = integral.Append('0');
-		}
+		string integral = IntegralDigits(rounded, digits, fractionalLength);
 
 		StringBuilder body = new((int)bound);
 		if (grouped)
 		{
-			AppendGrouped(body, integral.ToString(), numberFormat);
+			AppendGrouped(body, integral, numberFormat);
 		}
 		else
 		{
@@ -183,25 +167,51 @@ public readonly partial record struct PreciseNumber
 			_ = body.Append('0', (int)(precision - fractionalLength));
 		}
 
-		bool negative = rounded.Significand.Sign < 0;
-		if (!negative)
+		return rounded.Significand.Sign < 0
+			? ApplyNegativePattern(body.ToString(), numberFormat, grouped)
+			: body.ToString();
+	}
+
+	/// <summary>
+	/// Returns the integral digits of a number rounded for fixed point, with a single "0" when it has none.
+	/// </summary>
+	/// <param name="rounded">The rounded number.</param>
+	/// <param name="digits">The digits of its significand's magnitude.</param>
+	/// <param name="fractionalLength">How many of those digits fall after the decimal separator.</param>
+	/// <returns>The integral digits.</returns>
+	private static string IntegralDigits(PreciseNumber rounded, string digits, long fractionalLength)
+	{
+		if (rounded.Significand.IsZero || digits.Length <= fractionalLength)
 		{
-			return body.ToString();
+			return "0";
 		}
 
-		if (!grouped)
-		{
-			return numberFormat.NegativeSign + body;
-		}
+		return rounded.Exponent >= 0
+			? digits + new string('0', rounded.Exponent)
+			: digits[..(int)(digits.Length - fractionalLength)];
+	}
 
-		return numberFormat.NumberNegativePattern switch
-		{
-			0 => $"({body})",
-			2 => $"{numberFormat.NegativeSign} {body}",
-			3 => $"{body}{numberFormat.NegativeSign}",
-			4 => $"{body} {numberFormat.NegativeSign}",
-			_ => numberFormat.NegativeSign + body,
-		};
+	/// <summary>
+	/// Marks a rendered magnitude as negative, with the culture's number negative pattern for <c>N</c>
+	/// and a leading negative sign for <c>F</c>.
+	/// </summary>
+	/// <param name="body">The rendered magnitude.</param>
+	/// <param name="numberFormat">The culture's number formatting information.</param>
+	/// <param name="grouped">Whether this is the <c>N</c> format.</param>
+	/// <returns>The negative rendering.</returns>
+	private static string ApplyNegativePattern(string body, NumberFormatInfo numberFormat, bool grouped)
+	{
+		string sign = numberFormat.NegativeSign;
+		return !grouped
+			? sign + body
+			: numberFormat.NumberNegativePattern switch
+			{
+				0 => $"({body})",
+				2 => $"{sign} {body}",
+				3 => $"{body}{sign}",
+				4 => $"{body} {sign}",
+				_ => sign + body,
+			};
 	}
 
 	/// <summary>
