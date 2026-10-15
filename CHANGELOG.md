@@ -9,7 +9,7 @@ Changes since v2.6.11:
 Changes since v2.6.10:
 
 - Split fixed-point formatting helpers and use Assert.Contains [patch] (Claude)
-- Support the F, N, E, R and G<n> standard format strings [patch] (Claude)
+- Support the F, N, E, R and G\<n\> standard format strings [patch] (Claude)
 - Throw OverflowException when Add/Subtract/Mod exponents are too far apart to align [patch] (Claude)
 
 ## v2.6.10 (patch)
@@ -106,13 +106,13 @@ Changes since v2.5.0:
 - Refuse a sine whose reduction needs more of pi than exists [patch] (Claude)
 - Measure a baseline ref in the same job as the head [patch] (matt-edmondson)
 - Assert comparisons with the comparison asserts [patch] (matt-edmondson)
-- Implement IHyperbolicFunctions<PreciseNumber> [minor] (matt-edmondson)
+- Implement IHyperbolicFunctions\<PreciseNumber\> [minor] (matt-edmondson)
 
 ## v2.5.0 (minor)
 
 Changes since v2.4.0:
 
-- Implement ITrigonometricFunctions<PreciseNumber>, plus Atan2 [minor] (Claude)
+- Implement ITrigonometricFunctions\<PreciseNumber\>, plus Atan2 [minor] (Claude)
 
 ## v2.4.0 (minor)
 
@@ -131,7 +131,7 @@ Changes since v2.3.0:
 
 Changes since v2.2.0:
 
-- Implement IRootFunctions<PreciseNumber> with Sqrt, Cbrt, RootN and Hypot [minor] (Claude)
+- Implement IRootFunctions\<PreciseNumber\> with Sqrt, Cbrt, RootN and Hypot [minor] (Claude)
 - Measure this type against a bare double, and chart it per release [patch] (Claude)
 
 ## v2.2.1 (patch)
