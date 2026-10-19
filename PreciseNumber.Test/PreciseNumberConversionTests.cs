@@ -4,6 +4,7 @@ namespace ktsu.PreciseNumber.Test;
 
 using System.Globalization;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 /// <summary>
 /// Covers conversion through generic math, which is how code written against <see cref="INumber{TSelf}"/>
@@ -104,6 +105,53 @@ public class PreciseNumberConversionTests
 		AssertFromInAllModes(1.25f, "1.25");
 		AssertFromInAllModes((Half)1.5, "1.5");
 		AssertFromInAllModes(0.0, "0");
+	}
+
+	[TestMethod]
+	public void FromNFloatMatchesToPreciseNumber()
+	{
+		AssertFromInAllModes((NFloat)1.5, "1.5");
+		AssertFromInAllModes((NFloat)(-0.3048), "-0.3048");
+		AssertFromInAllModes((NFloat)0.0, "0");
+
+		foreach (NFloat value in new[] { (NFloat)0.1, NFloat.Epsilon, NFloat.MaxValue, NFloat.MinValue })
+		{
+			Assert.AreEqual(value.ToPreciseNumber(), Checked<PreciseNumber, NFloat>(value), value.ToString(CultureInfo.InvariantCulture));
+		}
+
+		Assert.ThrowsExactly<OverflowException>(() => Checked<PreciseNumber, NFloat>(NFloat.NaN));
+		Assert.AreEqual(PreciseNumber.Zero, Saturating<PreciseNumber, NFloat>(NFloat.NaN));
+		Assert.ThrowsExactly<OverflowException>(() => Truncating<PreciseNumber, NFloat>(NFloat.PositiveInfinity));
+	}
+
+	[TestMethod]
+	public void ToNFloatIsCorrectlyRounded()
+	{
+		AssertToInAllModes("1.5", (NFloat)1.5);
+		Assert.AreEqual((NFloat)1.5, P("1.5").To<NFloat>());
+
+		NFloat expectedTenth = NFloat.Size == sizeof(float) ? new NFloat(0.1f) : new NFloat(0.1);
+		AssertToInAllModes("0.1", expectedTenth);
+		Assert.AreEqual(expectedTenth, P("0.1").To<NFloat>());
+
+		// Beyond range overflows to an infinity, and below it underflows to zero, as for double and float.
+		AssertToInAllModes("1E400", NFloat.PositiveInfinity);
+		AssertToInAllModes("-1E400", NFloat.NegativeInfinity);
+		AssertToInAllModes("1E-400", (NFloat)0.0);
+	}
+
+	[TestMethod]
+	public void NFloatRoundTripsThroughPreciseNumber()
+	{
+		foreach (NFloat value in new[] { (NFloat)1.5, (NFloat)0.1, NFloat.Epsilon, NFloat.MaxValue, NFloat.MinValue, (NFloat)(1.0 / 3) })
+		{
+			string label = value.ToString(CultureInfo.InvariantCulture);
+			PreciseNumber number = Checked<PreciseNumber, NFloat>(value);
+			Assert.AreEqual(value, Checked<NFloat, PreciseNumber>(number), label);
+			Assert.AreEqual(value, Saturating<NFloat, PreciseNumber>(number), label);
+			Assert.AreEqual(value, Truncating<NFloat, PreciseNumber>(number), label);
+			Assert.AreEqual(value, number.To<NFloat>(), label);
+		}
 	}
 
 	[TestMethod]

@@ -7,6 +7,7 @@ using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Numerics;
+using System.Runtime.InteropServices;
 
 /// <summary>
 /// Conversions between <see cref="PreciseNumber"/> and the other numeric types, as generic math
@@ -147,8 +148,8 @@ public readonly partial record struct PreciseNumber
 	/// <typeparamref name="TOther"/> is an integer type or <see cref="decimal"/>, and the value is outside its range.
 	/// </exception>
 	/// <remarks>
-	/// Integer types keep the integral part, truncated toward zero. <see cref="double"/>, <see cref="float"/>
-	/// and <see cref="Half"/> receive the nearest representable value, correctly rounded however many digits
+	/// Integer types keep the integral part, truncated toward zero. <see cref="double"/>, <see cref="float"/>,
+	/// <see cref="Half"/> and <see cref="NFloat"/> receive the nearest representable value, correctly rounded however many digits
 	/// the number has, and overflow to an infinity rather than throwing, as every built-in conversion to a
 	/// binary floating point type does. <see cref="decimal"/> keeps as many digits as it can hold, rounding
 	/// the rest the way <see cref="decimal.Parse(string, NumberStyles, IFormatProvider)"/> does.
@@ -217,6 +218,11 @@ public readonly partial record struct PreciseNumber
 		if (typeof(TOther) == typeof(Half))
 		{
 			return TryConvertFromBinaryFloatingPoint((Half)(object)value, mode, out result);
+		}
+
+		if (typeof(TOther) == typeof(NFloat))
+		{
+			return TryConvertFromBinaryFloatingPoint((NFloat)(object)value, mode, out result);
 		}
 
 		if (typeof(TOther) == typeof(decimal))
@@ -289,6 +295,13 @@ public readonly partial record struct PreciseNumber
 		if (typeof(TOther) == typeof(Half))
 		{
 			result = (TOther)(object)value.ParseAs<Half>();
+			return true;
+		}
+
+		if (typeof(TOther) == typeof(NFloat))
+		{
+			// NFloat is a float or a double depending on the platform, so round once, to whichever it is.
+			result = (TOther)(object)(NFloat.Size == sizeof(float) ? new NFloat(value.ToSingle()) : new NFloat(value.ToDouble()));
 			return true;
 		}
 
