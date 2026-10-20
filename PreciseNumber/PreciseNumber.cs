@@ -2152,8 +2152,11 @@ public readonly partial record struct PreciseNumber
 	/// <remarks>
 	/// Built-in numeric types and <see cref="BigInteger"/> convert as
 	/// <see cref="TryConvertToChecked{TOther}(PreciseNumber, out TOther)"/> describes: integer types truncate
-	/// toward zero, and binary floating point types are correctly rounded. Any other type is built from
-	/// the significand and a <see cref="double"/> power of ten, and is limited to that precision.
+	/// toward zero, and binary floating point types, <see cref="System.Runtime.InteropServices.NFloat"/>
+	/// included, are correctly rounded. Any other type is built from the significand and a
+	/// <see cref="double"/> power of ten, and is limited to that precision; it must support
+	/// <c>CreateChecked</c> from <see cref="BigInteger"/> and <see cref="double"/>, or this throws
+	/// <see cref="NotSupportedException"/>.
 	/// </remarks>
 	public TOutput To<TOutput>()
 		where TOutput : INumber<TOutput> =>
