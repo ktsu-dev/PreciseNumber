@@ -3,6 +3,7 @@
 namespace ktsu.PreciseNumber.Test;
 
 using System.Globalization;
+using System.Numerics;
 
 [TestClass]
 public class PreciseNumberParseCultureTests
@@ -134,6 +135,27 @@ public class PreciseNumberParseCultureTests
 		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse("-5", NumberStyles.None, CultureInfo.InvariantCulture));
 		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse("1e 5", NumberStyles.Float, CultureInfo.InvariantCulture));
 	}
+
+	[TestMethod]
+	[DataRow("10", NumberStyles.HexNumber)]
+	[DataRow("A", NumberStyles.HexNumber)]
+	[DataRow("10", NumberStyles.AllowHexSpecifier)]
+	[DataRow("1010", NumberStyles.BinaryNumber)]
+	[DataRow("1010", NumberStyles.AllowBinarySpecifier)]
+	public void ParseAndTryParse_RejectHexAndBinaryStylesAsDecimalDoes(string text, NumberStyles style)
+	{
+		Assert.ThrowsExactly<ArgumentException>(() => decimal.Parse(text, style, CultureInfo.InvariantCulture));
+
+		Assert.ThrowsExactly<ArgumentException>(() => PreciseNumber.Parse(text, style, CultureInfo.InvariantCulture));
+		Assert.ThrowsExactly<ArgumentException>(() => PreciseNumber.Parse(text.AsSpan(), style, CultureInfo.InvariantCulture));
+		Assert.ThrowsExactly<ArgumentException>(() => PreciseNumber.TryParse(text, style, CultureInfo.InvariantCulture, out _));
+		Assert.ThrowsExactly<ArgumentException>(() => PreciseNumber.TryParse(text.AsSpan(), style, CultureInfo.InvariantCulture, out _));
+		Assert.ThrowsExactly<ArgumentException>(() => ParseGeneric<PreciseNumber>(text, style));
+	}
+
+	private static T ParseGeneric<T>(string text, NumberStyles style)
+		where T : INumberBase<T> =>
+		T.Parse(text, style, CultureInfo.InvariantCulture);
 
 	[TestMethod]
 	public void Parse_WithoutAStyleStillReadsFractionsExponentsAndSigns()
