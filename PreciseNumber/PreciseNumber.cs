@@ -1239,7 +1239,7 @@ public readonly partial record struct PreciseNumber
 			for (int i = startIndex; i < s.Length; i++)
 			{
 				char c = s[i];
-				if (allowDecimalPoint && s[i..].StartsWith(decimalSeparator, StringComparison.Ordinal))
+				if (allowDecimalPoint && StartsWithSeparator(s[i..], decimalSeparator))
 				{
 					if (hasDecimal)
 					{
@@ -1252,7 +1252,7 @@ public readonly partial record struct PreciseNumber
 				}
 
 				// Group separators may only sit between integral digits.
-				if (allowThousands && !hasDecimal && digitCount > 0 && s[i..].StartsWith(groupSeparator, StringComparison.Ordinal))
+				if (allowThousands && !hasDecimal && digitCount > 0 && StartsWithSeparator(s[i..], groupSeparator))
 				{
 					i += groupSeparator.Length - 1;
 					continue;
@@ -1303,6 +1303,33 @@ public readonly partial record struct PreciseNumber
 				ArrayPool<char>.Shared.Return(rentedDigits);
 			}
 		}
+	}
+
+	/// <summary>
+	/// Determines whether <paramref name="s"/> starts with <paramref name="separator"/>, letting a U+0020
+	/// space in <paramref name="s"/> stand in for a U+00A0 or U+202F no-break space in the separator.
+	/// </summary>
+	/// <remarks>
+	/// Cultures such as fr-FR, ru-RU and sv-SE group digits with a no-break space, but a keyboard types
+	/// an ordinary one. The BCL numeric parsers accept it in their place, so <c>decimal.Parse("1 234,5", fr)</c>
+	/// succeeds, and this matches them. Every other character is compared ordinally.
+	/// </remarks>
+	private static bool StartsWithSeparator(ReadOnlySpan<char> s, ReadOnlySpan<char> separator)
+	{
+		if (s.Length < separator.Length)
+		{
+			return false;
+		}
+
+		for (int i = 0; i < separator.Length; i++)
+		{
+			if (s[i] != separator[i] && !(s[i] == ' ' && separator[i] is '\u00A0' or '\u202F'))
+			{
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	/// <summary>Trims the leading and trailing white space that <paramref name="style"/> allows.</summary>

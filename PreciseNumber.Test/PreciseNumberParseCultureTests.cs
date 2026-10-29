@@ -25,6 +25,28 @@ public class PreciseNumberParseCultureTests
 		NegativeSign = "-",
 	};
 
+	// Shaped like ru-RU, pl-PL or sv-SE, which group with U+00A0, and like de-CH, which groups with U+2019.
+	private static readonly NumberFormatInfo NoBreakSpaceGroups = new()
+	{
+		NumberDecimalSeparator = ",",
+		NumberGroupSeparator = "\u00A0",
+		NegativeSign = "-",
+	};
+
+	private static readonly NumberFormatInfo ApostropheGroups = new()
+	{
+		NumberDecimalSeparator = ",",
+		NumberGroupSeparator = "\u2019",
+		NegativeSign = "-",
+	};
+
+	private static readonly NumberFormatInfo NoBreakSpaceDecimal = new()
+	{
+		NumberDecimalSeparator = "\u00A0",
+		NumberGroupSeparator = ".",
+		NegativeSign = "-",
+	};
+
 	private static readonly NumberFormatInfo MultiCharacterSeparator = new()
 	{
 		NumberDecimalSeparator = "<>",
@@ -149,5 +171,52 @@ public class PreciseNumberParseCultureTests
 		Assert.AreEqual(P("-2.5"), PreciseNumber.Parse("−2,5", NumberStyles.Float, CommaDecimal));
 		Assert.IsFalse(PreciseNumber.TryParse("−2", NumberStyles.None, CommaDecimal, out _));
 		Assert.IsFalse(PreciseNumber.TryParse("-2", NumberStyles.None, CommaDecimal, out _));
+	}
+
+	// A keyboard types U+0020, and every BCL numeric type lets it stand in for a U+00A0 or U+202F
+	// separator, so generic INumberBase<T>.Parse code failed only for PreciseNumber.
+	[TestMethod]
+	[DataRow("1 234,5", "1234.5")]
+	[DataRow("-1 234 567", "-1234567")]
+	[DataRow("1 234 567,25", "1234567.25")]
+	public void Parse_AcceptsATypedSpaceForANoBreakSpaceGroupSeparator(string input, string expected)
+	{
+		foreach (NumberFormatInfo format in new[] { NarrowSpaceGroups, NoBreakSpaceGroups })
+		{
+			Assert.AreEqual(P(expected), PreciseNumber.Parse(input, format));
+			Assert.AreEqual(P(expected), PreciseNumber.Parse(input, NumberStyles.Number, format));
+			Assert.AreEqual(P(expected), PreciseNumber.Parse(input, NumberStyles.Any, format));
+			Assert.AreEqual(decimal.Parse(input, NumberStyles.Number, format), PreciseNumber.Parse(input, NumberStyles.Number, format).To<decimal>());
+		}
+	}
+
+	[TestMethod]
+	public void Parse_AcceptsATypedSpaceForANoBreakSpaceDecimalSeparator()
+	{
+		Assert.AreEqual(P("1.5"), PreciseNumber.Parse("1 5", NumberStyles.Number, NoBreakSpaceDecimal));
+		Assert.AreEqual(decimal.Parse("1 5", NumberStyles.Number, NoBreakSpaceDecimal), PreciseNumber.Parse("1 5", NumberStyles.Number, NoBreakSpaceDecimal).To<decimal>());
+	}
+
+	[TestMethod]
+	public void Parse_StillAcceptsTheRealNoBreakSpace()
+	{
+		Assert.AreEqual(P("1234.5"), PreciseNumber.Parse("1\u202F234,5", NarrowSpaceGroups));
+		Assert.AreEqual(P("1234.5"), PreciseNumber.Parse("1\u00A0234,5", NoBreakSpaceGroups));
+	}
+
+	[TestMethod]
+	public void Parse_DoesNotLetASpaceStandInForOtherSeparators()
+	{
+		Assert.IsFalse(PreciseNumber.TryParse("1 234,5", NumberStyles.Number, ApostropheGroups, out _));
+		Assert.IsFalse(PreciseNumber.TryParse("1 234,5", NumberStyles.Number, CommaDecimal, out _));
+		Assert.IsFalse(PreciseNumber.TryParse("1 234", NumberStyles.Number, CultureInfo.InvariantCulture, out _));
+		Assert.IsFalse(PreciseNumber.TryParse("1\u00A0234", NumberStyles.Number, NarrowSpaceGroups, out _));
+	}
+
+	[TestMethod]
+	public void Parse_RejectsATypedSpaceWhenTheStyleDoesNotAllowThousands()
+	{
+		Assert.IsFalse(PreciseNumber.TryParse("1 234", NumberStyles.Float, NarrowSpaceGroups, out _));
+		Assert.IsFalse(PreciseNumber.TryParse("1 234", NumberStyles.Float, NoBreakSpaceGroups, out _));
 	}
 }
