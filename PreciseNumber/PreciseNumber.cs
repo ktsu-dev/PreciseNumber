@@ -1323,6 +1323,7 @@ public readonly partial record struct PreciseNumber
 			}
 			catch (OverflowException) when (isZero)
 			{
+				return Zero;
 			}
 		}
 
