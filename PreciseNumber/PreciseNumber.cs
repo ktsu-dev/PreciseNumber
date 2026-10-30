@@ -48,6 +48,14 @@ public readonly partial record struct PreciseNumber
 	/// The message carried by the <see cref="FormatException"/> that parsing throws.
 	/// </summary>
 	private const string InvalidFormatMessage = "Input string was not in a correct format.";
+	private const string UnsupportedParseStylesMessage = "The number styles AllowHexSpecifier and AllowBinarySpecifier are not supported by PreciseNumber.";
+
+#if NET8_0_OR_GREATER
+	private const NumberStyles UnsupportedParseStyles = NumberStyles.AllowHexSpecifier | NumberStyles.AllowBinarySpecifier;
+#else
+	// NumberStyles.AllowBinarySpecifier arrived in .NET 8, but a caller on net7.0 can still pass its value.
+	private const NumberStyles UnsupportedParseStyles = NumberStyles.AllowHexSpecifier | (NumberStyles)0x400;
+#endif
 
 	/// <summary>
 	/// The fewest significant digits <see cref="Divide(PreciseNumber, PreciseNumber)"/> produces
@@ -1202,6 +1210,13 @@ public readonly partial record struct PreciseNumber
 		// Read the separator and signs from the same culture TryFormat writes them with, so that
 		// Parse(x.ToString(p), p) round-trips for every provider.
 		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider ?? InvariantCulture);
+
+		// Hex and binary input would be read as decimal digits and come back as the wrong number,
+		// so refuse those styles outright, as decimal and double do.
+		if ((style & UnsupportedParseStyles) != 0)
+		{
+			throw new ArgumentException(UnsupportedParseStylesMessage, nameof(style));
+		}
 
 		s = TrimAllowedWhite(s, style);
 
