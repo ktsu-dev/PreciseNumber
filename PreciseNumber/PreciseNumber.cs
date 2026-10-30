@@ -48,6 +48,14 @@ public readonly partial record struct PreciseNumber
 	/// The message carried by the <see cref="FormatException"/> that parsing throws.
 	/// </summary>
 	private const string InvalidFormatMessage = "Input string was not in a correct format.";
+	private const string UnsupportedParseStylesMessage = "The number styles AllowHexSpecifier and AllowBinarySpecifier are not supported by PreciseNumber.";
+
+#if NET8_0_OR_GREATER
+	private const NumberStyles UnsupportedParseStyles = NumberStyles.AllowHexSpecifier | NumberStyles.AllowBinarySpecifier;
+#else
+	// NumberStyles.AllowBinarySpecifier arrived in .NET 8, but a caller on net7.0 can still pass its value.
+	private const NumberStyles UnsupportedParseStyles = NumberStyles.AllowHexSpecifier | (NumberStyles)0x400;
+#endif
 
 	/// <summary>
 	/// The fewest significant digits <see cref="Divide(PreciseNumber, PreciseNumber)"/> produces
@@ -1203,6 +1211,13 @@ public readonly partial record struct PreciseNumber
 		// Parse(x.ToString(p), p) round-trips for every provider.
 		NumberFormatInfo numberFormat = NumberFormatInfo.GetInstance(provider ?? InvariantCulture);
 
+		// Hex and binary input would be read as decimal digits and come back as the wrong number,
+		// so refuse those styles outright, as decimal and double do.
+		if ((style & UnsupportedParseStyles) != 0)
+		{
+			throw new ArgumentException(UnsupportedParseStylesMessage, nameof(style));
+		}
+
 		s = TrimAllowedWhite(s, style);
 
 		if (s.IsEmpty)
@@ -1232,9 +1247,10 @@ public readonly partial record struct PreciseNumber
 		try
 		{
 			int digitCount = 0;
-			int exponent = 0;
 			bool hasDecimal = false;
 			int decimalDigits = 0;
+			ReadOnlySpan<char> exponentText = [];
+			bool hasExponent = false;
 
 			for (int i = startIndex; i < s.Length; i++)
 			{
@@ -1260,10 +1276,8 @@ public readonly partial record struct PreciseNumber
 
 				if (allowExponent && c is 'e' or 'E')
 				{
-					// An exponent outside the range of int throws OverflowException, which TryParse reports as failure.
-					// Only a sign may precede its digits: NumberStyles.Integer would also let white space through,
-					// accepting "1e 5" where every BCL numeric type rejects it.
-					exponent = int.Parse(s[(i + 1)..], NumberStyles.AllowLeadingSign, numberFormat);
+					exponentText = s[(i + 1)..];
+					hasExponent = true;
 					break;
 				}
 
@@ -1285,16 +1299,7 @@ public readonly partial record struct PreciseNumber
 				throw new FormatException(InvalidFormatMessage);
 			}
 
-			BigInteger significand = BigInteger.Parse(digits[..digitCount], NumberStyles.None, InvariantCulture);
-
-			exponent = checked(exponent - decimalDigits);
-
-			if (isNegative)
-			{
-				significand = -significand;
-			}
-
-			return new(exponent, significand);
+			return FromParsedParts(digits[..digitCount], decimalDigits, hasExponent, exponentText, isNegative, numberFormat);
 		}
 		finally
 		{
@@ -1330,6 +1335,60 @@ public readonly partial record struct PreciseNumber
 		}
 
 		return true;
+	}
+
+	/// <summary>
+	/// Builds the value <see cref="Parse(ReadOnlySpan{char}, NumberStyles, IFormatProvider?)"/> read: the
+	/// written <paramref name="digits"/>, of which the last <paramref name="decimalDigits"/> follow the
+	/// decimal separator, scaled by <paramref name="exponentText"/> when <paramref name="hasExponent"/> is set.
+	/// </summary>
+	private static PreciseNumber FromParsedParts(ReadOnlySpan<char> digits, int decimalDigits, bool hasExponent, ReadOnlySpan<char> exponentText, bool isNegative, NumberFormatInfo numberFormat)
+	{
+		// Drop trailing zeros before applying the exponent, so that padding such as the zeros in
+		// "2.500E-2147483647" can't push the arithmetic past int when the value itself fits.
+		int significantDigitCount = digits.Length;
+		while (significantDigitCount > 0 && digits[significantDigitCount - 1] == '0')
+		{
+			significantDigitCount--;
+		}
+
+		bool isZero = significantDigitCount == 0;
+		long exponent = 0;
+		if (hasExponent)
+		{
+			// Only a sign may precede its digits: NumberStyles.Integer would also let white space through,
+			// accepting "1e 5" where every BCL numeric type rejects it. A zero is zero whatever its written
+			// exponent, as for decimal and double, so only a nonzero value can overflow here.
+			try
+			{
+				exponent = long.Parse(exponentText, NumberStyles.AllowLeadingSign, numberFormat);
+			}
+			catch (OverflowException) when (isZero)
+			{
+				return Zero;
+			}
+		}
+
+		if (isZero)
+		{
+			return Zero;
+		}
+
+		// An exponent outside the range of int throws OverflowException, which TryParse reports as failure.
+		exponent = checked(exponent - decimalDigits + (digits.Length - significantDigitCount));
+		if (exponent is < int.MinValue or > int.MaxValue)
+		{
+			throw new OverflowException("Value was either too large or too small for a PreciseNumber.");
+		}
+
+		BigInteger significand = BigInteger.Parse(digits[..significantDigitCount], NumberStyles.None, InvariantCulture);
+
+		if (isNegative)
+		{
+			significand = -significand;
+		}
+
+		return new((int)exponent, significand);
 	}
 
 	/// <summary>Trims the leading and trailing white space that <paramref name="style"/> allows.</summary>
