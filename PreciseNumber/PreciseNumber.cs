@@ -1391,17 +1391,24 @@ public readonly partial record struct PreciseNumber
 		return new((int)exponent, significand);
 	}
 
+	/// <summary>
+	/// The white space that <see cref="NumberStyles.AllowLeadingWhite"/> and <see cref="NumberStyles.AllowTrailingWhite"/>
+	/// permit: U+0009 to U+000D and U+0020, as for the BCL numeric types. Other Unicode white space, such as a no-break
+	/// space or NEL, is not trimmed.
+	/// </summary>
+	private const string AllowedWhite = " \t\n\v\f\r";
+
 	/// <summary>Trims the leading and trailing white space that <paramref name="style"/> allows.</summary>
 	private static ReadOnlySpan<char> TrimAllowedWhite(ReadOnlySpan<char> s, NumberStyles style)
 	{
 		if (style.HasFlag(NumberStyles.AllowLeadingWhite))
 		{
-			s = s.TrimStart();
+			s = s.TrimStart(AllowedWhite.AsSpan());
 		}
 
 		if (style.HasFlag(NumberStyles.AllowTrailingWhite))
 		{
-			s = s.TrimEnd();
+			s = s.TrimEnd(AllowedWhite.AsSpan());
 		}
 
 		return s;

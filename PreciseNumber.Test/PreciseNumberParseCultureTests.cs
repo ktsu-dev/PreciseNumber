@@ -241,4 +241,41 @@ public class PreciseNumberParseCultureTests
 		Assert.IsFalse(PreciseNumber.TryParse("1 234", NumberStyles.Float, NarrowSpaceGroups, out _));
 		Assert.IsFalse(PreciseNumber.TryParse("1 234", NumberStyles.Float, NoBreakSpaceGroups, out _));
 	}
+
+	[TestMethod]
+	[DataRow("\u00A05", NumberStyles.Integer)]
+	[DataRow("5\u3000", NumberStyles.AllowTrailingWhite)]
+	[DataRow("\u00855", NumberStyles.Float)]
+	[DataRow("5\u2028", NumberStyles.Float)]
+	public void Parse_RejectsNonAsciiWhiteSpaceAroundTheNumber(string input, NumberStyles style)
+	{
+		Assert.IsFalse(decimal.TryParse(input, style, CultureInfo.InvariantCulture, out _), "The BCL should reject this input too.");
+		Assert.IsFalse(PreciseNumber.TryParse(input, style, CultureInfo.InvariantCulture, out _));
+		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse(input, style, CultureInfo.InvariantCulture));
+	}
+
+	[TestMethod]
+	public void Parse_RejectsATrailingNarrowSpaceGroupSeparatorWhenTheStyleDoesNotAllowThousands()
+	{
+		// Shaped like fr-FR, whose group separator is U+202F: a stray one after the digits is not white space.
+		Assert.IsFalse(decimal.TryParse("1\u202F", NumberStyles.Integer, NarrowSpaceGroups, out _), "The BCL should reject this input too.");
+		Assert.IsFalse(PreciseNumber.TryParse("1\u202F", NumberStyles.Integer, NarrowSpaceGroups, out _));
+		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse("1\u202F", NumberStyles.Integer, NarrowSpaceGroups));
+	}
+
+	[TestMethod]
+	[DataRow(" ")]
+	[DataRow("\t")]
+	[DataRow("\r")]
+	[DataRow("\n")]
+	[DataRow("\v")]
+	[DataRow("\f")]
+	public void Parse_TrimsAsciiWhiteSpaceAroundTheNumber(string white)
+	{
+		string input = white + "5" + white;
+
+		Assert.IsTrue(PreciseNumber.TryParse(input, NumberStyles.Integer, CultureInfo.InvariantCulture, out PreciseNumber result));
+		Assert.AreEqual(P("5"), result);
+		Assert.AreEqual(P("5"), PreciseNumber.Parse(input, NumberStyles.Integer, CultureInfo.InvariantCulture));
+	}
 }
