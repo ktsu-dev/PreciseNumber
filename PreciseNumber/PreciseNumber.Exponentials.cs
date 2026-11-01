@@ -193,7 +193,7 @@ public readonly partial record struct PreciseNumber
 	{
 		RequireSignificantDigits(significantDigits);
 		int working = significantDigits + ExponentialGuardDigits;
-		return Divide(Log(x, working), Log(newBase, working), significantDigits);
+		return DivideApproximation(Log(x, working), Log(newBase, working), working, significantDigits);
 	}
 
 	/// <summary>
@@ -224,7 +224,7 @@ public readonly partial record struct PreciseNumber
 	{
 		RequireSignificantDigits(significantDigits);
 		int working = significantDigits + ExponentialGuardDigits;
-		return Divide(Log(x, working), Ln2To(working), significantDigits);
+		return DivideApproximation(Log(x, working), Ln2To(working), working, significantDigits);
 	}
 
 	/// <summary>
@@ -354,7 +354,7 @@ public readonly partial record struct PreciseNumber
 		}
 
 		int working = significantDigits + ExponentialGuardDigits;
-		return Divide(LogP1(x, working), Ln2To(working), significantDigits);
+		return DivideApproximation(LogP1(x, working), Ln2To(working), working, significantDigits);
 	}
 
 	/// <summary>
@@ -386,7 +386,7 @@ public readonly partial record struct PreciseNumber
 		}
 
 		int working = significantDigits + ExponentialGuardDigits;
-		return Divide(LogP1(x, working), Ln10To(working), significantDigits);
+		return DivideApproximation(LogP1(x, working), Ln10To(working), working, significantDigits);
 	}
 
 	/// <summary>
