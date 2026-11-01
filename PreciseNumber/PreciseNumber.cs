@@ -1425,10 +1425,9 @@ public readonly partial record struct PreciseNumber
 	/// <exception cref="FormatException">Thrown when the parentheses enclose a sign.</exception>
 	private static ReadOnlySpan<char> StripAffixes(ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, out bool isNegative, out bool hasCurrencySymbol)
 	{
-		bool hasParentheses = false;
-		if (style.HasFlag(NumberStyles.AllowParentheses) && s.Length >= 2 && s[0] == '(' && s[^1] == ')')
+		bool hasParentheses = style.HasFlag(NumberStyles.AllowParentheses) && s.Length >= 2 && s[0] == '(' && s[^1] == ')';
+		if (hasParentheses)
 		{
-			hasParentheses = true;
 			s = s[1..^1];
 		}
 
@@ -1437,55 +1436,8 @@ public readonly partial record struct PreciseNumber
 		isNegative = false;
 		hasCurrencySymbol = false;
 
-		// Leading: a sign and a currency symbol, in either order.
-		for (int pass = 0; pass < 2 && !s.IsEmpty; pass++)
-		{
-			if (!hasSign)
-			{
-				int signLength = ReadLeadingSign(s, style, numberFormat, out bool leadingNegative);
-				if (signLength > 0)
-				{
-					hasSign = true;
-					isNegative = leadingNegative;
-					s = s[signLength..];
-					continue;
-				}
-			}
-
-			if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.StartsWith(currencySymbol, StringComparison.Ordinal))
-			{
-				hasCurrencySymbol = true;
-				s = s[currencySymbol.Length..].TrimStart(CurrencySymbolSpaces);
-				continue;
-			}
-
-			break;
-		}
-
-		// Trailing: the same two, read from the end.
-		for (int pass = 0; pass < 2 && !s.IsEmpty; pass++)
-		{
-			if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.EndsWith(currencySymbol, StringComparison.Ordinal))
-			{
-				hasCurrencySymbol = true;
-				s = s[..^currencySymbol.Length].TrimEnd(CurrencySymbolSpaces);
-				continue;
-			}
-
-			if (!hasSign && style.HasFlag(NumberStyles.AllowTrailingSign))
-			{
-				int signLength = ReadTrailingSign(s, numberFormat, out bool trailingNegative);
-				if (signLength > 0)
-				{
-					hasSign = true;
-					isNegative = trailingNegative;
-					s = s[..^signLength];
-					continue;
-				}
-			}
-
-			break;
-		}
+		StripLeadingAffixes(ref s, style, numberFormat, currencySymbol, ref hasSign, ref isNegative, ref hasCurrencySymbol);
+		StripTrailingAffixes(ref s, style, numberFormat, currencySymbol, ref hasSign, ref isNegative, ref hasCurrencySymbol);
 
 		if (hasParentheses)
 		{
@@ -1498,6 +1450,61 @@ public readonly partial record struct PreciseNumber
 		}
 
 		return s;
+	}
+
+	/// <summary>
+	/// Removes a leading sign and a leading currency symbol, in either order, for <see cref="StripAffixes"/>.
+	/// </summary>
+	private static void StripLeadingAffixes(ref ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, ReadOnlySpan<char> currencySymbol, ref bool hasSign, ref bool isNegative, ref bool hasCurrencySymbol)
+	{
+		for (int pass = 0; pass < 2 && !s.IsEmpty; pass++)
+		{
+			bool leadingNegative = false;
+			int signLength = hasSign ? 0 : ReadLeadingSign(s, style, numberFormat, out leadingNegative);
+			if (signLength > 0)
+			{
+				hasSign = true;
+				isNegative = leadingNegative;
+				s = s[signLength..];
+			}
+			else if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.StartsWith(currencySymbol, StringComparison.Ordinal))
+			{
+				hasCurrencySymbol = true;
+				s = s[currencySymbol.Length..].TrimStart(CurrencySymbolSpaces);
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+
+	/// <summary>
+	/// Removes a trailing currency symbol and a trailing sign, in either order, for <see cref="StripAffixes"/>.
+	/// </summary>
+	private static void StripTrailingAffixes(ref ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, ReadOnlySpan<char> currencySymbol, ref bool hasSign, ref bool isNegative, ref bool hasCurrencySymbol)
+	{
+		bool allowTrailingSign = style.HasFlag(NumberStyles.AllowTrailingSign);
+		for (int pass = 0; pass < 2 && !s.IsEmpty; pass++)
+		{
+			if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.EndsWith(currencySymbol, StringComparison.Ordinal))
+			{
+				hasCurrencySymbol = true;
+				s = s[..^currencySymbol.Length].TrimEnd(CurrencySymbolSpaces);
+				continue;
+			}
+
+			bool trailingNegative = false;
+			int signLength = hasSign || !allowTrailingSign ? 0 : ReadTrailingSign(s, numberFormat, out trailingNegative);
+			if (signLength == 0)
+			{
+				break;
+			}
+
+			hasSign = true;
+			isNegative = trailingNegative;
+			s = s[..^signLength];
+		}
 	}
 
 	/// <summary>
