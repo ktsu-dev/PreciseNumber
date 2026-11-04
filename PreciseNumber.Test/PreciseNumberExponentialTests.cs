@@ -384,6 +384,42 @@ public class PreciseNumberExponentialTests
 	}
 
 	[TestMethod]
+	public void TestLogInABaseRoundsATerminatingQuotientToTheDigitsAskedFor()
+	{
+		// ln 1e5 / ln 1e4 is exactly 1.25 once both logarithms are carried to the same working width,
+		// so an unrounded Divide hands back three digits for a one-digit request.
+		PreciseNumber oneDigit = PreciseNumber.Log(Parse("1E5"), Parse("1E4"), 1);
+		Assert.AreEqual(PreciseNumber.One, oneDigit, "Log(1E5, 1E4, 1) is wrong");
+		Assert.AreEqual(1, oneDigit.SignificantDigits, "Log(1E5, 1E4, 1) returned more digits than asked for");
+
+		PreciseNumber twoDigits = PreciseNumber.Log(Parse("1E5"), Parse("1E4"), 2);
+		Assert.AreEqual(2, twoDigits.SignificantDigits, "Log(1E5, 1E4, 2) returned more digits than asked for");
+		Assert.AreEqual(Parse("1.3"), twoDigits, "Log(1E5, 1E4, 2) is wrong");
+
+		Assert.AreEqual(Parse("1.25"), PreciseNumber.Log(Parse("1E5"), Parse("1E4"), 3), "Log(1E5, 1E4, 3) is wrong");
+		Assert.AreEqual(Parse("1.8"), PreciseNumber.Log(Parse("1E7"), Parse("1E4"), 2), "Log(1E7, 1E4, 2) is wrong");
+	}
+
+	[TestMethod]
+	public void TestDividedLogarithmsNeverReturnMoreDigitsThanAskedFor()
+	{
+		// Log2, Log2P1 and Log10P1 finish with the same division as a logarithm in a chosen base, so
+		// they share its rule: the result is rounded to the request whether or not the quotient
+		// terminates.
+		for (int digits = 1; digits <= 4; digits++)
+		{
+			for (int i = 1; i <= 64; i++)
+			{
+				PreciseNumber x = Parse(i.ToString(CultureInfo.InvariantCulture));
+				Assert.IsLessThanOrEqualTo(digits, PreciseNumber.Log2(x, digits).SignificantDigits, $"Log2({i}, {digits}) returned more digits than asked for");
+				Assert.IsLessThanOrEqualTo(digits, PreciseNumber.Log2P1(x, digits).SignificantDigits, $"Log2P1({i}, {digits}) returned more digits than asked for");
+				Assert.IsLessThanOrEqualTo(digits, PreciseNumber.Log10P1(x, digits).SignificantDigits, $"Log10P1({i}, {digits}) returned more digits than asked for");
+				Assert.IsLessThanOrEqualTo(digits, PreciseNumber.Log(x, Parse("1E4"), digits).SignificantDigits, $"Log({i}, 1E4, {digits}) returned more digits than asked for");
+			}
+		}
+	}
+
+	[TestMethod]
 	public void TestPrecisionFollowsTheWiderOperandRatherThanDouble()
 	{
 		// A fifty-digit answer is the point. A double round trip caps at about seventeen, so this
