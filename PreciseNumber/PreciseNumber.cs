@@ -48,6 +48,10 @@ public readonly partial record struct PreciseNumber
 	/// The message carried by the <see cref="FormatException"/> that parsing throws.
 	/// </summary>
 	private const string InvalidFormatMessage = "Input string was not in a correct format.";
+
+	/// <summary>The spaces a culture may put between a currency symbol and the number, as de-DE does in <c>1.234,50 €</c>.</summary>
+	private static readonly char[] CurrencySymbolSpaces = [' ', '\u00A0', '\u202F'];
+
 	private const string UnsupportedParseStylesMessage = "The number styles AllowHexSpecifier and AllowBinarySpecifier are not supported by PreciseNumber.";
 
 #if NET8_0_OR_GREATER
@@ -1225,18 +1229,19 @@ public readonly partial record struct PreciseNumber
 			throw new FormatException(InvalidFormatMessage);
 		}
 
+		s = StripAffixes(s, style, numberFormat, out bool isNegative, out bool hasCurrencySymbol);
+
 		if (s.Length == 1 && s[0] == '0')
 		{
 			return Zero;
 		}
 
-		ReadOnlySpan<char> decimalSeparator = numberFormat.NumberDecimalSeparator;
-		ReadOnlySpan<char> groupSeparator = numberFormat.NumberGroupSeparator;
+		// Once a currency symbol has been read, the number is written the way the culture writes money.
+		ReadOnlySpan<char> decimalSeparator = hasCurrencySymbol ? numberFormat.CurrencyDecimalSeparator : numberFormat.NumberDecimalSeparator;
+		ReadOnlySpan<char> groupSeparator = hasCurrencySymbol ? numberFormat.CurrencyGroupSeparator : numberFormat.NumberGroupSeparator;
 		bool allowThousands = style.HasFlag(NumberStyles.AllowThousands) && !groupSeparator.IsEmpty;
 		bool allowDecimalPoint = style.HasFlag(NumberStyles.AllowDecimalPoint);
 		bool allowExponent = style.HasFlag(NumberStyles.AllowExponent);
-
-		int startIndex = ReadLeadingSign(s, style, numberFormat, out bool isNegative);
 
 		// Collect the digits first and hand them to BigInteger in one go. Accumulating with
 		// significand = significand * 10 + digit costs a full BigInteger multiply per character.
@@ -1252,7 +1257,7 @@ public readonly partial record struct PreciseNumber
 			ReadOnlySpan<char> exponentText = [];
 			bool hasExponent = false;
 
-			for (int i = startIndex; i < s.Length; i++)
+			for (int i = 0; i < s.Length; i++)
 			{
 				char c = s[i];
 				if (allowDecimalPoint && StartsWithSeparator(s[i..], decimalSeparator))
@@ -1412,6 +1417,124 @@ public readonly partial record struct PreciseNumber
 		}
 
 		return s;
+	}
+
+	/// <summary>
+	/// Removes what <paramref name="style"/> allows around the digits: enclosing parentheses, a leading
+	/// or trailing sign, and a leading or trailing currency symbol, returning the digits that remain.
+	/// </summary>
+	/// <remarks>
+	/// Mirrors the BCL parsers. Parentheses mean negative and may not be combined with a sign. The sign
+	/// and the currency symbol may come in either order on either side, as <c>-$1.5</c>, <c>$-1.5</c>
+	/// and <c>1,5 €-</c> do, and a space or no-break space may separate the symbol from the number,
+	/// since cultures such as de-DE write <c>1.234,50 €</c>. At most one sign and one symbol are read.
+	/// </remarks>
+	/// <exception cref="FormatException">Thrown when the parentheses enclose a sign.</exception>
+	private static ReadOnlySpan<char> StripAffixes(ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, out bool isNegative, out bool hasCurrencySymbol)
+	{
+		bool hasParentheses = style.HasFlag(NumberStyles.AllowParentheses) && s.Length >= 2 && s[0] == '(' && s[^1] == ')';
+		if (hasParentheses)
+		{
+			s = s[1..^1];
+		}
+
+		ReadOnlySpan<char> currencySymbol = style.HasFlag(NumberStyles.AllowCurrencySymbol) ? numberFormat.CurrencySymbol : [];
+		bool hasSign = false;
+		isNegative = false;
+		hasCurrencySymbol = false;
+
+		StripLeadingAffixes(ref s, style, numberFormat, currencySymbol, ref hasSign, ref isNegative, ref hasCurrencySymbol);
+		StripTrailingAffixes(ref s, style, numberFormat, currencySymbol, ref hasSign, ref isNegative, ref hasCurrencySymbol);
+
+		if (hasParentheses)
+		{
+			if (hasSign)
+			{
+				throw new FormatException(InvalidFormatMessage);
+			}
+
+			isNegative = true;
+		}
+
+		return s;
+	}
+
+	/// <summary>
+	/// Removes a leading sign and a leading currency symbol, in either order, for <see cref="StripAffixes"/>.
+	/// </summary>
+	private static void StripLeadingAffixes(ref ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, ReadOnlySpan<char> currencySymbol, ref bool hasSign, ref bool isNegative, ref bool hasCurrencySymbol)
+	{
+		for (int pass = 0; pass < 2 && !s.IsEmpty; pass++)
+		{
+			bool leadingNegative = false;
+			int signLength = hasSign ? 0 : ReadLeadingSign(s, style, numberFormat, out leadingNegative);
+			if (signLength > 0)
+			{
+				hasSign = true;
+				isNegative = leadingNegative;
+				s = s[signLength..];
+			}
+			else if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.StartsWith(currencySymbol, StringComparison.Ordinal))
+			{
+				hasCurrencySymbol = true;
+				s = s[currencySymbol.Length..].TrimStart(CurrencySymbolSpaces);
+			}
+			else
+			{
+				break;
+			}
+		}
+	}
+
+	/// <summary>
+	/// Removes a trailing currency symbol and a trailing sign, in either order, for <see cref="StripAffixes"/>.
+	/// </summary>
+	private static void StripTrailingAffixes(ref ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, ReadOnlySpan<char> currencySymbol, ref bool hasSign, ref bool isNegative, ref bool hasCurrencySymbol)
+	{
+		bool allowTrailingSign = style.HasFlag(NumberStyles.AllowTrailingSign);
+		for (int pass = 0; pass < 2 && !s.IsEmpty; pass++)
+		{
+			if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.EndsWith(currencySymbol, StringComparison.Ordinal))
+			{
+				hasCurrencySymbol = true;
+				s = s[..^currencySymbol.Length].TrimEnd(CurrencySymbolSpaces);
+				continue;
+			}
+
+			bool trailingNegative = false;
+			int signLength = hasSign || !allowTrailingSign ? 0 : ReadTrailingSign(s, numberFormat, out trailingNegative);
+			if (signLength == 0)
+			{
+				break;
+			}
+
+			hasSign = true;
+			isNegative = trailingNegative;
+			s = s[..^signLength];
+		}
+	}
+
+	/// <summary>
+	/// Reads a trailing sign spelled as <paramref name="numberFormat"/> spells it, or the ASCII hyphen,
+	/// returning its length, or zero when <paramref name="s"/> does not end with one.
+	/// </summary>
+	private static int ReadTrailingSign(ReadOnlySpan<char> s, NumberFormatInfo numberFormat, out bool isNegative)
+	{
+		isNegative = true;
+		if (!string.IsNullOrEmpty(numberFormat.NegativeSign) && s.EndsWith(numberFormat.NegativeSign, StringComparison.Ordinal))
+		{
+			return numberFormat.NegativeSign.Length;
+		}
+
+		if (s[^1] == '-')
+		{
+			return 1;
+		}
+
+		isNegative = false;
+		return !string.IsNullOrEmpty(numberFormat.PositiveSign) && s.EndsWith(numberFormat.PositiveSign, StringComparison.Ordinal)
+			? numberFormat.PositiveSign.Length
+			: 0;
 	}
 
 	/// <summary>
