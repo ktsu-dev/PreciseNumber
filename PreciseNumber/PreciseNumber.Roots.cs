@@ -161,7 +161,7 @@ public readonly partial record struct PreciseNumber
 				0 => throw new DivideByZeroException(),
 				> 0 => PositiveReciprocalRootN(x, -n, significantDigits),
 				_ => int.IsEvenInteger(n)
-					? throw new ArgumentOutOfRangeException(nameof(x), x, NegativeRootMessage)
+					? throw DomainError(nameof(x), x, NegativeRootMessage)
 					: -PositiveReciprocalRootN(-x, -n, significantDigits),
 			};
 		}
@@ -178,7 +178,7 @@ public readonly partial record struct PreciseNumber
 
 		// An odd root of a negative value is real, so the sign comes out and goes back on.
 		return int.IsEvenInteger(n)
-			? throw new ArgumentOutOfRangeException(nameof(x), x, NegativeRootMessage)
+			? throw DomainError(nameof(x), x, NegativeRootMessage)
 			: -PositiveRootN(-x, n, significantDigits);
 	}
 

@@ -311,7 +311,7 @@ public readonly partial record struct PreciseNumber
 
 		if (x < One)
 		{
-			throw new ArgumentOutOfRangeException(nameof(x), x, AcoshDomainMessage);
+			throw DomainError(nameof(x), x, AcoshDomainMessage);
 		}
 
 		if (x.IsUnit)
@@ -364,7 +364,7 @@ public readonly partial record struct PreciseNumber
 
 		if (Abs(x) >= One)
 		{
-			throw new ArgumentOutOfRangeException(nameof(x), x, AtanhDomainMessage);
+			throw DomainError(nameof(x), x, AtanhDomainMessage);
 		}
 
 		if (x.Significand.IsZero)

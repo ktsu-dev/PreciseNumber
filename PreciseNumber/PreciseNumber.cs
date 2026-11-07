@@ -2224,7 +2224,7 @@ public readonly partial record struct PreciseNumber
 		// no complex results here, so this is rejected rather than quietly returned as a NaN.
 		if (Significand.Sign < 0)
 		{
-			throw new ArgumentOutOfRangeException(nameof(power), power, NegativeBaseMessage);
+			throw DomainError(nameof(power), power, NegativeBaseMessage);
 		}
 
 		int significantDigits = Math.Max(
