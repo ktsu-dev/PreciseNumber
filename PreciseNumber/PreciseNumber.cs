@@ -1497,19 +1497,12 @@ public readonly partial record struct PreciseNumber
 			{
 				hasSign = true;
 				isNegative = leadingNegative;
-				s = s[signLength..];
-
-				// The BCL takes white space after a sign only once a currency symbol has been read, or when the
-				// format writes its negative numbers as "- n"
-				if (allowLeadingWhite && (hasCurrencySymbol || numberFormat.NumberNegativePattern == 2))
-				{
-					s = s.TrimStart(AllowedWhite.AsSpan());
-				}
+				s = TrimWhiteAfterLeadingSign(s[signLength..], allowLeadingWhite, numberFormat, hasCurrencySymbol);
 			}
 			else if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.StartsWith(currencySymbol, StringComparison.Ordinal))
 			{
 				hasCurrencySymbol = true;
-				s = s[currencySymbol.Length..].TrimStart((allowLeadingWhite ? CurrencySymbolSpacesAndWhite : CurrencySymbolSpaces).AsSpan());
+				s = s[currencySymbol.Length..].TrimStart(SpacesBesideCurrencySymbol(allowLeadingWhite));
 			}
 			else
 			{
@@ -1517,6 +1510,22 @@ public readonly partial record struct PreciseNumber
 			}
 		}
 	}
+
+	/// <summary>
+	/// Trims the white space after a leading sign that the BCL takes: only under
+	/// <see cref="NumberStyles.AllowLeadingWhite"/>, and only once a currency symbol has been read or when the
+	/// format writes its negative numbers as <c>- n</c>.
+	/// </summary>
+	private static ReadOnlySpan<char> TrimWhiteAfterLeadingSign(ReadOnlySpan<char> s, bool allowLeadingWhite, NumberFormatInfo numberFormat, bool hasCurrencySymbol) =>
+		allowLeadingWhite && (hasCurrencySymbol || numberFormat.NumberNegativePattern == 2)
+			? s.TrimStart(AllowedWhite.AsSpan())
+			: s;
+
+	/// <summary>
+	/// The characters trimmed beside a currency symbol: its rendered spaces, and white space too when the style allows it on that side.
+	/// </summary>
+	private static ReadOnlySpan<char> SpacesBesideCurrencySymbol(bool allowWhite) =>
+		(allowWhite ? CurrencySymbolSpacesAndWhite : CurrencySymbolSpaces).AsSpan();
 
 	/// <summary>
 	/// Removes a trailing currency symbol and a trailing sign, in either order, for <see cref="StripAffixes"/>.
@@ -1530,7 +1539,7 @@ public readonly partial record struct PreciseNumber
 			if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.EndsWith(currencySymbol, StringComparison.Ordinal))
 			{
 				hasCurrencySymbol = true;
-				s = s[..^currencySymbol.Length].TrimEnd((allowTrailingWhite ? CurrencySymbolSpacesAndWhite : CurrencySymbolSpaces).AsSpan());
+				s = s[..^currencySymbol.Length].TrimEnd(SpacesBesideCurrencySymbol(allowTrailingWhite));
 				continue;
 			}
 
