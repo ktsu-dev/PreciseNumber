@@ -438,4 +438,33 @@ public class PreciseNumberConversionTests
 			AssertToInAllModes(value, BigInteger.Zero);
 		}
 	}
+
+	[TestMethod]
+	public void TestToPreciseNumberAcceptsATypeThatConvertsItself()
+	{
+		// SelfConvertingNumber is neither an integer nor a floating-point type, as SignificantNumber
+		// isn't, but it converts itself through TryConvertToChecked<PreciseNumber>.
+		SelfConvertingNumber one = new(1.5m, CanConvert: true);
+		SelfConvertingNumber lo = new(2m, CanConvert: true);
+		SelfConvertingNumber hi = new(3m, CanConvert: true);
+		PreciseNumber p = P("1.5");
+
+		Assert.AreEqual(Checked<PreciseNumber, SelfConvertingNumber>(one), one.ToPreciseNumber());
+		Assert.AreEqual(P("1.5"), one.ToPreciseNumber());
+		Assert.AreEqual(0, p.CompareTo(one));
+		Assert.AreEqual(-1, p.CompareTo(lo));
+		Assert.AreEqual(P("2"), p.Clamp(lo, hi));
+		Assert.AreEqual(P("1.5"), p.Clamp(one, hi));
+	}
+
+	[TestMethod]
+	public void TestToPreciseNumberStillRejectsATypeThatCannotConvert()
+	{
+		SelfConvertingNumber stuck = new(1.5m, CanConvert: false);
+		PreciseNumber p = P("1.5");
+
+		Assert.ThrowsExactly<NotSupportedException>(() => stuck.ToPreciseNumber());
+		Assert.ThrowsExactly<NotSupportedException>(() => p.CompareTo(stuck));
+		Assert.ThrowsExactly<NotSupportedException>(() => p.Clamp(stuck, stuck));
+	}
 }

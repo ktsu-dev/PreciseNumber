@@ -30,7 +30,7 @@ dotnet run -c Release --project PreciseNumber.Benchmarks -- --filter '*' --job s
 
 - **Generic conversions** (`PreciseNumber/PreciseNumber.Conversions.cs`): The `TryConvertFrom*` and `TryConvertTo*` members behind `CreateChecked`, `CreateSaturating`, and `CreateTruncating`, for every built-in numeric type and `BigInteger`. `To<T>()` uses them too
 
-- **PreciseNumberExtensions** (`PreciseNumber/PreciseNumberExtensions.cs`): Extension methods providing `ToPreciseNumber<T>()` for converting any `INumber<T>` to PreciseNumber
+- **PreciseNumberExtensions** (`PreciseNumber/PreciseNumberExtensions.cs`): Extension methods providing `ToPreciseNumber<T>()` for converting any `INumber<T>` to PreciseNumber. Integer and floating-point types convert directly; any other type falls back to `CreateChecked`, so a type that converts itself through `TryConvertToChecked<PreciseNumber>` (such as `ktsu.SignificantNumber`) works, and only a type that can't throws `NotSupportedException`
 
 ### Key Design Patterns
 
