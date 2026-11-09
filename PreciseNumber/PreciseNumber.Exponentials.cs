@@ -192,6 +192,19 @@ public readonly partial record struct PreciseNumber
 	public static PreciseNumber Log(PreciseNumber x, PreciseNumber newBase, int significantDigits)
 	{
 		RequireSignificantDigits(significantDigits);
+
+		// Each argument is checked under its own name before either logarithm is worked out, so a bad
+		// base is not reported as a bad value by the single-argument Log it would otherwise reach.
+		if (x.Significand.Sign <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(x), x, NonPositiveLogarithmMessage);
+		}
+
+		if (newBase.Significand.Sign <= 0)
+		{
+			throw new ArgumentOutOfRangeException(nameof(newBase), newBase, NonPositiveLogarithmMessage);
+		}
+
 		int working = significantDigits + ExponentialGuardDigits;
 		return DivideApproximation(Log(x, working), Log(newBase, working), working, significantDigits);
 	}
