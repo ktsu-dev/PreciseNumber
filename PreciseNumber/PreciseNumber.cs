@@ -1229,17 +1229,16 @@ public readonly partial record struct PreciseNumber
 			throw new FormatException(InvalidFormatMessage);
 		}
 
-		s = StripAffixes(s, style, numberFormat, out bool isNegative, out bool hasCurrencySymbol);
+		s = StripAffixes(s, style, numberFormat, out bool isNegative, out bool hasLeadingCurrencySymbol);
 
 		if (s.Length == 1 && s[0] == '0')
 		{
 			return Zero;
 		}
 
-		// Once a currency symbol has been read, the number is written the way the culture writes money.
-		ReadOnlySpan<char> decimalSeparator = hasCurrencySymbol ? numberFormat.CurrencyDecimalSeparator : numberFormat.NumberDecimalSeparator;
-		ReadOnlySpan<char> groupSeparator = hasCurrencySymbol ? numberFormat.CurrencyGroupSeparator : numberFormat.NumberGroupSeparator;
-		bool allowThousands = style.HasFlag(NumberStyles.AllowThousands) && !groupSeparator.IsEmpty;
+		(string decimalSeparator, string groupSeparator, string numberDecimalSeparator, string numberGroupSeparator) =
+			ChooseSeparators(style, numberFormat, hasLeadingCurrencySymbol);
+		bool allowThousands = style.HasFlag(NumberStyles.AllowThousands);
 		bool allowDecimalPoint = style.HasFlag(NumberStyles.AllowDecimalPoint);
 		bool allowExponent = style.HasFlag(NumberStyles.AllowExponent);
 
@@ -1260,7 +1259,8 @@ public readonly partial record struct PreciseNumber
 			for (int i = 0; i < s.Length; i++)
 			{
 				char c = s[i];
-				if (allowDecimalPoint && StartsWithSeparator(s[i..], decimalSeparator))
+				int decimalLength = allowDecimalPoint ? MatchSeparator(s[i..], decimalSeparator, numberDecimalSeparator) : 0;
+				if (decimalLength > 0)
 				{
 					if (hasDecimal)
 					{
@@ -1268,14 +1268,15 @@ public readonly partial record struct PreciseNumber
 					}
 
 					hasDecimal = true;
-					i += decimalSeparator.Length - 1;
+					i += decimalLength - 1;
 					continue;
 				}
 
 				// Group separators may only sit between integral digits.
-				if (allowThousands && !hasDecimal && digitCount > 0 && StartsWithSeparator(s[i..], groupSeparator))
+				int groupLength = allowThousands && !hasDecimal && digitCount > 0 ? MatchSeparator(s[i..], groupSeparator, numberGroupSeparator) : 0;
+				if (groupLength > 0)
 				{
-					i += groupSeparator.Length - 1;
+					i += groupLength - 1;
 					continue;
 				}
 
@@ -1313,6 +1314,44 @@ public readonly partial record struct PreciseNumber
 				ArrayPool<char>.Shared.Return(rentedDigits);
 			}
 		}
+	}
+
+	/// <summary>
+	/// Chooses the separators <see cref="Parse(ReadOnlySpan{char}, NumberStyles, IFormatProvider?)"/> reads
+	/// between digits: a decimal and a group separator tried first, and a second pair tried after them,
+	/// empty when there is none.
+	/// </summary>
+	/// <remarks>
+	/// As in the BCL, a style that allows a currency symbol reads the culture's currency separators
+	/// first, and also accepts its number separators unless a symbol was read ahead of the digits.
+	/// Cultures such as fr-CH and en-DE separate money differently from other numbers, so <c>"1.5"</c>
+	/// is one and a half there under <see cref="NumberStyles.Any"/>, not fifteen.
+	/// </remarks>
+	private static (string Decimal, string Group, string NumberDecimal, string NumberGroup) ChooseSeparators(NumberStyles style, NumberFormatInfo numberFormat, bool hasLeadingCurrencySymbol)
+	{
+		if (!style.HasFlag(NumberStyles.AllowCurrencySymbol))
+		{
+			return (numberFormat.NumberDecimalSeparator, numberFormat.NumberGroupSeparator, string.Empty, string.Empty);
+		}
+
+		return hasLeadingCurrencySymbol
+			? (numberFormat.CurrencyDecimalSeparator, numberFormat.CurrencyGroupSeparator, string.Empty, string.Empty)
+			: (numberFormat.CurrencyDecimalSeparator, numberFormat.CurrencyGroupSeparator, numberFormat.NumberDecimalSeparator, numberFormat.NumberGroupSeparator);
+	}
+
+	/// <summary>
+	/// Returns the length of whichever of <paramref name="separator"/> and <paramref name="alternative"/>
+	/// <paramref name="s"/> starts with, trying <paramref name="separator"/> first, or zero when it starts
+	/// with neither. An empty separator never matches.
+	/// </summary>
+	private static int MatchSeparator(ReadOnlySpan<char> s, ReadOnlySpan<char> separator, ReadOnlySpan<char> alternative)
+	{
+		if (!separator.IsEmpty && StartsWithSeparator(s, separator))
+		{
+			return separator.Length;
+		}
+
+		return !alternative.IsEmpty && StartsWithSeparator(s, alternative) ? alternative.Length : 0;
 	}
 
 	/// <summary>
@@ -1430,7 +1469,7 @@ public readonly partial record struct PreciseNumber
 	/// since cultures such as de-DE write <c>1.234,50 €</c>. At most one sign and one symbol are read.
 	/// </remarks>
 	/// <exception cref="FormatException">Thrown when the parentheses enclose a sign.</exception>
-	private static ReadOnlySpan<char> StripAffixes(ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, out bool isNegative, out bool hasCurrencySymbol)
+	private static ReadOnlySpan<char> StripAffixes(ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, out bool isNegative, out bool hasLeadingCurrencySymbol)
 	{
 		bool hasParentheses = style.HasFlag(NumberStyles.AllowParentheses) && s.Length >= 2 && s[0] == '(' && s[^1] == ')';
 		if (hasParentheses)
@@ -1441,9 +1480,10 @@ public readonly partial record struct PreciseNumber
 		ReadOnlySpan<char> currencySymbol = style.HasFlag(NumberStyles.AllowCurrencySymbol) ? numberFormat.CurrencySymbol : [];
 		bool hasSign = false;
 		isNegative = false;
-		hasCurrencySymbol = false;
+		bool hasCurrencySymbol = false;
 
 		StripLeadingAffixes(ref s, style, numberFormat, currencySymbol, ref hasSign, ref isNegative, ref hasCurrencySymbol);
+		hasLeadingCurrencySymbol = hasCurrencySymbol;
 		StripTrailingAffixes(ref s, style, numberFormat, currencySymbol, ref hasSign, ref isNegative, ref hasCurrencySymbol);
 
 		if (hasParentheses)
