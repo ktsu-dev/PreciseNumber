@@ -1222,6 +1222,7 @@ public readonly partial record struct PreciseNumber
 			throw new ArgumentException(UnsupportedParseStylesMessage, nameof(style));
 		}
 
+		s = TrimTrailingNuls(s);
 		s = TrimAllowedWhite(s, style);
 
 		if (s.IsEmpty)
@@ -1441,6 +1442,21 @@ public readonly partial record struct PreciseNumber
 	/// space or NEL, is not trimmed.
 	/// </summary>
 	private const string AllowedWhite = " \t\n\v\f\r";
+
+	/// <summary>
+	/// Removes the run of <c>'\0'</c> characters that ends <paramref name="s"/>, as the BCL parsers
+	/// ignore it, so that text from a NUL-padded buffer parses the way <see cref="decimal"/> reads it.
+	/// </summary>
+	/// <remarks>
+	/// Under every style, white space included: the NULs are dropped only when they are the very last
+	/// characters, and only when something else comes before them, so text that is nothing but NULs
+	/// is still an error.
+	/// </remarks>
+	private static ReadOnlySpan<char> TrimTrailingNuls(ReadOnlySpan<char> s)
+	{
+		ReadOnlySpan<char> trimmed = s.TrimEnd('\0');
+		return trimmed.IsEmpty ? s : trimmed;
+	}
 
 	/// <summary>Trims the leading and trailing white space that <paramref name="style"/> allows.</summary>
 	private static ReadOnlySpan<char> TrimAllowedWhite(ReadOnlySpan<char> s, NumberStyles style)
