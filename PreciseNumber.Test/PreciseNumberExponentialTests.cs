@@ -143,6 +143,28 @@ public class PreciseNumberExponentialTests
 	}
 
 	[TestMethod]
+	public void TestLogInABaseNamesTheArgumentOutsideTheDomain()
+	{
+		// The base is passed on to the single-argument Log, whose guard names x, so each argument has
+		// to be checked under its own name first.
+		ArgumentOutOfRangeException negativeBase = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+			() => PreciseNumber.Log(5.ToPreciseNumber(), (-2).ToPreciseNumber()));
+		Assert.AreEqual("newBase", negativeBase.ParamName);
+		Assert.AreEqual((-2).ToPreciseNumber(), negativeBase.ActualValue);
+
+		ArgumentOutOfRangeException zeroBase = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+			() => PreciseNumber.Log(5.ToPreciseNumber(), PreciseNumber.Zero, 20));
+		Assert.AreEqual("newBase", zeroBase.ParamName);
+
+		ArgumentOutOfRangeException negativeValue = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
+			() => PreciseNumber.Log((-5).ToPreciseNumber(), 2.ToPreciseNumber()));
+		Assert.AreEqual("x", negativeValue.ParamName);
+
+		// A base of one is still a division by its zero logarithm.
+		Assert.ThrowsExactly<DivideByZeroException>(() => PreciseNumber.Log(5.ToPreciseNumber(), PreciseNumber.One));
+	}
+
+	[TestMethod]
 	public void TestExpMatchesPublishedDigits()
 	{
 		Assert.AreEqual(ESquaredDigits, Digits(PreciseNumber.Exp(2.ToPreciseNumber(), 50)), "Exp(2) is wrong");
