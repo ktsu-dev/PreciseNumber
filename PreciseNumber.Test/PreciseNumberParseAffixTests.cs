@@ -32,10 +32,33 @@ public class PreciseNumberParseAffixTests
 		NumberGroupSeparator = ".",
 	};
 
+	// Mixed and Swiss separate money differently from other numbers, as en-DE and fr-CH do. A style
+	// that allows a currency symbol reads the currency separators first, and the number separators
+	// too unless a symbol comes ahead of the digits.
+	private static readonly NumberFormatInfo Mixed = new()
+	{
+		CurrencySymbol = "€",
+		CurrencyDecimalSeparator = ".",
+		CurrencyGroupSeparator = ",",
+		NumberDecimalSeparator = ",",
+		NumberGroupSeparator = ".",
+	};
+
+	private static readonly NumberFormatInfo Swiss = new()
+	{
+		CurrencySymbol = "CHF",
+		CurrencyDecimalSeparator = ".",
+		CurrencyGroupSeparator = " ",
+		NumberDecimalSeparator = ",",
+		NumberGroupSeparator = " ",
+	};
+
 	private static NumberFormatInfo Format(string name) => name switch
 	{
 		"Dollars" => Dollars,
 		"Euros" => Euros,
+		"Mixed" => Mixed,
+		"Swiss" => Swiss,
 		_ => NumberFormatInfo.InvariantInfo,
 	};
 
@@ -54,6 +77,21 @@ public class PreciseNumberParseAffixTests
 	[DataRow("1.234,50 €", NumberStyles.Currency, "Euros")]
 	[DataRow("-1.234,50 €", NumberStyles.Currency, "Euros")]
 	[DataRow("1.234,50 €-", NumberStyles.Currency, "Euros")]
+	[DataRow("1.5", NumberStyles.Any, "Mixed")]
+	[DataRow("1.5", NumberStyles.Currency, "Mixed")]
+	[DataRow("1.25", NumberStyles.Any, "Mixed")]
+	[DataRow("1.25", NumberStyles.Currency, "Mixed")]
+	[DataRow("1,5 €", NumberStyles.Any, "Mixed")]
+	[DataRow("1,5 €", NumberStyles.Currency, "Mixed")]
+	[DataRow("1.234,5", NumberStyles.Number, "Mixed")]
+	[DataRow("1.5", NumberStyles.Any, "Swiss")]
+	[DataRow("1.5", NumberStyles.Currency, "Swiss")]
+	[DataRow("1 234.5", NumberStyles.Any, "Swiss")]
+	[DataRow("1 234.5", NumberStyles.Currency, "Swiss")]
+	[DataRow("1 234,50 CHF", NumberStyles.Any, "Swiss")]
+	[DataRow("1 234,50 CHF", NumberStyles.Currency, "Swiss")]
+	[DataRow("CHF 1 234.50", NumberStyles.Currency, "Swiss")]
+	[DataRow("€1,5", NumberStyles.Any, "Mixed")]
 	public void TestParseAcceptsWhatDecimalAccepts(string text, NumberStyles style, string format)
 	{
 		NumberFormatInfo numberFormat = Format(format);
@@ -62,6 +100,21 @@ public class PreciseNumberParseAffixTests
 		Assert.AreEqual(expected, PreciseNumber.Parse(text, style, numberFormat), $"Parse(\"{text}\", {style}) is wrong");
 		Assert.IsTrue(PreciseNumber.TryParse(text, style, numberFormat, out PreciseNumber parsed), $"TryParse(\"{text}\", {style}) failed");
 		Assert.AreEqual(expected, parsed, $"TryParse(\"{text}\", {style}) is wrong");
+	}
+
+	[TestMethod]
+	[DataRow("1.25", "Mixed")]
+	[DataRow("1.5", "Swiss")]
+	public void TestDefaultParseReadsCurrencySeparatorsAsDecimalDoes(string text, string format)
+	{
+		// Parse(s, provider) uses NumberStyles.Any, which allows a currency symbol, so a format whose
+		// money is written with other separators than its numbers (en-DE, fr-CH) reads both, as decimal does.
+		NumberFormatInfo numberFormat = Format(format);
+		PreciseNumber expected = decimal.Parse(text, NumberStyles.Any, numberFormat).ToPreciseNumber();
+
+		Assert.AreEqual(expected, PreciseNumber.Parse(text, numberFormat), $"Parse(\"{text}\", {format}) is wrong");
+		Assert.IsTrue(PreciseNumber.TryParse(text, numberFormat, out PreciseNumber parsed), $"TryParse(\"{text}\", {format}) failed");
+		Assert.AreEqual(expected, parsed, $"TryParse(\"{text}\", {format}) is wrong");
 	}
 
 	[TestMethod]
@@ -85,6 +138,7 @@ public class PreciseNumberParseAffixTests
 	[DataRow("()", NumberStyles.Any, "Invariant")]
 	[DataRow("$", NumberStyles.Any, "Dollars")]
 	[DataRow("-", NumberStyles.Any, "Invariant")]
+	[DataRow("CHF 1,5", NumberStyles.Currency, "Swiss")]
 	public void TestParseRejectsWhatDecimalRejects(string text, NumberStyles style, string format)
 	{
 		NumberFormatInfo numberFormat = Format(format);
