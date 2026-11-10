@@ -295,7 +295,7 @@ public readonly partial record struct PreciseNumber
 		PreciseNumber magnitude = Abs(x);
 		if (magnitude > One)
 		{
-			throw new ArgumentOutOfRangeException(nameof(x), x, InverseDomainMessage);
+			throw DomainError(nameof(x), x, InverseDomainMessage);
 		}
 
 		if (x.Significand.IsZero)
@@ -345,7 +345,7 @@ public readonly partial record struct PreciseNumber
 		PreciseNumber magnitude = Abs(x);
 		if (magnitude > One)
 		{
-			throw new ArgumentOutOfRangeException(nameof(x), x, InverseDomainMessage);
+			throw DomainError(nameof(x), x, InverseDomainMessage);
 		}
 
 		int working = significantDigits + TrigonometricGuardDigits;

@@ -71,6 +71,30 @@ public readonly partial record struct PreciseNumber
 	/// <summary>The message carried by the exception thrown for a fractional power of a negative value.</summary>
 	private const string NegativeBaseMessage = "A negative value has no real power with a fractional exponent.";
 
+	/// <summary>The most fractional digits <see cref="DomainError"/> renders of the offending value.</summary>
+	private const int DomainErrorFractionalDigits = 30;
+
+	/// <summary>
+	/// Builds the exception a domain check throws for an argument outside the function's domain.
+	/// </summary>
+	/// <param name="paramName">The name of the offending parameter.</param>
+	/// <param name="value">The offending value.</param>
+	/// <param name="message">What the function's domain is.</param>
+	/// <returns>The exception to throw.</returns>
+	/// <remarks>
+	/// <see cref="ArgumentOutOfRangeException.Message"/> renders <see cref="ArgumentOutOfRangeException.ActualValue"/>
+	/// with <c>ToString()</c>, which writes fixed point: hundreds of megabytes for an exponent in the hundreds of
+	/// millions, and an exception of its own past what a string can hold. So the value is carried in the
+	/// <c>E</c> format, every digit of it up to <see cref="DomainErrorFractionalDigits"/> after the point,
+	/// and reading the message can neither throw nor stall.
+	/// </remarks>
+	private static ArgumentOutOfRangeException DomainError(string paramName, PreciseNumber value, string message)
+	{
+		int fractionalDigits = Math.Clamp(value.SignificantDigits - 1, 0, DomainErrorFractionalDigits);
+		string rendered = value.ToString("E" + fractionalDigits.ToString(InvariantCulture), InvariantCulture);
+		return new ArgumentOutOfRangeException(paramName, rendered, message);
+	}
+
 	/// <summary>Two, as the divisor of the halving step and the multiplier of the atanh series.</summary>
 	private static PreciseNumber Two { get; } = new(0, 2);
 
@@ -143,7 +167,7 @@ public readonly partial record struct PreciseNumber
 
 		if (x.Significand.Sign <= 0)
 		{
-			throw new ArgumentOutOfRangeException(nameof(x), x, NonPositiveLogarithmMessage);
+			throw DomainError(nameof(x), x, NonPositiveLogarithmMessage);
 		}
 
 		if (x.IsUnit)
@@ -270,7 +294,7 @@ public readonly partial record struct PreciseNumber
 
 		if (x.Significand.Sign <= 0)
 		{
-			throw new ArgumentOutOfRangeException(nameof(x), x, NonPositiveLogarithmMessage);
+			throw DomainError(nameof(x), x, NonPositiveLogarithmMessage);
 		}
 
 		(PreciseNumber mantissa, long decimalExponent) = SplitAroundRootTen(x);
@@ -323,7 +347,7 @@ public readonly partial record struct PreciseNumber
 
 		if (x <= NegativeOne)
 		{
-			throw new ArgumentOutOfRangeException(nameof(x), x, LogP1DomainMessage);
+			throw DomainError(nameof(x), x, LogP1DomainMessage);
 		}
 
 		// Away from zero there is nothing to cancel, so the general logarithm is both simpler and
