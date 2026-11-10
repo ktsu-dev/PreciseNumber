@@ -117,8 +117,38 @@ public static class PreciseNumberExtensions
 				return true;
 
 			default:
-				preciseNumber = default;
-				return false;
+				return TryCreateThroughGenericMath(input, out preciseNumber);
 		}
 	}
+
+	/// <summary>
+	/// Converts a type that is neither an integer nor a floating-point type, but may know how to become a
+	/// <see cref="PreciseNumber"/> itself through <c>TryConvertToChecked</c>, as <c>ktsu.SignificantNumber</c>
+	/// does.
+	/// </summary>
+	/// <remarks>
+	/// <c>CreateChecked</c> asks <see cref="PreciseNumber"/> first and then <typeparamref name="TInput"/>,
+	/// and throws <see cref="NotSupportedException"/> when neither can convert, which is read here as
+	/// "unsupported". Any other exception, such as an <see cref="OverflowException"/>, is the conversion's
+	/// own answer and is left to propagate, as it would from <c>CreateChecked</c>.
+	/// </remarks>
+	private static bool TryCreateThroughGenericMath<TInput>(TInput input, out PreciseNumber preciseNumber)
+		where TInput : INumber<TInput>
+	{
+		try
+		{
+			preciseNumber = CreateChecked<PreciseNumber, TInput>(input);
+			return true;
+		}
+		catch (NotSupportedException)
+		{
+			preciseNumber = default;
+			return false;
+		}
+	}
+
+	private static TSelf CreateChecked<TSelf, TOther>(TOther value)
+		where TSelf : INumberBase<TSelf>
+		where TOther : INumberBase<TOther>
+		=> TSelf.CreateChecked(value);
 }
