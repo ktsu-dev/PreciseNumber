@@ -49,8 +49,16 @@ public readonly partial record struct PreciseNumber
 	/// </summary>
 	private const string InvalidFormatMessage = "Input string was not in a correct format.";
 
-	/// <summary>The spaces a culture may put between a currency symbol and the number, as de-DE does in <c>1.234,50 €</c>.</summary>
-	private static readonly char[] CurrencySymbolSpaces = [' ', '\u00A0', '\u202F'];
+	/// <summary>
+	/// The rendered spaces a culture may put between a currency symbol and the number, as Windows' de-DE does in
+	/// <c>1.234,50 €</c> with U+00A0. They are accepted next to the symbol whatever the style. An ordinary space or
+	/// other white space there is accepted only as <see cref="NumberStyles.AllowLeadingWhite"/> and
+	/// <see cref="NumberStyles.AllowTrailingWhite"/> allow it, as the BCL parsers do.
+	/// </summary>
+	private const string CurrencySymbolSpaces = "\u00A0\u202F";
+
+	/// <summary>The rendered spaces of <see cref="CurrencySymbolSpaces"/> and the white space of <see cref="AllowedWhite"/>.</summary>
+	private const string CurrencySymbolSpacesAndWhite = CurrencySymbolSpaces + AllowedWhite;
 
 	private const string UnsupportedParseStylesMessage = "The number styles AllowHexSpecifier and AllowBinarySpecifier are not supported by PreciseNumber.";
 
@@ -1481,8 +1489,13 @@ public readonly partial record struct PreciseNumber
 	/// <remarks>
 	/// Mirrors the BCL parsers. Parentheses mean negative and may not be combined with a sign. The sign
 	/// and the currency symbol may come in either order on either side, as <c>-$1.5</c>, <c>$-1.5</c>
-	/// and <c>1,5 €-</c> do, and a space or no-break space may separate the symbol from the number,
-	/// since cultures such as de-DE write <c>1.234,50 €</c>. At most one sign and one symbol are read.
+	/// and <c>1,5 €-</c> do. At most one sign and one symbol are read. White space may separate them
+	/// from each other and from the digits as the BCL allows it: on the trailing side wherever
+	/// <see cref="NumberStyles.AllowTrailingWhite"/> is set, as <c>1,234.50 -</c> (negative pattern 4)
+	/// needs, and on the leading side under <see cref="NumberStyles.AllowLeadingWhite"/> after a currency
+	/// symbol, or after a sign or opening parenthesis once a currency symbol has been read or when the
+	/// format's <see cref="NumberFormatInfo.NumberNegativePattern"/> is 2, <c>- 1,234.50</c>.
+	/// A no-break space next to a currency symbol is accepted under any style.
 	/// </remarks>
 	/// <exception cref="FormatException">Thrown when the parentheses enclose a sign.</exception>
 	private static ReadOnlySpan<char> StripAffixes(ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, out bool isNegative, out bool hasLeadingCurrencySymbol)
@@ -1491,6 +1504,17 @@ public readonly partial record struct PreciseNumber
 		if (hasParentheses)
 		{
 			s = s[1..^1];
+
+			// The opening parenthesis counts as a sign for the white space after it, as in the BCL
+			if (style.HasFlag(NumberStyles.AllowLeadingWhite) && numberFormat.NumberNegativePattern == 2)
+			{
+				s = s.TrimStart(AllowedWhite.AsSpan());
+			}
+
+			if (style.HasFlag(NumberStyles.AllowTrailingWhite))
+			{
+				s = s.TrimEnd(AllowedWhite.AsSpan());
+			}
 		}
 
 		ReadOnlySpan<char> currencySymbol = style.HasFlag(NumberStyles.AllowCurrencySymbol) ? numberFormat.CurrencySymbol : [];
@@ -1520,6 +1544,7 @@ public readonly partial record struct PreciseNumber
 	/// </summary>
 	private static void StripLeadingAffixes(ref ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, ReadOnlySpan<char> currencySymbol, ref bool hasSign, ref bool isNegative, ref bool hasCurrencySymbol)
 	{
+		bool allowLeadingWhite = style.HasFlag(NumberStyles.AllowLeadingWhite);
 		for (int pass = 0; pass < 2 && !s.IsEmpty; pass++)
 		{
 			bool leadingNegative = false;
@@ -1528,12 +1553,12 @@ public readonly partial record struct PreciseNumber
 			{
 				hasSign = true;
 				isNegative = leadingNegative;
-				s = s[signLength..];
+				s = TrimWhiteAfterLeadingSign(s[signLength..], allowLeadingWhite, numberFormat, hasCurrencySymbol);
 			}
 			else if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.StartsWith(currencySymbol, StringComparison.Ordinal))
 			{
 				hasCurrencySymbol = true;
-				s = s[currencySymbol.Length..].TrimStart(CurrencySymbolSpaces);
+				s = s[currencySymbol.Length..].TrimStart(SpacesBesideCurrencySymbol(allowLeadingWhite));
 			}
 			else
 			{
@@ -1543,17 +1568,34 @@ public readonly partial record struct PreciseNumber
 	}
 
 	/// <summary>
+	/// Trims the white space after a leading sign that the BCL takes: only under
+	/// <see cref="NumberStyles.AllowLeadingWhite"/>, and only once a currency symbol has been read or when the
+	/// format writes its negative numbers as <c>- n</c>.
+	/// </summary>
+	private static ReadOnlySpan<char> TrimWhiteAfterLeadingSign(ReadOnlySpan<char> s, bool allowLeadingWhite, NumberFormatInfo numberFormat, bool hasCurrencySymbol) =>
+		allowLeadingWhite && (hasCurrencySymbol || numberFormat.NumberNegativePattern == 2)
+			? s.TrimStart(AllowedWhite.AsSpan())
+			: s;
+
+	/// <summary>
+	/// The characters trimmed beside a currency symbol: its rendered spaces, and white space too when the style allows it on that side.
+	/// </summary>
+	private static ReadOnlySpan<char> SpacesBesideCurrencySymbol(bool allowWhite) =>
+		(allowWhite ? CurrencySymbolSpacesAndWhite : CurrencySymbolSpaces).AsSpan();
+
+	/// <summary>
 	/// Removes a trailing currency symbol and a trailing sign, in either order, for <see cref="StripAffixes"/>.
 	/// </summary>
 	private static void StripTrailingAffixes(ref ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, ReadOnlySpan<char> currencySymbol, ref bool hasSign, ref bool isNegative, ref bool hasCurrencySymbol)
 	{
 		bool allowTrailingSign = style.HasFlag(NumberStyles.AllowTrailingSign);
+		bool allowTrailingWhite = style.HasFlag(NumberStyles.AllowTrailingWhite);
 		for (int pass = 0; pass < 2 && !s.IsEmpty; pass++)
 		{
 			if (!hasCurrencySymbol && !currencySymbol.IsEmpty && s.EndsWith(currencySymbol, StringComparison.Ordinal))
 			{
 				hasCurrencySymbol = true;
-				s = s[..^currencySymbol.Length].TrimEnd(CurrencySymbolSpaces);
+				s = s[..^currencySymbol.Length].TrimEnd(SpacesBesideCurrencySymbol(allowTrailingWhite));
 				continue;
 			}
 
@@ -1567,6 +1609,12 @@ public readonly partial record struct PreciseNumber
 			hasSign = true;
 			isNegative = trailingNegative;
 			s = s[..^signLength];
+
+			// The BCL takes white space anywhere among the trailing affixes under AllowTrailingWhite
+			if (allowTrailingWhite)
+			{
+				s = s.TrimEnd(AllowedWhite.AsSpan());
+			}
 		}
 	}
 

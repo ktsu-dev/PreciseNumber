@@ -32,6 +32,12 @@ public class PreciseNumberParseAffixTests
 		NumberGroupSeparator = ".",
 	};
 
+	// Writes negative numbers as "- n", the one negative pattern after whose sign the BCL takes white space.
+	private static readonly NumberFormatInfo SpacedSign = new()
+	{
+		NumberNegativePattern = 2,
+	};
+
 	// Mixed and Swiss separate money differently from other numbers, as en-DE and fr-CH do. A style
 	// that allows a currency symbol reads the currency separators first, and the number separators
 	// too unless a symbol comes ahead of the digits.
@@ -57,6 +63,7 @@ public class PreciseNumberParseAffixTests
 	{
 		"Dollars" => Dollars,
 		"Euros" => Euros,
+		"SpacedSign" => SpacedSign,
 		"Mixed" => Mixed,
 		"Swiss" => Swiss,
 		_ => NumberFormatInfo.InvariantInfo,
@@ -77,6 +84,24 @@ public class PreciseNumberParseAffixTests
 	[DataRow("1.234,50 €", NumberStyles.Currency, "Euros")]
 	[DataRow("-1.234,50 €", NumberStyles.Currency, "Euros")]
 	[DataRow("1.234,50 €-", NumberStyles.Currency, "Euros")]
+	[DataRow("5 -", NumberStyles.Number, "Invariant")]
+	[DataRow("5\t-", NumberStyles.Number, "Invariant")]
+	[DataRow(" 5 - ", NumberStyles.Number, "Invariant")]
+	[DataRow("5  -", NumberStyles.Number, "Invariant")]
+	[DataRow("5 +", NumberStyles.Number, "Invariant")]
+	[DataRow("1,234.50 -", NumberStyles.Number, "Invariant")]
+	[DataRow("(5 )", NumberStyles.Number | NumberStyles.AllowParentheses, "Invariant")]
+	[DataRow("- 5", NumberStyles.Number, "SpacedSign")]
+	[DataRow("- 1,234.50", NumberStyles.Number, "SpacedSign")]
+	[DataRow("( 5)", NumberStyles.Number | NumberStyles.AllowParentheses, "SpacedSign")]
+	[DataRow("$\t5", NumberStyles.Currency, "Dollars")]
+	[DataRow("5\t$", NumberStyles.Currency, "Dollars")]
+	[DataRow("$ 5", NumberStyles.Currency, "Dollars")]
+	[DataRow("$- 5", NumberStyles.Currency, "Dollars")]
+	[DataRow("$ - 5", NumberStyles.Currency, "Dollars")]
+	[DataRow("-$ 5", NumberStyles.Currency, "Dollars")]
+	[DataRow("5 $ -", NumberStyles.Currency, "Dollars")]
+	[DataRow("5 - $", NumberStyles.Currency, "Dollars")]
 	[DataRow("1.5", NumberStyles.Any, "Mixed")]
 	[DataRow("1.5", NumberStyles.Currency, "Mixed")]
 	[DataRow("1.25", NumberStyles.Any, "Mixed")]
@@ -138,6 +163,15 @@ public class PreciseNumberParseAffixTests
 	[DataRow("()", NumberStyles.Any, "Invariant")]
 	[DataRow("$", NumberStyles.Any, "Dollars")]
 	[DataRow("-", NumberStyles.Any, "Invariant")]
+	[DataRow("- 5", NumberStyles.Number, "Invariant")]
+	[DataRow("+ 5", NumberStyles.Number, "Invariant")]
+	[DataRow("( 5)", NumberStyles.Number | NumberStyles.AllowParentheses, "Invariant")]
+	[DataRow("5 -", NumberStyles.AllowTrailingSign, "Invariant")]
+	[DataRow("- $5", NumberStyles.Currency, "Dollars")]
+	[DataRow("$ 5", NumberStyles.AllowCurrencySymbol | NumberStyles.AllowLeadingSign, "Dollars")]
+	[DataRow("$- 5", NumberStyles.AllowCurrencySymbol | NumberStyles.AllowLeadingSign, "Dollars")]
+	[DataRow("-$ 5", NumberStyles.AllowCurrencySymbol | NumberStyles.AllowLeadingSign, "Dollars")]
+	[DataRow("5 $", NumberStyles.AllowCurrencySymbol | NumberStyles.AllowTrailingSign, "Dollars")]
 	[DataRow("CHF 1,5", NumberStyles.Currency, "Swiss")]
 	public void TestParseRejectsWhatDecimalRejects(string text, NumberStyles style, string format)
 	{
@@ -146,5 +180,25 @@ public class PreciseNumberParseAffixTests
 
 		Assert.IsFalse(PreciseNumber.TryParse(text, style, numberFormat, out _), $"TryParse(\"{text}\", {style}) accepted it");
 		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse(text, style, numberFormat), $"Parse(\"{text}\", {style}) accepted it");
+	}
+
+	[TestMethod]
+	[DataRow(0)]
+	[DataRow(1)]
+	[DataRow(2)]
+	[DataRow(3)]
+	[DataRow(4)]
+	public void TestParseReadsBackEveryNumberNegativePattern(int pattern)
+	{
+		NumberFormatInfo numberFormat = (NumberFormatInfo)NumberFormatInfo.InvariantInfo.Clone();
+		numberFormat.NumberNegativePattern = pattern;
+
+		// Pattern 0 writes "(n)", which only AllowParentheses reads, for decimal as for PreciseNumber
+		NumberStyles style = pattern == 0 ? NumberStyles.Number | NumberStyles.AllowParentheses : NumberStyles.Number;
+		PreciseNumber value = PreciseNumber.Parse("-1234.5", CultureInfo.InvariantCulture);
+		string text = value.ToString("N2", numberFormat);
+
+		Assert.AreEqual(decimal.Parse(text, style, numberFormat).ToPreciseNumber(), value, $"decimal reads \"{text}\" differently, so the case is wrong");
+		Assert.AreEqual(value, PreciseNumber.Parse(text, style, numberFormat), $"Parse(\"{text}\") under pattern {pattern} is wrong");
 	}
 }
