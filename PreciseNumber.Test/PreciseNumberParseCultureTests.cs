@@ -10,11 +10,14 @@ public class PreciseNumberParseCultureTests
 {
 	// Hand-built formats keep these tests independent of the ICU data installed on the machine (and
 	// of globalization-invariant mode, where no named culture but the invariant one exists).
-	// CommaDecimal is shaped like de-DE, NarrowSpaceGroups like fr-FR.
+	// CommaDecimal is shaped like de-DE, NarrowSpaceGroups like fr-FR. de-DE writes money with the same
+	// separators as other numbers, and NumberStyles.Any reads the currency ones first, so they are set too.
 	private static readonly NumberFormatInfo CommaDecimal = new()
 	{
 		NumberDecimalSeparator = ",",
 		NumberGroupSeparator = ".",
+		CurrencyDecimalSeparator = ",",
+		CurrencyGroupSeparator = ".",
 		NegativeSign = "−",
 		PositiveSign = "+",
 	};
