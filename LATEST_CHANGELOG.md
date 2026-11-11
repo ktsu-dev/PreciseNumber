@@ -2,6 +2,7 @@
 
 Changes since v2.6.11:
 
+- Read white space around a sign or currency symbol as the BCL does [patch] (#191) (matt-edmondson)
 - Render a domain error's argument in E notation, so its message stays short [patch] (#192) (matt-edmondson)
 - Ignore a run of trailing NULs in Parse, as decimal and double do [patch] (#194) (matt-edmondson)
 - Name newBase, not x, when Log is given a base outside its domain [patch] (#197) (matt-edmondson)
