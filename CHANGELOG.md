@@ -2,6 +2,11 @@
 
 Changes since v2.6.11:
 
+- Render a domain error's argument in E notation, so its message stays short [patch] (#192) (matt-edmondson)
+- Ignore a run of trailing NULs in Parse, as decimal and double do [patch] (#194) (matt-edmondson)
+- Name newBase, not x, when Log is given a base outside its domain [patch] (#197) (matt-edmondson)
+- Read the number separators as well as the currency ones under AllowCurrencySymbol [patch] (#198) (matt-edmondson)
+- Convert an INumber type that converts itself to PreciseNumber in ToPreciseNumber [patch] (#199) (matt-edmondson)
 - Honour AllowParentheses, AllowTrailingSign and AllowCurrencySymbol in Parse [patch] (#184) (matt-edmondson)
 - Round Log in a base, Log2, Log2P1 and Log10P1 to the digits asked for [patch] (#183) (matt-edmondson)
 - Trim only ASCII white space under AllowLeadingWhite and AllowTrailingWhite [patch] (#182) (matt-edmondson)
