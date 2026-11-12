@@ -117,6 +117,13 @@ public class PreciseNumberParseAffixTests
 	[DataRow("1 234,50 CHF", NumberStyles.Currency, "Swiss")]
 	[DataRow("CHF 1 234.50", NumberStyles.Currency, "Swiss")]
 	[DataRow("€1,5", NumberStyles.Any, "Mixed")]
+	[DataRow("$(45)", NumberStyles.Currency, "Dollars")]
+	[DataRow("$(1,234.50)", NumberStyles.Currency, "Dollars")]
+	[DataRow("(45)$", NumberStyles.Currency, "Dollars")]
+	[DataRow("$ (45)", NumberStyles.Currency, "Dollars")]
+	[DataRow("¤(45)", NumberStyles.Any, "Invariant")]
+	[DataRow("(¤45)", NumberStyles.Any, "Invariant")]
+	[DataRow("(45¤)", NumberStyles.Any, "Invariant")]
 	public void TestParseAcceptsWhatDecimalAccepts(string text, NumberStyles style, string format)
 	{
 		NumberFormatInfo numberFormat = Format(format);
@@ -173,6 +180,9 @@ public class PreciseNumberParseAffixTests
 	[DataRow("-$ 5", NumberStyles.AllowCurrencySymbol | NumberStyles.AllowLeadingSign, "Dollars")]
 	[DataRow("5 $", NumberStyles.AllowCurrencySymbol | NumberStyles.AllowTrailingSign, "Dollars")]
 	[DataRow("CHF 1,5", NumberStyles.Currency, "Swiss")]
+	[DataRow("$($45)", NumberStyles.Currency, "Dollars")]
+	[DataRow("$(45)$", NumberStyles.Currency, "Dollars")]
+	[DataRow("$(45", NumberStyles.Currency, "Dollars")]
 	public void TestParseRejectsWhatDecimalRejects(string text, NumberStyles style, string format)
 	{
 		NumberFormatInfo numberFormat = Format(format);
