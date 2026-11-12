@@ -150,7 +150,7 @@ public class PreciseNumberExponentialTests
 		ArgumentOutOfRangeException negativeBase = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
 			() => PreciseNumber.Log(5.ToPreciseNumber(), (-2).ToPreciseNumber()));
 		Assert.AreEqual("newBase", negativeBase.ParamName);
-		Assert.AreEqual((-2).ToPreciseNumber(), negativeBase.ActualValue);
+		Assert.AreEqual("-2E+000", negativeBase.ActualValue);
 
 		ArgumentOutOfRangeException zeroBase = Assert.ThrowsExactly<ArgumentOutOfRangeException>(
 			() => PreciseNumber.Log(5.ToPreciseNumber(), PreciseNumber.Zero, 20));

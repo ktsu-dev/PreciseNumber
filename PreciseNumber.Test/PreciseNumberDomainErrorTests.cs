@@ -23,6 +23,9 @@ public class PreciseNumberDomainErrorTests
 		"Log" => PreciseNumber.Log(x),
 		"Log2" => PreciseNumber.Log2(x),
 		"Log10" => PreciseNumber.Log10(x),
+		"LogInBaseTwo" => PreciseNumber.Log(x, Parse("2")),
+		"LogOfTwoInBase" => PreciseNumber.Log(Parse("2"), x),
+		"LogOfTwoInBaseToFiveDigits" => PreciseNumber.Log(Parse("2"), x, 5),
 		"LogP1" => PreciseNumber.LogP1(x),
 		"Acosh" => PreciseNumber.Acosh(x),
 		"Atanh" => PreciseNumber.Atanh(x),
@@ -40,6 +43,10 @@ public class PreciseNumberDomainErrorTests
 	[DataRow("Log", "-1e-2000000000")]
 	[DataRow("Log", "-1e-2147483648")]
 	[DataRow("Log", "-1e-200000000")]
+	[DataRow("LogInBaseTwo", "-1e-2147483648")]
+	[DataRow("LogInBaseTwo", "-1e-100000")]
+	[DataRow("LogOfTwoInBase", "-1e-2147483648")]
+	[DataRow("LogOfTwoInBaseToFiveDigits", "-1e2147483647")]
 	[DataRow("Log2", "-1e2000000000")]
 	[DataRow("Log2", "-1e-2147483648")]
 	[DataRow("Log10", "-1e2000000000")]
