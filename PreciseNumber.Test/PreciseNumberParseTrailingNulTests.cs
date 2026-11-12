@@ -19,6 +19,8 @@ public class PreciseNumberParseTrailingNulTests
 	[DataRow("1e3 \0", NumberStyles.Float)]
 	[DataRow("12345\0\0\0\0\0\0\0\0", NumberStyles.Integer)]
 	[DataRow("-0.25\0", NumberStyles.Number)]
+	[DataRow("3e1\0", NumberStyles.Float)]
+	[DataRow("3e1\0\0", NumberStyles.Float)]
 	public void ParseIgnoresTrailingNulsAsDecimalDoes(string text, NumberStyles style)
 	{
 		CultureInfo culture = CultureInfo.InvariantCulture;
@@ -46,6 +48,25 @@ public class PreciseNumberParseTrailingNulTests
 	{
 		CultureInfo culture = CultureInfo.InvariantCulture;
 		Assert.IsFalse(decimal.TryParse(text, style, culture, out _), "The case must be one decimal rejects.");
+
+		Assert.IsFalse(PreciseNumber.TryParse(text, style, culture, out _));
+		Assert.IsFalse(PreciseNumber.TryParse(text.AsSpan(), style, culture, out _));
+		Assert.ThrowsExactly<FormatException>(() => PreciseNumber.Parse(text, style, culture));
+	}
+
+	[TestMethod]
+	[DataRow("3e1\0 ", NumberStyles.Float)]
+	[DataRow("3E0\0 ", NumberStyles.Any)]
+	[DataRow("3e1\0-", NumberStyles.Any)]
+	[DataRow("3e1\0\0-", NumberStyles.Any)]
+	[DataRow("3e1\0$", NumberStyles.Any)]
+	public void ParseRejectsANulInsideTheExponent(string text, NumberStyles style)
+	{
+		// Invariant, but with en-US's currency symbol, so "$" is read as one.
+		NumberFormatInfo culture = (NumberFormatInfo)NumberFormatInfo.InvariantInfo.Clone();
+		culture.CurrencySymbol = "$";
+		Assert.IsFalse(decimal.TryParse(text, style, culture, out _), "The case must be one decimal rejects.");
+		Assert.IsFalse(double.TryParse(text, style, culture, out _), "The case must be one double rejects.");
 
 		Assert.IsFalse(PreciseNumber.TryParse(text, style, culture, out _));
 		Assert.IsFalse(PreciseNumber.TryParse(text.AsSpan(), style, culture, out _));
