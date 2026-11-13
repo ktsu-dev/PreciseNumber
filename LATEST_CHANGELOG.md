@@ -2,6 +2,9 @@
 
 Changes since v2.6.11:
 
+- Route Log in a base's domain errors through DomainError [patch] (#205) (matt-edmondson)
+- Reject a NUL inside the exponent in Parse [patch] (#206) (matt-edmondson)
+- Read a currency symbol outside the parentheses in Parse [patch] (#207) (matt-edmondson)
 - Read white space around a sign or currency symbol as the BCL does [patch] (#191) (matt-edmondson)
 - Render a domain error's argument in E notation, so its message stays short [patch] (#192) (matt-edmondson)
 - Ignore a run of trailing NULs in Parse, as decimal and double do [patch] (#194) (matt-edmondson)
