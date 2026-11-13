@@ -1500,7 +1500,17 @@ public readonly partial record struct PreciseNumber
 	/// <exception cref="FormatException">Thrown when the parentheses enclose a sign.</exception>
 	private static ReadOnlySpan<char> StripAffixes(ReadOnlySpan<char> s, NumberStyles style, NumberFormatInfo numberFormat, out bool isNegative, out bool hasLeadingCurrencySymbol)
 	{
-		bool hasParentheses = style.HasFlag(NumberStyles.AllowParentheses) && s.Length >= 2 && s[0] == '(' && s[^1] == ')';
+		ReadOnlySpan<char> currencySymbol = style.HasFlag(NumberStyles.AllowCurrencySymbol) ? numberFormat.CurrencySymbol : [];
+		bool hasCurrencySymbol = false;
+		bool hasOuterLeadingCurrencySymbol = false;
+
+		bool allowParentheses = style.HasFlag(NumberStyles.AllowParentheses);
+		if (allowParentheses)
+		{
+			StripCurrencySymbolOutsideParentheses(ref s, style, currencySymbol, ref hasCurrencySymbol, ref hasOuterLeadingCurrencySymbol);
+		}
+
+		bool hasParentheses = allowParentheses && IsEnclosedInParentheses(s);
 		if (hasParentheses)
 		{
 			s = s[1..^1];
@@ -1517,13 +1527,12 @@ public readonly partial record struct PreciseNumber
 			}
 		}
 
-		ReadOnlySpan<char> currencySymbol = style.HasFlag(NumberStyles.AllowCurrencySymbol) ? numberFormat.CurrencySymbol : [];
 		bool hasSign = false;
 		isNegative = false;
-		bool hasCurrencySymbol = false;
+		bool hadCurrencySymbol = hasCurrencySymbol;
 
 		StripLeadingAffixes(ref s, style, numberFormat, currencySymbol, ref hasSign, ref isNegative, ref hasCurrencySymbol);
-		hasLeadingCurrencySymbol = hasCurrencySymbol;
+		hasLeadingCurrencySymbol = hasOuterLeadingCurrencySymbol || (hasCurrencySymbol && !hadCurrencySymbol);
 		StripTrailingAffixes(ref s, style, numberFormat, currencySymbol, ref hasSign, ref isNegative, ref hasCurrencySymbol);
 
 		if (hasParentheses)
@@ -1538,6 +1547,47 @@ public readonly partial record struct PreciseNumber
 
 		return s;
 	}
+
+	/// <summary>
+	/// Removes a currency symbol written outside the parentheses, as in <c>$(45)</c>, <c>$ (45)</c> and
+	/// <c>(45)$</c>, for <see cref="StripAffixes"/>, along with the spaces it may have beside it.
+	/// </summary>
+	/// <remarks>
+	/// The BCL takes the symbol either inside or outside the parentheses. It is removed only when what
+	/// is left is wholly enclosed in them, and it counts as the one symbol a number may have, so
+	/// <c>$($45)</c> and <c>$(45)$</c> still fail.
+	/// </remarks>
+	private static void StripCurrencySymbolOutsideParentheses(ref ReadOnlySpan<char> s, NumberStyles style, ReadOnlySpan<char> currencySymbol, ref bool hasCurrencySymbol, ref bool isLeading)
+	{
+		if (currencySymbol.IsEmpty)
+		{
+			return;
+		}
+
+		if (s.StartsWith(currencySymbol, StringComparison.Ordinal))
+		{
+			ReadOnlySpan<char> rest = s[currencySymbol.Length..].TrimStart(SpacesBesideCurrencySymbol(style.HasFlag(NumberStyles.AllowLeadingWhite)));
+			if (IsEnclosedInParentheses(rest))
+			{
+				hasCurrencySymbol = true;
+				isLeading = true;
+				s = rest;
+				return;
+			}
+		}
+
+		if (s.EndsWith(currencySymbol, StringComparison.Ordinal))
+		{
+			ReadOnlySpan<char> rest = s[..^currencySymbol.Length].TrimEnd(SpacesBesideCurrencySymbol(style.HasFlag(NumberStyles.AllowTrailingWhite)));
+			if (IsEnclosedInParentheses(rest))
+			{
+				hasCurrencySymbol = true;
+				s = rest;
+			}
+		}
+	}
+
+	private static bool IsEnclosedInParentheses(ReadOnlySpan<char> s) => s.Length >= 2 && s[0] == '(' && s[^1] == ')';
 
 	/// <summary>
 	/// Removes a leading sign and a leading currency symbol, in either order, for <see cref="StripAffixes"/>.
