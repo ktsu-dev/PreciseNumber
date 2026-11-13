@@ -221,12 +221,12 @@ public readonly partial record struct PreciseNumber
 		// base is not reported as a bad value by the single-argument Log it would otherwise reach.
 		if (x.Significand.Sign <= 0)
 		{
-			throw new ArgumentOutOfRangeException(nameof(x), x, NonPositiveLogarithmMessage);
+			throw DomainError(nameof(x), x, NonPositiveLogarithmMessage);
 		}
 
 		if (newBase.Significand.Sign <= 0)
 		{
-			throw new ArgumentOutOfRangeException(nameof(newBase), newBase, NonPositiveLogarithmMessage);
+			throw DomainError(nameof(newBase), newBase, NonPositiveLogarithmMessage);
 		}
 
 		int working = significantDigits + ExponentialGuardDigits;
