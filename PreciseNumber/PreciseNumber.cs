@@ -1409,6 +1409,13 @@ public readonly partial record struct PreciseNumber
 		long exponent = 0;
 		if (hasExponent)
 		{
+			// long.Parse ignores trailing NULs by itself, so a NUL the parse kept because something follows
+			// it, as in "3e1\0 " once the white space is trimmed, would otherwise slip through here.
+			if (exponentText.Contains('\0'))
+			{
+				throw new FormatException(InvalidFormatMessage);
+			}
+
 			// Only a sign may precede its digits: NumberStyles.Integer would also let white space through,
 			// accepting "1e 5" where every BCL numeric type rejects it. A zero is zero whatever its written
 			// exponent, as for decimal and double, so only a nonzero value can overflow here.
